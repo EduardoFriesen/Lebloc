@@ -3,6 +3,7 @@ import { Sidebar } from './components/layout/Sidebar'
 import { PageLayout } from './components/layout/PageLayout'
 import { Card } from './components/ui/Card'
 import { motion } from 'framer-motion'
+import { ClientesPage } from './pages/clientes/ClientesPage'
 
 function Dashboard() {
   const stats = [
@@ -50,7 +51,7 @@ export default function App() {
         <Sidebar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/clientes" element={<Placeholder title="Clientes" />} />
+          <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/pases" element={<Placeholder title="Pases" />} />
           <Route path="/planes" element={<Placeholder title="Planes" />} />
           <Route path="/pagos" element={<Placeholder title="Pagos" />} />
