@@ -37,7 +37,7 @@ function Placeholder({ title }: { title: string }) {
   return (
     <PageLayout title={title}>
       <Card className="p-12 text-center">
-        <p className="text-muted text-sm">Proximamente...</p>
+        <p className="text-muted text-sm">Próximamente...</p>
       </Card>
     </PageLayout>
   )
