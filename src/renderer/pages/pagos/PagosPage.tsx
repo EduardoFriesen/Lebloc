@@ -5,7 +5,7 @@ import { Table } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
 import { PagoForm } from './PagoForm'
 import { Pago } from '../../types'
-import { formatCurrency, formatDate, formatDateTime } from '../../lib/utils'
+import { formatCurrency, formatDateTime } from '../../lib/utils'
 
 export function PagosPage() {
   const { pagos, fetchPagos, createPago } = usePagoStore()
@@ -21,10 +21,15 @@ export function PagosPage() {
     { key: 'observaciones', header: 'Obs.' },
   ]
 
+  const handleSubmit = async (data: any) => {
+    await createPago(data)
+    await fetchPagos()
+  }
+
   return (
     <PageLayout title="Pagos" actions={<Button onClick={() => setIsFormOpen(true)}>+ Registrar Pago</Button>}>
       <Table columns={columns} data={pagos} emptyMessage="No hay pagos registrados." />
-      <PagoForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSubmit={async (data) => { await createPago(data) }} />
+      <PagoForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSubmit={handleSubmit} />
     </PageLayout>
   )
 }

@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { Button } from '../../components/ui/Button'
 import { usePlanStore } from '../../stores/planStore'
-import { usePagoStore } from '../../stores/pagoStore'
+import { dbQuery } from '../../lib/db'
 import { motion } from 'framer-motion'
 
 interface PagoFormProps {
@@ -17,7 +17,6 @@ interface PagoFormProps {
 export function PagoForm({ isOpen, onClose, onSubmit }: PagoFormProps) {
   const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm()
   const { planes, fetchPlanes } = usePlanStore()
-  const { createPago } = usePagoStore()
   const [deudaInfo, setDeudaInfo] = useState<{ total: number; pagado: number; pendiente: number } | null>(null)
 
   useEffect(() => { fetchPlanes() }, [])
@@ -28,7 +27,12 @@ export function PagoForm({ isOpen, onClose, onSubmit }: PagoFormProps) {
     if (planId) {
       const plan = planes.find((p) => p.id === Number(planId))
       if (plan) {
-        setDeudaInfo({ total: plan.precio, pagado: 0, pendiente: plan.precio })
+        const fetchDeuda = async () => {
+          const result = await dbQuery('SELECT COALESCE(SUM(monto), 0) as totalPagado FROM pagos WHERE planId = ?', [plan.id])
+          const pagado = result[0]?.totalPagado || 0
+          setDeudaInfo({ total: plan.precio, pagado, pendiente: plan.precio - pagado })
+        }
+        fetchDeuda()
       }
     }
   }, [planId, planes])
