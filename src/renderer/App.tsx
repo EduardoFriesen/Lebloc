@@ -7,6 +7,7 @@ import { ClientesPage } from './pages/clientes/ClientesPage'
 import { PasesPage } from './pages/pases/PasesPage'
 import { PlanesPage } from './pages/planes/PlanesPage'
 import { PagosPage } from './pages/pagos/PagosPage'
+import { ProfesoresPage } from './pages/profesores/ProfesoresPage'
 
 function Dashboard() {
   const stats = [
@@ -58,7 +59,7 @@ export default function App() {
           <Route path="/pases" element={<PasesPage />} />
           <Route path="/planes" element={<PlanesPage />} />
           <Route path="/pagos" element={<PagosPage />} />
-          <Route path="/profesores" element={<Placeholder title="Profesores" />} />
+          <Route path="/profesores" element={<ProfesoresPage />} />
           <Route path="/ventas" element={<Placeholder title="Ventas" />} />
           <Route path="/kiosco" element={<Placeholder title="Kiosco" />} />
           <Route path="/empleados" element={<Placeholder title="Empleados" />} />
