@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { PageLayout } from './components/layout/PageLayout'
 import { Card } from './components/ui/Card'
 import { motion } from 'framer-motion'
+import { dbQuery } from './lib/db'
 import { ClientesPage } from './pages/clientes/ClientesPage'
 import { PasesPage } from './pages/pases/PasesPage'
 import { PlanesPage } from './pages/planes/PlanesPage'
@@ -10,26 +12,44 @@ import { PagosPage } from './pages/pagos/PagosPage'
 import { ProfesoresPage } from './pages/profesores/ProfesoresPage'
 
 function Dashboard() {
-  const stats = [
-    { label: 'Clientes activos', value: '--' },
-    { label: 'Planes activos', value: '--' },
-    { label: 'Ventas del mes', value: '$--' },
-    { label: 'Caja abierta', value: '--' },
+  const [stats, setStats] = useState({ clientes: 0, planes: 0, ventasMes: 0, cajaAbierta: false })
+
+  useEffect(() => {
+    const load = async () => {
+      const clientes = await dbQuery('SELECT COUNT(*) as count FROM clientes WHERE activo = 1')
+      const planes = await dbQuery('SELECT COUNT(*) as count FROM planes WHERE activo = 1')
+      const caja = await dbQuery("SELECT COUNT(*) as count FROM caja WHERE estado = 'abierta'")
+
+      setStats({
+        clientes: clientes[0]?.count || 0,
+        planes: planes[0]?.count || 0,
+        ventasMes: 0, // Will be implemented in Phase 2
+        cajaAbierta: (caja[0]?.count || 0) > 0,
+      })
+    }
+    load()
+  }, [])
+
+  const cards = [
+    { label: 'Clientes activos', value: stats.clientes.toString(), color: 'text-ink' },
+    { label: 'Planes activos', value: stats.planes.toString(), color: 'text-ink' },
+    { label: 'Ventas del mes', value: '$--', color: 'text-ink' },
+    { label: 'Caja', value: stats.cajaAbierta ? 'Abierta' : 'Cerrada', color: stats.cajaAbierta ? 'text-success' : 'text-muted' },
   ]
 
   return (
     <PageLayout title="Inicio">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+        {cards.map((card, index) => (
           <motion.div
-            key={stat.label}
+            key={card.label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
           >
             <Card>
-              <p className="text-sm text-muted">{stat.label}</p>
-              <p className="text-2xl font-bold text-ink mt-1 font-mono">{stat.value}</p>
+              <p className="text-sm text-muted">{card.label}</p>
+              <p className={`text-2xl font-bold mt-1 font-mono ${card.color}`}>{card.value}</p>
             </Card>
           </motion.div>
         ))}
