@@ -1,7 +1,14 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
+import { getDatabase, query, run, get } from './database'
 
 function createWindow() {
+  getDatabase()
+
+  ipcMain.handle('db:query', (_, sql, params) => query(sql, params))
+  ipcMain.handle('db:run', (_, sql, params) => run(sql, params))
+  ipcMain.handle('db:get', (_, sql, params) => get(sql, params))
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
