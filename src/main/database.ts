@@ -4,7 +4,7 @@ import { app } from 'electron'
 import fs from 'fs'
 
 const DB_PATH = path.join(app.getPath('userData'), 'lebloc.db')
-const SCHEMA_PATH = path.join(__dirname, '../database/schema.sql')
+const SCHEMA_PATH = path.join(__dirname, 'schema.sql')
 
 let db: Database.Database
 
