@@ -4,6 +4,7 @@ import { PageLayout } from './components/layout/PageLayout'
 import { Card } from './components/ui/Card'
 import { motion } from 'framer-motion'
 import { ClientesPage } from './pages/clientes/ClientesPage'
+import { PasesPage } from './pages/pases/PasesPage'
 
 function Dashboard() {
   const stats = [
@@ -52,7 +53,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/clientes" element={<ClientesPage />} />
-          <Route path="/pases" element={<Placeholder title="Pases" />} />
+          <Route path="/pases" element={<PasesPage />} />
           <Route path="/planes" element={<Placeholder title="Planes" />} />
           <Route path="/pagos" element={<Placeholder title="Pagos" />} />
           <Route path="/profesores" element={<Placeholder title="Profesores" />} />
