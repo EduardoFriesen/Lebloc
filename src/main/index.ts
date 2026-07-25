@@ -5,9 +5,18 @@ import { getDatabase, query, run, get } from './database'
 function createWindow() {
   getDatabase()
 
-  ipcMain.handle('db:query', (_, sql, params) => query(sql, params))
-  ipcMain.handle('db:run', (_, sql, params) => run(sql, params))
-  ipcMain.handle('db:get', (_, sql, params) => get(sql, params))
+  ipcMain.handle('db:query', (_, sql, params) => {
+    try { return query(sql, params) }
+    catch (e: any) { return { error: e.message } }
+  })
+  ipcMain.handle('db:run', (_, sql, params) => {
+    try { return run(sql, params) }
+    catch (e: any) { return { error: e.message } }
+  })
+  ipcMain.handle('db:get', (_, sql, params) => {
+    try { return get(sql, params) }
+    catch (e: any) { return { error: e.message } }
+  })
 
   const win = new BrowserWindow({
     width: 1280,

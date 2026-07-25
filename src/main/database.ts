@@ -23,14 +23,19 @@ function initializeSchema() {
   db.exec(schema)
 }
 
+function ensureDb(): Database.Database {
+  if (!db) throw new Error('Database not initialized. Call getDatabase() first.')
+  return db
+}
+
 export function query(sql: string, params?: unknown[]) {
-  return db.prepare(sql).all(params || [])
+  return ensureDb().prepare(sql).all(params || [])
 }
 
 export function run(sql: string, params?: unknown[]) {
-  return db.prepare(sql).run(params || [])
+  return ensureDb().prepare(sql).run(params || [])
 }
 
 export function get(sql: string, params?: unknown[]) {
-  return db.prepare(sql).get(params || [])
+  return ensureDb().prepare(sql).get(params || [])
 }
