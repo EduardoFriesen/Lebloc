@@ -5,6 +5,7 @@ import { Card } from './components/ui/Card'
 import { motion } from 'framer-motion'
 import { ClientesPage } from './pages/clientes/ClientesPage'
 import { PasesPage } from './pages/pases/PasesPage'
+import { PlanesPage } from './pages/planes/PlanesPage'
 
 function Dashboard() {
   const stats = [
@@ -54,7 +55,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/pases" element={<PasesPage />} />
-          <Route path="/planes" element={<Placeholder title="Planes" />} />
+          <Route path="/planes" element={<PlanesPage />} />
           <Route path="/pagos" element={<Placeholder title="Pagos" />} />
           <Route path="/profesores" element={<Placeholder title="Profesores" />} />
           <Route path="/ventas" element={<Placeholder title="Ventas" />} />
