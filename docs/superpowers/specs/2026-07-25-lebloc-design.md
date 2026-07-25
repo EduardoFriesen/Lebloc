@@ -225,7 +225,7 @@ Al registrar horas trabajadas: se genera automáticamente un registro en `gastos
 - Al crear un plan: `pasesRestantes = clasesSemanales × 4` (ej: 2x/sem → 8 pases)
 - Al asistir: `pasesRestantes -= 1`
 - Sin vencimiento, pero alerta cuando `pasesRestantes ≤ 2`
-- Al renovar: nuevo registro con `pasesRestantes` reiniciado y fecha actual
+- Al renovar: nuevo registro con `pasesRestantes` reiniciado y fecha actual, si todavia quedaban pases y se renueva se suman.
 
 ### Pagos parciales
 - Cada pago se registra en `pagos` vinculado al plan
@@ -236,7 +236,7 @@ Al registrar horas trabajadas: se genera automáticamente un registro en `gastos
 ### Productos kiosco
 - Sin control de stock
 - Al cargar: cantidadPorPaquete, costoPaquete → costoUnitario calculado automáticamente
-- Se vende unitariamente
+- Se vende unitariamente o cantidad
 
 ### Empleados y horas
 - Se registran horas trabajadas con fecha, horas, método de pago
@@ -244,7 +244,7 @@ Al registrar horas trabajadas: se genera automáticamente un registro en `gastos
 - Se genera gasto automáticamente al registrar horas
 
 ### Caja
-- Apertura: montoInicial + fecha
+- Apertura: montoInicial + fecha, todos los dias al iniciar el programa se ingresa la cantidad de efectivo en caja
 - Cierre: montoFinal, diferencia calculada, fecha
 - Solo una caja abierta a la vez
 - Ventas y pagos se vinculan a la sesión de caja activa
