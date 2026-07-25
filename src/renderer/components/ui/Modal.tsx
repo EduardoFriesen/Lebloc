@@ -31,7 +31,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-ink/40 backdrop-blur-sm"
+            className="fixed inset-0 bg-ink/40"
             onClick={onClose}
           />
           <motion.div
@@ -45,6 +45,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
               <h2 className="text-lg font-semibold text-ink">{title}</h2>
               <button
                 onClick={onClose}
+                aria-label="Cerrar"
                 className="text-muted hover:text-ink transition-colors duration-150 rounded-lg p-1 hover:bg-ink/5"
               >
                 ✕
