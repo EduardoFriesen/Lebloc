@@ -51,6 +51,8 @@ export const usePlanStore = create<PlanState>((set, get) => ({
     const now = new Date().toISOString()
     const pasesRestantes = plan.clasesSemanales * 4
 
+    await dbRun('UPDATE planes SET activo = 0 WHERE id = ?', [planId])
+
     const result = await dbRun(
       `INSERT INTO planes (clienteId, paseId, clasesSemanales, precio, pasesRestantes, profesorId, fechaInicio, activo, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
