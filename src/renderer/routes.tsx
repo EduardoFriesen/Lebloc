@@ -1,6 +1,8 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { EmptyState } from './components/ui/States';
+import { ClientFormPage } from './pages/ClientFormPage';
+import { ClientsPage } from './pages/ClientsPage';
 import { PlansPage } from './pages/PlansPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeacherFormPage } from './pages/TeacherFormPage';
@@ -22,7 +24,10 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/planes" replace />} />
+        <Route index element={<Navigate to="/clientes" replace />} />
+        <Route path="clientes" element={<ClientsPage />} />
+        <Route path="clientes/nuevo" element={<ClientFormPage />} />
+        <Route path="clientes/:id/editar" element={<ClientFormPage />} />
         <Route path="planes" element={<PlansPage />} />
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/nuevo" element={<TeacherFormPage />} />
