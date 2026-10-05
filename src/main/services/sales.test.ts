@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { allocatePayment } from '../../domain/allocation';
 import type { SaleInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
-import { registerPayment, voidPayment } from './payments';
+import { getPayment, registerPayment, voidPayment } from './payments';
 import { createPlan, updatePlan } from './plans';
 import { getSale, sellPlan, voidSale } from './sales';
 import { createTeacher, updateTeacher } from './teachers';
@@ -136,6 +137,32 @@ describe('sales and payments', () => {
 
     voidPayment(ctx, first.id);
     expect(getSale(ctx, sale.id).debtCents).toBe(2_000_000);
+  });
+
+  it('leaves earlier allocations untouched on a rejected void and allocates new payments from active ones only', () => {
+    // total 3_000_000 with a 1_000_000 surcharge: the proportional teacher share is 1/3 and rounds on odd amounts.
+    const sale = sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId, splitRule: 'proportional' }));
+    const first = pay(sale.id, 100_001);
+    const second = pay(sale.id, 100_001);
+    expect([first.teacherCents, second.teacherCents]).toEqual([33_334, 33_333]);
+    const firstBefore = getPayment(ctx, first.id);
+
+    expectDomainError(() => voidPayment(ctx, first.id), 'ONLY_LAST_PAYMENT_VOIDABLE');
+    expect(getPayment(ctx, first.id)).toEqual(firstBefore);
+
+    voidPayment(ctx, second.id);
+    const third = pay(sale.id, 50_000);
+    const expected = allocatePayment({
+      totalCents: 3_000_000,
+      surchargeCents: 1_000_000,
+      splitRule: 'proportional',
+      allocatedLocalCents: firstBefore.localCents,
+      allocatedTeacherCents: firstBefore.teacherCents,
+      amountCents: 50_000,
+    });
+    expect({ localCents: third.localCents, teacherCents: third.teacherCents }).toEqual(expected);
+    // Active teacher total is the rounded cumulative share of what is really paid (150_001), not drifted by the voided payment.
+    expect(firstBefore.teacherCents + third.teacherCents).toBe(Math.round((150_001 * 1_000_000) / 3_000_000));
   });
 
   it('voids a sale only when it has no active payments', () => {
