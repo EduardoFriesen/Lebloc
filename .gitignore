@@ -1,0 +1,11 @@
+node_modules/
+out/
+dist/
+.vite/
+.env
+.env.*
+*.db
+*.db-wal
+*.db-shm
+playwright-report/
+test-results/

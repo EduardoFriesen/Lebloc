@@ -4,10 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del proyecto
 
-Lebloc es un sistema de gestión para un local de escalada. El repo se reinició desde cero en el commit `e3e01dc` ("de cero"). La única fuente de requisitos es `lebloc.md`. Todavía no hay stack, comandos ni código.
+Lebloc es un sistema de gestión para un local de escalada. Es una app de escritorio offline para una sola PC de mostrador. Requisitos en `lebloc.md`; diseño en `docs/superpowers/specs/`; planes en `docs/superpowers/plans/`. Hay 4 subproyectos: 1) núcleo (clientes, profesores, planes, ventas, pagos y pases), 2) kiosco, 3) gastos y empleados, 4) balance y análisis. Cada uno tiene su propia spec.
 
-- El stack se define en brainstorming antes de escribir código. Cuando se defina, agregá acá los comandos de build, lint, typecheck y tests (incluido cómo correr un test individual) y la arquitectura.
-- La implementación anterior (Electron + SQLite + React + Zustand, hasta `67ac1a5`) sigue en el historial de git. Sirve como referencia (`git show 67ac1a5:<ruta>`), pero no es una decisión vigente.
+## Comandos
+
+```bash
+npm run dev          # app en modo desarrollo (electron-vite)
+npm test             # Vitest con el runtime de Electron (better-sqlite3 está compilado para Electron)
+npm test -- src/domain/allocation.test.ts -t "proportional"   # un archivo / un test
+npm run typecheck    # tsc sobre tsconfig.node.json y tsconfig.web.json
+npm run lint
+npm run test:e2e     # build + Playwright sobre Electron
+npm run audit        # npm audit --audit-level=high
+```
+
+No correr Vitest con el `node` del sistema: falla con `NODE_MODULE_VERSION`. Si se reinstaló algo, `npx electron-rebuild -f -w better-sqlite3`.
+
+## Arquitectura
+
+- `src/domain/`: reglas de negocio puras, sin I/O. Toda regla nueva va acá, con su test.
+- `src/main/`: `db/` (conexión y migraciones numeradas, versión en `PRAGMA user_version`), `repos/` (solo SQL), `services/` (casos de uso, transacciones, invocan reglas de `domain`), `ipc/` (validación Zod → service → `{ success, data | error }`).
+- `src/preload/`: expone `window.lebloc.invoke(channel, input)` con lista blanca de `src/shared/channels.ts`.
+- `src/shared/`: esquemas Zod, DTOs y helpers de dinero, compartidos por main y renderer.
+- `src/renderer/`: React + Tailwind, solo vista. Llama a main con `call()` (`lib/api.ts`) y maneja los 4 estados con `useAsync` + `AsyncView`.
+- Para agregar un canal: nombre en `shared/channels.ts`, esquema en `shared/api.ts` (`apiSchemas` y `ApiOutputs`), handler en `main/ipc/handlers.ts`.
+- El dinero va en centavos enteros. Los derivados (deuda, pases restantes, saldo de profesor) no se guardan: se calculan desde los movimientos. Las ventas guardan un snapshot del plan y del profesor. Los movimientos se anulan (`voided_at`), nunca se borran.
 
 ## Reglas de dominio no obvias (de `lebloc.md`)
 
