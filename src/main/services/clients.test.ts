@@ -1,0 +1,112 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { expectDomainError } from '../../test/helpers';
+import { adultClient, createTestContext, minorClient, TEST_NOW, type TestContext } from '../test-context';
+import {
+  anonymizeClient,
+  archiveClient,
+  createClient,
+  getClient,
+  listClients,
+  unarchiveClient,
+  updateClient,
+} from './clients';
+
+describe('clients service', () => {
+  let ctx: TestContext;
+
+  beforeEach(() => {
+    ctx = createTestContext();
+  });
+
+  it('creates an adult without guardians and stamps updatedAt', () => {
+    const client = createClient(ctx, adultClient);
+    expect(client.id).toBeGreaterThan(0);
+    expect(client.firstName).toBe('Ana');
+    expect(client.guardians).toEqual([]);
+    expect(client.updatedAt).toBe(TEST_NOW.toISOString());
+  });
+
+  it('creates a minor with guardians', () => {
+    const client = createClient(ctx, minorClient);
+    expect(client.guardians).toHaveLength(1);
+    expect(client.guardians[0]?.relation).toBe('Madre');
+  });
+
+  it('rejects a minor without guardians on create', () => {
+    expectDomainError(() => createClient(ctx, { ...minorClient, guardians: [] }), 'MINOR_REQUIRES_GUARDIAN');
+  });
+
+  it('rejects removing every guardian from a minor on update', () => {
+    const client = createClient(ctx, minorClient);
+    expectDomainError(() => updateClient(ctx, { ...minorClient, id: client.id, guardians: [] }), 'MINOR_REQUIRES_GUARDIAN');
+    expect(getClient(ctx, client.id).guardians).toHaveLength(1);
+  });
+
+  it('updates fields, replaces guardians and stamps updatedAt', () => {
+    const client = createClient(ctx, minorClient);
+    const later = new Date(2026, 9, 6, 9, 0, 0);
+    ctx.clock.set(later);
+    const updated = updateClient(ctx, {
+      ...minorClient,
+      id: client.id,
+      phone: '1166660000',
+      guardians: [{ firstName: 'Pablo', lastName: 'Roca', dni: null, phone: null, relation: 'Padre' }],
+    });
+    expect(updated.phone).toBe('1166660000');
+    expect(updated.guardians.map((g) => g.firstName)).toEqual(['Pablo']);
+    expect(updated.updatedAt).toBe(later.toISOString());
+  });
+
+  it('searches by name in either order and hides archived clients by default', () => {
+    const ana = createClient(ctx, adultClient);
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
+    expect(listClients(ctx, { search: 'roca', includeArchived: false }).map((c) => c.id)).toEqual([ana.id]);
+    expect(listClients(ctx, { search: 'Roca Ana', includeArchived: false }).map((c) => c.id)).toEqual([ana.id]);
+    archiveClient(ctx, ana.id);
+    expect(listClients(ctx, { search: '', includeArchived: false }).map((c) => c.lastName)).toEqual(['Sierra']);
+    expect(listClients(ctx, { search: '', includeArchived: true })).toHaveLength(2);
+  });
+
+  it('treats LIKE wildcards in the search as plain text', () => {
+    createClient(ctx, adultClient);
+    expect(listClients(ctx, { search: '%', includeArchived: false })).toEqual([]);
+  });
+
+  it('summarizes a client without sales as zero passes and zero debt', () => {
+    createClient(ctx, adultClient);
+    expect(listClients(ctx, { search: '', includeArchived: false })[0]).toMatchObject({
+      activeSales: 0,
+      remainingFree: 0,
+      remainingTeacher: 0,
+      debtCents: 0,
+    });
+  });
+
+  it('blocks edits on archived clients and allows unarchiving', () => {
+    const client = createClient(ctx, adultClient);
+    archiveClient(ctx, client.id);
+    expectDomainError(() => updateClient(ctx, { ...adultClient, id: client.id }), 'CLIENT_ARCHIVED');
+    expect(unarchiveClient(ctx, client.id).archivedAt).toBeNull();
+  });
+
+  it('anonymizes only archived clients, wiping personal data and guardians', () => {
+    const client = createClient(ctx, minorClient);
+    expectDomainError(() => anonymizeClient(ctx, client.id), 'CLIENT_NOT_ARCHIVED');
+    archiveClient(ctx, client.id);
+    const anonymized = anonymizeClient(ctx, client.id);
+    expect(anonymized).toMatchObject({
+      firstName: 'Cliente',
+      lastName: `anonimizado #${client.id}`,
+      birthDate: null,
+      phone: null,
+      emergencyName: null,
+      guardians: [],
+    });
+    expect(anonymized.anonymizedAt).toBe(TEST_NOW.toISOString());
+    expectDomainError(() => unarchiveClient(ctx, client.id), 'CLIENT_ANONYMIZED');
+  });
+
+  it('fails with NOT_FOUND for unknown clients', () => {
+    expectDomainError(() => getClient(ctx, 999), 'NOT_FOUND');
+  });
+});
