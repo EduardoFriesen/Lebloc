@@ -63,16 +63,6 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
       });
       const [source] = result.filePaths;
       if (result.canceled || !source) return { status: 'cancelled' };
-      const { response } = await dialog.showMessageBox({
-        type: 'warning',
-        title: 'Restaurar backup',
-        message: 'Se van a reemplazar todos los datos actuales por los del archivo elegido.',
-        detail: 'Antes de restaurar se guarda una copia de seguridad de los datos actuales.',
-        buttons: ['Cancelar', 'Restaurar'],
-        defaultId: 0,
-        cancelId: 0,
-      });
-      if (response !== 1) return { status: 'cancelled' };
       await holder.restoreFrom(source, backupDir, new Date());
       return { status: 'done', path: source };
     },
