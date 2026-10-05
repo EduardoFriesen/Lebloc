@@ -4,10 +4,12 @@ interface DialogProps {
   open: boolean;
   title: string;
   onClose: () => void;
+  /** When false, Escape does nothing (e.g. while an action is running). */
+  dismissible?: boolean;
   children: ReactNode;
 }
 
-export function Dialog({ open, title, onClose, children }: DialogProps) {
+export function Dialog({ open, title, onClose, dismissible = true, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -23,6 +25,9 @@ export function Dialog({ open, title, onClose, children }: DialogProps) {
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      onCancel={(event) => {
+        if (!dismissible) event.preventDefault();
+      }}
       className="m-auto w-full max-w-xl rounded-sm border-t-4 border-volt bg-chalk p-0 text-granite shadow-2xl backdrop:bg-granite/60"
     >
       {open && (

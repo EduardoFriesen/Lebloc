@@ -1,4 +1,5 @@
 import { copyFile, rename, rm } from 'node:fs/promises';
+import { DomainError } from '../../domain/errors';
 import { createBackup, validateBackupFile } from '../backup';
 import { type Db, openDatabase } from './connection';
 
@@ -7,6 +8,7 @@ import { type Db, openDatabase } from './connection';
 export class DatabaseHolder {
   private readonly path: string;
   private current: Db;
+  private restoring = false;
 
   constructor(path: string) {
     this.path = path;
@@ -22,6 +24,16 @@ export class DatabaseHolder {
   }
 
   async restoreFrom(source: string, backupDir: string, now: Date): Promise<void> {
+    if (this.restoring) throw new DomainError('RESTORE_IN_PROGRESS');
+    this.restoring = true;
+    try {
+      await this.swapIn(source, backupDir, now);
+    } finally {
+      this.restoring = false;
+    }
+  }
+
+  private async swapIn(source: string, backupDir: string, now: Date): Promise<void> {
     validateBackupFile(source);
     // Stage the copy first: the safety backup below prunes the folder and could delete `source`.
     const staged = `${this.path}.restoring`;

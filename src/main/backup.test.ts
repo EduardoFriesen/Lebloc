@@ -96,4 +96,22 @@ describe('backups', () => {
     expect(listPlans(ctx, true)).toHaveLength(1);
     holder.close();
   });
+
+  it('rejects a second restore while one is running and keeps the first intact', async () => {
+    const holder = new DatabaseHolder(join(dir, 'lebloc.db'));
+    const ctx = holderContext(holder);
+    createPlan(ctx, freePlan);
+    const saved = await createBackup(holder.db, join(dir, 'saved'), new Date(Date.UTC(2026, 9, 5, 12)));
+    createPlan(ctx, { ...freePlan, name: 'Otro plan' });
+    const backups = join(dir, 'backups');
+
+    const first = holder.restoreFrom(saved, backups, new Date(Date.UTC(2026, 9, 5, 13)));
+    const second = holder.restoreFrom(saved, backups, new Date(Date.UTC(2026, 9, 5, 14)));
+
+    await expectDomainErrorAsync(() => second, 'RESTORE_IN_PROGRESS');
+    await first;
+    expect(listPlans(ctx, true).map((plan) => plan.name)).toEqual(['Pack 8 libres']);
+    await holder.restoreFrom(saved, backups, new Date(Date.UTC(2026, 9, 5, 15)));
+    holder.close();
+  });
 });

@@ -17,6 +17,7 @@ export const ERROR_MESSAGES = {
   CLIENT_NOT_ARCHIVED: 'Solo se puede anonimizar un cliente archivado.',
   CLIENT_ANONYMIZED: 'El cliente fue anonimizado y no se puede modificar.',
   INVALID_BACKUP: 'El archivo no es un backup válido de Lebloc.',
+  RESTORE_IN_PROGRESS: 'Ya hay una restauración en curso.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 

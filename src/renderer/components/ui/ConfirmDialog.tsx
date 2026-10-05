@@ -18,15 +18,23 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ request, onDone, onClose }: ConfirmDialogProps) {
+  const [busy, setBusy] = useState(false);
   return (
-    <Dialog open={request !== null} title={request?.title ?? ''} onClose={onClose}>
-      {request && <ConfirmBody request={request} onDone={onDone} onClose={onClose} />}
+    <Dialog open={request !== null} title={request?.title ?? ''} onClose={() => !busy && onClose()} dismissible={!busy}>
+      {request && <ConfirmBody request={request} busy={busy} setBusy={setBusy} onDone={onDone} onClose={onClose} />}
     </Dialog>
   );
 }
 
-function ConfirmBody({ request, onDone, onClose }: { request: ConfirmRequest; onDone: () => void; onClose: () => void }) {
-  const [busy, setBusy] = useState(false);
+interface ConfirmBodyProps {
+  request: ConfirmRequest;
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
+  onDone: () => void;
+  onClose: () => void;
+}
+
+function ConfirmBody({ request, busy, setBusy, onDone, onClose }: ConfirmBodyProps) {
   const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
@@ -34,6 +42,7 @@ function ConfirmBody({ request, onDone, onClose }: { request: ConfirmRequest; on
     setError(null);
     try {
       await request.action();
+      setBusy(false);
       onDone();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -46,7 +55,7 @@ function ConfirmBody({ request, onDone, onClose }: { request: ConfirmRequest; on
       <p className="text-sm">{request.message}</p>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" disabled={busy} onClick={onClose}>
           Cancelar
         </Button>
         <Button variant="danger" disabled={busy} onClick={() => void confirm()}>

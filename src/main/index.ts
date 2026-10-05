@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import log from 'electron-log/main';
 import { toIsoDate } from '../domain/dates';
 import { createBackup, writeBackupFile } from './backup';
@@ -16,6 +16,8 @@ const BACKUP_FILTERS = [{ name: 'Base de datos de Lebloc', extensions: ['db'] }]
 
 // Exact page the app loads; the only sender IPC trusts.
 const APP_URL = process.env.ELECTRON_RENDERER_URL ?? pathToFileURL(join(__dirname, '../renderer/index.html')).href;
+
+let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -38,13 +40,26 @@ function createWindow(): BrowserWindow {
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else void win.loadFile(join(__dirname, '../renderer/index.html'));
+  mainWindow = win;
+  win.on('closed', () => {
+    mainWindow = null;
+  });
   return win;
+}
+
+// Dialogs are modal to the main window so no second backup action can start while one is open.
+function showSave(options: SaveDialogOptions) {
+  return mainWindow ? dialog.showSaveDialog(mainWindow, options) : dialog.showSaveDialog(options);
+}
+
+function showOpen(options: OpenDialogOptions) {
+  return mainWindow ? dialog.showOpenDialog(mainWindow, options) : dialog.showOpenDialog(options);
 }
 
 function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
   return {
     async exportBackup() {
-      const result = await dialog.showSaveDialog({
+      const result = await showSave({
         title: 'Exportar backup',
         defaultPath: `lebloc-${toIsoDate(new Date())}.db`,
         filters: BACKUP_FILTERS,
@@ -54,7 +69,7 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
       return { status: 'done', path: result.filePath };
     },
     async restoreBackup() {
-      const result = await dialog.showOpenDialog({
+      const result = await showOpen({
         title: 'Restaurar backup',
         properties: ['openFile'],
         filters: BACKUP_FILTERS,
