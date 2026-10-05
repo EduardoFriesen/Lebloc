@@ -99,13 +99,24 @@ async function start(): Promise<void> {
   createWindow();
 }
 
-app
-  .whenReady()
-  .then(start)
-  .catch((error: unknown) => {
-    log.error(error);
-    dialog.showErrorBox('Lebloc no pudo iniciar', 'Revisá el archivo de log de la aplicación.');
-    app.quit();
+// A second instance would open the same SQLite file and race restores against writes.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
   });
+
+  app
+    .whenReady()
+    .then(start)
+    .catch((error: unknown) => {
+      log.error(error);
+      dialog.showErrorBox('Lebloc no pudo iniciar', 'Revisá el archivo de log de la aplicación.');
+      app.quit();
+    });
+}
 
 app.on('window-all-closed', () => app.quit());
