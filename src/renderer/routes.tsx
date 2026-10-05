@@ -1,8 +1,8 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { EmptyState } from './components/ui/States';
-import { ClientFormPage } from './pages/ClientFormPage';
 import { ClientDetailPage } from './pages/ClientDetailPage';
+import { ClientFormPage } from './pages/ClientFormPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { PlansPage } from './pages/PlansPage';
 import { SettingsPage } from './pages/SettingsPage';

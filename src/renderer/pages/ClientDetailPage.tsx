@@ -44,14 +44,18 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const [selling, setSelling] = useState(false);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function run(action: () => Promise<unknown>, success: string) {
+    setBusy(true);
     try {
       await action();
       setNotice({ tone: 'success', text: success });
       reload();
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -65,7 +69,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const headerActions = archived ? (
     !client.anonymizedAt && (
       <>
-        <Button variant="secondary" onClick={() => void run(() => call('clients:unarchive', { id: client.id }), 'Cliente desarchivado.')}>
+        <Button variant="secondary" disabled={busy} onClick={() => void run(() => call('clients:unarchive', { id: client.id }), 'Cliente desarchivado.')}>
           Desarchivar
         </Button>
         <Button
@@ -119,7 +123,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         </div>
       )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
-        <PassesPanel account={account} disabled={archived} onConsume={consume} onSell={() => setSelling(true)} />
+        <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling(true)} />
         <div className="flex flex-col gap-8">
           <SalesPanel
             sales={account.sales}
