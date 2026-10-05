@@ -1,0 +1,37 @@
+import { ageFrom } from '../../domain/client';
+import { toIsoDate } from '../../domain/dates';
+import type { PassKind } from '../../domain/passes';
+import type { SplitRule } from '../../domain/sale';
+import type { PaymentMethod } from '../../shared/types';
+
+export { formatMoney, formatMoneyInput } from '../../shared/money';
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = { cash: 'Efectivo', transfer: 'Transferencia' };
+export const SPLIT_RULE_LABELS: Record<SplitRule, string> = {
+  proportional: 'Proporcional',
+  teacher_first: 'Primero el profesor',
+  local_first: 'Primero el local',
+};
+export const PASS_KIND_LABELS: Record<PassKind, string> = { free: 'Libre', teacher: 'Con profesor' };
+export const WEEKDAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as const;
+
+export function formatDate(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split('-');
+  return `${day}/${month}/${year}`;
+}
+
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+export function todayIso(): string {
+  return toIsoDate(new Date());
+}
+
+export function fullName(person: { firstName: string; lastName: string }): string {
+  return `${person.firstName} ${person.lastName}`;
+}
+
+export function ageLabel(birthDate: string | null): string {
+  return birthDate ? `${ageFrom(birthDate, todayIso())} años` : 'Edad sin datos';
+}
