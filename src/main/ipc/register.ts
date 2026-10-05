@@ -8,17 +8,23 @@ const FORBIDDEN: ApiResult<never> = {
   error: { code: 'FORBIDDEN', message: 'Origen no permitido.' },
 };
 
-export function isTrustedSender(frameUrl: string | undefined, devServerUrl: string | undefined): boolean {
+// `appUrl` is the exact page the app loads: the dev server URL or the file URL of the bundled index.html.
+export function isTrustedSender(frameUrl: string | undefined, appUrl: string): boolean {
   if (!frameUrl) return false;
-  return devServerUrl ? frameUrl.startsWith(devServerUrl) : frameUrl.startsWith('file://');
+  try {
+    const frame = new URL(frameUrl);
+    const app = new URL(appUrl);
+    if (frame.protocol !== app.protocol || frame.origin !== app.origin) return false;
+    return frame.protocol !== 'file:' || frame.pathname === app.pathname;
+  } catch {
+    return false;
+  }
 }
 
-export function registerIpc(ipcMain: IpcMain, handlers: Handlers, logError: ErrorLogger): void {
+export function registerIpc(ipcMain: IpcMain, handlers: Handlers, logError: ErrorLogger, appUrl: string): void {
   for (const channel of CHANNELS) {
     ipcMain.handle(channel, (event, rawInput: unknown) =>
-      isTrustedSender(event.senderFrame?.url, process.env.ELECTRON_RENDERER_URL)
-        ? execute(channel, rawInput, handlers, logError)
-        : FORBIDDEN,
+      isTrustedSender(event.senderFrame?.url, appUrl) ? execute(channel, rawInput, handlers, logError) : FORBIDDEN,
     );
   }
 }

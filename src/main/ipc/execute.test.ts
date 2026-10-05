@@ -52,11 +52,25 @@ describe('execute', () => {
 });
 
 describe('isTrustedSender', () => {
-  it('trusts only the bundled renderer or the dev server', () => {
-    expect(isTrustedSender('file:///opt/lebloc/out/renderer/index.html', undefined)).toBe(true);
-    expect(isTrustedSender('https://evil.example', undefined)).toBe(false);
-    expect(isTrustedSender('http://localhost:5173/#/clientes', 'http://localhost:5173')).toBe(true);
-    expect(isTrustedSender('file:///tmp/x.html', 'http://localhost:5173')).toBe(false);
-    expect(isTrustedSender(undefined, undefined)).toBe(false);
+  const fileApp = 'file:///opt/lebloc/out/renderer/index.html';
+  const devApp = 'http://localhost:5173';
+
+  it('accepts the exact bundled index.html, ignoring hash and query', () => {
+    expect(isTrustedSender(fileApp, fileApp)).toBe(true);
+    expect(isTrustedSender(`${fileApp}#/clientes?x=1`, fileApp)).toBe(true);
+  });
+
+  it('rejects any other file, scheme or missing url in production', () => {
+    expect(isTrustedSender('file:///tmp/dropped.html', fileApp)).toBe(false);
+    expect(isTrustedSender('file:///opt/lebloc/out/renderer/other.html', fileApp)).toBe(false);
+    expect(isTrustedSender('https://evil.example', fileApp)).toBe(false);
+    expect(isTrustedSender(undefined, fileApp)).toBe(false);
+  });
+
+  it('matches the exact dev origin only', () => {
+    expect(isTrustedSender('http://localhost:5173/#/clientes', devApp)).toBe(true);
+    expect(isTrustedSender('http://localhost:51730/', devApp)).toBe(false);
+    expect(isTrustedSender('http://localhost:5173.evil.example/', devApp)).toBe(false);
+    expect(isTrustedSender('file:///tmp/x.html', devApp)).toBe(false);
   });
 });

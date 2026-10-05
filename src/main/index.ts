@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import log from 'electron-log/main';
 import { toIsoDate } from '../domain/dates';
@@ -13,10 +14,8 @@ if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USE
 
 const BACKUP_FILTERS = [{ name: 'Base de datos de Lebloc', extensions: ['db'] }];
 
-function isAppUrl(url: string): boolean {
-  const devUrl = process.env.ELECTRON_RENDERER_URL;
-  return devUrl ? url.startsWith(devUrl) : url.startsWith('file://');
-}
+// Exact page the app loads; the only sender IPC trusts.
+const APP_URL = process.env.ELECTRON_RENDERER_URL ?? pathToFileURL(join(__dirname, '../renderer/index.html')).href;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -35,9 +34,8 @@ function createWindow(): BrowserWindow {
   });
   win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  win.webContents.on('will-navigate', (event, url) => {
-    if (!isAppUrl(url)) event.preventDefault();
-  });
+  // The app uses HashRouter and never navigates, so any navigation is hostile (e.g. a dropped file).
+  win.webContents.on('will-navigate', (event) => event.preventDefault());
   if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else void win.loadFile(join(__dirname, '../renderer/index.html'));
   return win;
@@ -81,7 +79,7 @@ async function start(): Promise<void> {
     },
     clock: systemClock,
   };
-  registerIpc(ipcMain, createHandlers(ctx, createBackupOps(holder, backupDir)), (error) => log.error(error));
+  registerIpc(ipcMain, createHandlers(ctx, createBackupOps(holder, backupDir)), (error) => log.error(error), APP_URL);
   app.on('before-quit', () => holder.close());
   createWindow();
 }
