@@ -6,7 +6,7 @@
   "author": "EduardoFriesen",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "electron-vite dev -- --ozone-platform=x11",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
