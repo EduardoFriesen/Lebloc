@@ -1,9 +1,9 @@
 import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError, expectDomainErrorAsync } from '../test/helpers';
-import { createBackup, validateBackupFile } from './backup';
+import { BACKUPS_TO_KEEP, createBackup, validateBackupFile } from './backup';
 import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { DatabaseHolder } from './db/holder';
@@ -62,6 +62,25 @@ describe('backups', () => {
 
     expect(listPlans(ctx, true).map((plan) => plan.name)).toEqual(['Pack 8 libres']);
     expect(await readdir(join(dir, 'backups'))).toHaveLength(1);
+    holder.close();
+  });
+
+  it('restores the oldest backup of a full folder without pruning it away first', async () => {
+    const holder = new DatabaseHolder(join(dir, 'lebloc.db'));
+    const ctx = holderContext(holder);
+    const backups = join(dir, 'backups');
+    createPlan(ctx, freePlan);
+    const oldest = await createBackup(holder.db, backups, new Date(Date.UTC(2026, 9, 5, 12, 0)));
+    createPlan(ctx, { ...freePlan, name: 'Otro plan' });
+    for (let minute = 1; minute < BACKUPS_TO_KEEP; minute += 1) {
+      await createBackup(holder.db, backups, new Date(Date.UTC(2026, 9, 5, 12, minute)));
+    }
+    expect(await readdir(backups)).toHaveLength(BACKUPS_TO_KEEP);
+
+    await holder.restoreFrom(oldest, backups, new Date(Date.UTC(2026, 9, 5, 13)));
+
+    expect(listPlans(ctx, true).map((plan) => plan.name)).toEqual(['Pack 8 libres']);
+    expect(await readdir(dirname(holder.db.name))).not.toContain('lebloc.db.restoring');
     holder.close();
   });
 

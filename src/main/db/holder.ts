@@ -1,4 +1,4 @@
-import { copyFile, rm } from 'node:fs/promises';
+import { copyFile, rename, rm } from 'node:fs/promises';
 import { createBackup, validateBackupFile } from '../backup';
 import { type Db, openDatabase } from './connection';
 
@@ -23,14 +23,30 @@ export class DatabaseHolder {
 
   async restoreFrom(source: string, backupDir: string, now: Date): Promise<void> {
     validateBackupFile(source);
-    await createBackup(this.current, backupDir, now);
+    // Stage the copy first: the safety backup below prunes the folder and could delete `source`.
+    const staged = `${this.path}.restoring`;
+    try {
+      await copyFile(source, staged);
+      await createBackup(this.current, backupDir, now);
+    } catch (error) {
+      await rm(staged, { force: true });
+      throw error;
+    }
     this.current.close();
+    let failure: unknown;
     try {
       await rm(`${this.path}-wal`, { force: true });
       await rm(`${this.path}-shm`, { force: true });
-      await copyFile(source, this.path);
-    } finally {
-      this.current = openDatabase(this.path);
+      await rename(staged, this.path);
+    } catch (error) {
+      failure = error;
+      await rm(staged, { force: true });
     }
+    try {
+      this.current = openDatabase(this.path);
+    } catch (error) {
+      throw failure ?? error;
+    }
+    if (failure) throw failure;
   }
 }
