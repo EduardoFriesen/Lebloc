@@ -28,11 +28,11 @@ export function Dialog({ open, title, onClose, dismissible = true, children }: D
       onCancel={(event) => {
         if (!dismissible) event.preventDefault();
       }}
-      className="m-auto w-full max-w-xl rounded-sm border-t-4 border-volt bg-chalk p-0 text-granite shadow-2xl backdrop:bg-granite/60"
+      className="m-auto w-full max-w-xl rounded-3xl border-t-4 border-volt bg-chalk p-0 text-granite shadow-2xl backdrop:bg-dusk/60"
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">
-          <h2 id={titleId} className="font-display text-2xl font-bold uppercase">
+          <h2 id={titleId} className="font-display text-2xl font-semibold">
             {title}
           </h2>
           {children}

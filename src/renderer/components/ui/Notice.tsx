@@ -15,7 +15,7 @@ export interface NoticeState {
 
 export function Notice({ tone, children }: { tone: NoticeTone; children: ReactNode }) {
   return (
-    <div role={tone === 'error' ? 'alert' : 'status'} className={`border-l-4 bg-white px-4 py-3 text-sm ${TONES[tone]}`}>
+    <div role={tone === 'error' ? 'alert' : 'status'} className={`rounded-xl border-l-4 bg-paper px-4 py-3 text-sm shadow-warm ${TONES[tone]}`}>
       {children}
     </div>
   );

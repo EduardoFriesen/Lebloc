@@ -30,8 +30,8 @@ export function TeacherAccountPage() {
 
 function Stat({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
   return (
-    <div className="bg-white p-5">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-granite-soft">{label}</dt>
+    <div className="rounded-2xl bg-paper p-5 shadow-warm">
+      <dt className="text-sm font-semibold text-granite-soft">{label}</dt>
       <dd data-testid={testId} className="font-display text-4xl font-bold">
         {value}
       </dd>
@@ -80,7 +80,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
 
       <div className="grid gap-8 xl:grid-cols-2">
         <section aria-labelledby="liquidaciones-title" className="flex flex-col gap-3">
-          <h2 id="liquidaciones-title" className="font-display text-2xl font-bold uppercase">
+          <h2 id="liquidaciones-title" className="font-display text-2xl font-semibold">
             Liquidaciones
           </h2>
           {account.payouts.length === 0 ? (
@@ -133,7 +133,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         </section>
 
         <section aria-labelledby="cobros-title" className="flex flex-col gap-3">
-          <h2 id="cobros-title" className="font-display text-2xl font-bold uppercase">
+          <h2 id="cobros-title" className="font-display text-2xl font-semibold">
             Cobros generados
           </h2>
           {account.shares.length === 0 ? (
@@ -163,7 +163,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         </section>
       </div>
 
-      <section aria-labelledby="agenda-title" className="mt-8 grid gap-4 bg-white p-5 md:grid-cols-2">
+      <section aria-labelledby="agenda-title" className="mt-8 grid gap-4 rounded-2xl bg-paper p-5 shadow-warm md:grid-cols-2">
         <h2 id="agenda-title" className="sr-only">
           Agenda y contacto
         </h2>

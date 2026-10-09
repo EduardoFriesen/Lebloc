@@ -70,9 +70,9 @@ export function HomePage() {
             {(clients) => (
               <ul className="flex flex-col gap-2">
                 {clients.map((client) => (
-                  <li key={client.id} className="flex flex-wrap items-center justify-between gap-3 bg-white p-4">
+                  <li key={client.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-paper p-4 shadow-warm">
                     <div>
-                      <Link className="font-display text-xl font-bold uppercase hover:underline" to={`/clientes/${client.id}`}>
+                      <Link className="font-display text-xl font-semibold hover:underline" to={`/clientes/${client.id}`}>
                         {fullName(client)}
                       </Link>
                       <p className="text-sm text-granite-soft">
@@ -117,9 +117,9 @@ export function HomePage() {
 function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="bg-white p-5">
+    <section aria-labelledby={id} className="rounded-2xl bg-paper p-5 shadow-warm">
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 id={id} className="font-display text-xl font-bold uppercase">
+        <h2 id={id} className="font-display text-xl font-semibold">
           {title}
         </h2>
         {action}

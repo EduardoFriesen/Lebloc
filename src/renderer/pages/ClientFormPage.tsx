@@ -98,8 +98,8 @@ function ClientForm({ client }: { client: Client | null }) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-8">
-      <fieldset className="bg-white p-6">
-        <legend className="font-display text-xl font-bold uppercase">Datos personales</legend>
+      <fieldset className="rounded-2xl bg-paper p-6 shadow-warm">
+        <legend className="font-display text-xl font-semibold">Datos personales</legend>
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Nombre" required {...bind('firstName')} />
           <TextField label="Apellido" required {...bind('lastName')} />
@@ -116,8 +116,8 @@ function ClientForm({ client }: { client: Client | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="bg-white p-6">
-        <legend className="font-display text-xl font-bold uppercase">Contacto de emergencia</legend>
+      <fieldset className="rounded-2xl bg-paper p-6 shadow-warm">
+        <legend className="font-display text-xl font-semibold">Contacto de emergencia</legend>
         <div className="grid gap-4 md:grid-cols-3">
           <TextField label="Nombre del contacto" {...bind('emergencyName')} />
           <TextField label="Teléfono del contacto" type="tel" {...bind('emergencyPhone')} />
@@ -125,8 +125,8 @@ function ClientForm({ client }: { client: Client | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-4 bg-white p-6">
-        <legend className="font-display text-xl font-bold uppercase">Tutores</legend>
+      <fieldset className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+        <legend className="font-display text-xl font-semibold">Tutores</legend>
         <p className="text-sm text-granite-soft">Obligatorio para menores de 18 años.</p>
         {minor && guardians.length === 0 && <Notice tone="warning">Es menor de edad: cargá al menos un tutor.</Notice>}
         {guardians.map((guardian, index) => {

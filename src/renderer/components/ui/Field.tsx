@@ -1,7 +1,7 @@
 import { type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, useId } from 'react';
 
 const CONTROL =
-  'w-full rounded-sm border border-granite/30 bg-white px-3 py-2 text-sm text-granite aria-[invalid=true]:border-danger';
+  'w-full rounded-xl border border-granite/25 bg-paper px-3 py-2 text-sm text-granite aria-[invalid=true]:border-danger';
 
 function describedBy(id: string, error?: string, hint?: string): string | undefined {
   if (error) return `${id}-error`;
@@ -12,7 +12,7 @@ function describedBy(id: string, error?: string, hint?: string): string | undefi
 function FieldShell({ id, label, error, hint, children }: { id: string; label: string; error?: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wide text-granite-soft">
+      <label htmlFor={id} className="text-sm font-semibold text-granite-soft">
         {label}
       </label>
       {children}

@@ -23,7 +23,7 @@ export function DebtorsPage() {
       >
         {(data) => (
           <>
-            <p className="mb-4 font-display text-3xl font-bold uppercase">
+            <p className="mb-4 font-display text-3xl font-semibold">
               Total adeudado <span className="text-volt-ink">{formatMoney(sum(data.map((debtor) => debtor.debtCents)))}</span>
             </p>
             <table className={tableClass}>

@@ -2,12 +2,19 @@ import type { ReactNode } from 'react';
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b-2 border-granite pb-4">
-      <div>
-        <h1 className="font-display text-4xl font-bold uppercase leading-none tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-granite-soft">{subtitle}</p>}
+    <header className="mb-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-4">
+        <div>
+          <h1 className="font-display text-4xl font-semibold leading-tight">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-granite-soft">{subtitle}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      <div aria-hidden="true" className="flex flex-col gap-0.5">
+        <span className="h-1 rounded-full bg-volt" />
+        <span className="h-1 rounded-full bg-ochre" />
+        <span className="h-1 rounded-full bg-dusk" />
+      </div>
     </header>
   );
 }

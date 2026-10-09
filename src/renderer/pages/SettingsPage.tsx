@@ -51,8 +51,8 @@ function SettingsForm({ initial }: { initial: Settings }) {
   }
 
   return (
-    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 bg-white p-6">
-      <h2 className="font-display text-2xl font-bold uppercase">Aviso de pocos pases</h2>
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+      <h2 className="font-display text-2xl font-semibold">Aviso de pocos pases</h2>
       <TextField
         label="Avisar cuando queden pases"
         type="number"
@@ -63,7 +63,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
         error={errors.lowPassesThreshold}
         hint="Se avisa cuando a un cliente le quedan esta cantidad de pases o menos."
       />
-      <h2 className="font-display text-2xl font-bold uppercase">Ficha firmada</h2>
+      <h2 className="font-display text-2xl font-semibold">Ficha firmada</h2>
       <TextField
         label="Vigencia de la ficha (meses)"
         type="number"
@@ -107,8 +107,8 @@ function BackupPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4 bg-white p-6">
-      <h2 className="font-display text-2xl font-bold uppercase">Backup</h2>
+    <div className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+      <h2 className="font-display text-2xl font-semibold">Backup</h2>
       <p className="text-sm text-granite-soft">
         Cada vez que se abre la app se guarda un backup automático (se conservan los últimos 10). Exportá una copia a un
         pendrive con regularidad: si la PC se rompe, es la única forma de recuperar los datos.

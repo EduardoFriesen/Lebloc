@@ -168,7 +168,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
             ))}
           </SelectField>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-granite-soft">Reparto de pagos</legend>
+            <legend className="mb-1 text-sm font-semibold text-granite-soft">Reparto de pagos</legend>
             {SPLIT_RULES.map((rule) => (
               <label key={rule} className="flex items-center gap-2 text-sm">
                 <input
@@ -191,7 +191,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
       {preview && ('error' in preview ? <Notice tone="warning">{preview.error}</Notice> : <SaleBreakdown snapshot={preview.snapshot} />)}
 
       <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
-        <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-granite-soft">Pago</legend>
+        <legend className="mb-1 text-sm font-semibold text-granite-soft">Pago</legend>
         {(Object.keys(PAYMENT_MODE_LABELS) as PaymentMode[]).map((mode) => (
           <label key={mode} className="flex items-center gap-2 text-sm">
             <input

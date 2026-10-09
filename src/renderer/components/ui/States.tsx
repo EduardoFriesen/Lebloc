@@ -6,7 +6,7 @@ export function SkeletonRows({ rows = 4 }: { rows?: number }) {
   return (
     <div role="status" aria-label="Cargando" className="flex flex-col gap-2">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="h-10 animate-pulse rounded-sm bg-chalk-deep" />
+        <div key={index} className="h-10 animate-pulse rounded-xl bg-chalk-deep" />
       ))}
     </div>
   );
@@ -14,7 +14,7 @@ export function SkeletonRows({ rows = 4 }: { rows?: number }) {
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 border-l-4 border-danger bg-white p-5">
+    <div role="alert" className="flex flex-col items-start gap-3 rounded-2xl border-l-4 border-danger bg-paper p-5 shadow-warm">
       <p className="font-semibold">No pudimos cargar esta sección.</p>
       <p className="text-sm text-granite-soft">{message}</p>
       {onRetry && (
@@ -28,9 +28,15 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-2 border-2 border-dashed border-granite/25 p-6">
-      <p className="font-display text-xl font-bold uppercase">{title}</p>
-      {children}
+    <div className="flex items-start gap-4 rounded-2xl border-2 border-dashed border-ochre/50 p-6">
+      <svg aria-hidden="true" viewBox="0 0 48 32" className="w-12 shrink-0">
+        <circle cx="30" cy="12" r="7" className="fill-ochre" />
+        <path d="M0 32 L16 10 L26 22 L32 16 L48 32 Z" className="fill-volt/80" />
+      </svg>
+      <div className="flex flex-col items-start gap-2">
+        <p className="font-display text-xl font-semibold">{title}</p>
+        {children}
+      </div>
     </div>
   );
 }

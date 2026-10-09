@@ -246,24 +246,24 @@ interface PassesPanelProps {
 
 function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps) {
   return (
-    <section aria-labelledby="pases-title" className="flex flex-col gap-4 bg-granite p-6 text-chalk">
-      <h2 id="pases-title" className="font-display text-2xl font-bold uppercase">
+    <section aria-labelledby="pases-title" className="flex flex-col gap-4 rounded-2xl bg-dusk p-6 text-chalk shadow-warm">
+      <h2 id="pases-title" className="font-display text-2xl font-semibold">
         Pases
       </h2>
       <p className="font-display text-6xl leading-none">
         {account.remainingFree + account.remainingTeacher}
-        <span className="ml-2 font-sans text-sm uppercase tracking-wide text-chalk/70">disponibles</span>
+        <span className="ml-2 font-sans text-sm text-chalk/75">disponibles</span>
       </p>
       <div className="flex flex-col gap-1 text-sm">
         <p>Libres restantes: {account.remainingFree}</p>
         <p>Con profesor restantes: {account.remainingTeacher}</p>
       </div>
       {account.lowOnPasses && (
-        <p role="status" className="bg-volt px-3 py-2 text-sm font-semibold text-granite">
+        <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-granite">
           Quedan pocos pases: ofrecé renovar el plan.
         </p>
       )}
-      {account.debtCents > 0 && <p className="font-semibold text-volt">Deuda total {formatMoney(account.debtCents)}</p>}
+      {account.debtCents > 0 && <p className="font-semibold text-peach">Deuda total {formatMoney(account.debtCents)}</p>}
       <div className="flex flex-col gap-2">
         <Button disabled={disabled || account.remainingFree <= 0} onClick={() => onConsume('free')}>
           Consumir libre
@@ -292,7 +292,7 @@ interface SalesPanelProps {
 function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
   return (
     <section aria-labelledby="ventas-title" className="flex flex-col gap-4">
-      <h2 id="ventas-title" className="font-display text-2xl font-bold uppercase">
+      <h2 id="ventas-title" className="font-display text-2xl font-semibold">
         Ventas
       </h2>
       {sales.length === 0 ? (
@@ -316,9 +316,9 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
   const border = voided ? 'border-granite/30 opacity-70' : sale.debtCents > 0 ? 'border-volt' : 'border-moss';
 
   return (
-    <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 bg-white p-5 ${border}`}>
+    <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 rounded-2xl bg-paper p-5 shadow-warm ${border}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-display text-xl font-bold uppercase">{sale.planName}</h3>
+        <h3 className="font-display text-xl font-semibold">{sale.planName}</h3>
         <p className="text-sm text-granite-soft">
           {formatDate(sale.soldAt)}
           {sale.teacherName && ` · con ${sale.teacherName}`}
@@ -404,7 +404,7 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
 function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: Consumption[]; disabled: boolean; onVoid: (consumption: Consumption) => void }) {
   return (
     <section aria-labelledby="consumos-title" className="flex flex-col gap-4">
-      <h2 id="consumos-title" className="font-display text-2xl font-bold uppercase">
+      <h2 id="consumos-title" className="font-display text-2xl font-semibold">
         Consumos
       </h2>
       {consumptions.length === 0 ? (
@@ -464,8 +464,8 @@ function ClientInfoPanel({ client }: { client: Client }) {
     ['Última actualización', formatDateTime(client.updatedAt)],
   ];
   return (
-    <section aria-labelledby="ficha-title" className="flex flex-col gap-3 bg-white p-5">
-      <h2 id="ficha-title" className="font-display text-2xl font-bold uppercase">
+    <section aria-labelledby="ficha-title" className="flex flex-col gap-3 rounded-2xl bg-paper p-5 shadow-warm">
+      <h2 id="ficha-title" className="font-display text-2xl font-semibold">
         Datos
       </h2>
       <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
@@ -504,13 +504,13 @@ interface WaiverPanelProps {
 
 function WaiverPanel({ account, disabled, onSign, onVoid }: WaiverPanelProps) {
   const { waiver, waivers } = account;
-  const tone = waiver.state === 'valid' ? 'bg-moss text-chalk' : 'bg-volt text-granite';
+  const tone = waiver.state === 'valid' ? 'bg-moss text-chalk' : 'bg-ochre text-granite';
   return (
-    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 bg-white p-5">
-      <h2 id="ficha-firmada-title" className="font-display text-2xl font-bold uppercase">
+    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 rounded-2xl bg-paper p-5 shadow-warm">
+      <h2 id="ficha-firmada-title" className="font-display text-2xl font-semibold">
         Ficha firmada
       </h2>
-      <p role="status" className={`px-3 py-2 text-sm font-semibold ${tone}`}>
+      <p role="status" className={`rounded-xl px-3 py-2 text-sm font-semibold ${tone}`}>
         {waiverLabel(waiver)}
       </p>
       {!disabled && (
