@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { buttonClass } from './ui/Button';
 
 const NAV_ITEMS = [
@@ -11,6 +11,8 @@ const NAV_ITEMS = [
 ];
 
 export function Layout() {
+  const location = useLocation();
+  const navigate = useNavigate();
   return (
     <div className="flex h-screen">
       <button
@@ -43,6 +45,13 @@ export function Layout() {
         </ul>
       </nav>
       <main id="contenido" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
+        {location.key !== 'default' && (
+          <div className="px-8 pt-6">
+            <button type="button" className={buttonClass('ghost')} onClick={() => void navigate(-1)}>
+              ← Volver
+            </button>
+          </div>
+        )}
         <Outlet />
       </main>
     </div>
