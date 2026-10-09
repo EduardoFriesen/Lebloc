@@ -8,9 +8,11 @@ import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { formatMoney, fullName, PASS_KIND_LABELS } from '../lib/format';
+import { formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+
+const WAIVER_ALERTS_SHOWN = 10;
 
 export function HomePage() {
   const [search, setSearch] = useState('');
@@ -76,6 +78,7 @@ export function HomePage() {
                       <p className="text-sm text-granite-soft">
                         Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
                         {client.debtCents > 0 && <span className="font-semibold text-volt-ink"> · Debe {formatMoney(client.debtCents)}</span>}
+                        {client.waiver.state !== 'valid' && <span className="font-semibold text-danger"> · {waiverLabel(client.waiver)}</span>}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -167,6 +170,25 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
                 </span>
               </li>
             ))}
+          </ul>
+        )}
+      </Panel>
+      <Panel title="Fichas por firmar">
+        {dashboard.waiverAlerts.length === 0 ? (
+          <p className="text-sm text-granite-soft">Todas las fichas están al día.</p>
+        ) : (
+          <ul className="divide-y divide-granite/10 text-sm">
+            {dashboard.waiverAlerts.slice(0, WAIVER_ALERTS_SHOWN).map((alert) => (
+              <li key={alert.clientId} className="flex justify-between gap-2 py-2">
+                <Link className="font-semibold hover:underline" to={`/clientes/${alert.clientId}`}>
+                  {alert.clientName}
+                </Link>
+                <span>{alert.expiresAt ? `Vencida ${formatDate(alert.expiresAt)}` : 'Sin firmar'}</span>
+              </li>
+            ))}
+            {dashboard.waiverAlerts.length > WAIVER_ALERTS_SHOWN && (
+              <li className="py-2 text-granite-soft">y {dashboard.waiverAlerts.length - WAIVER_ALERTS_SHOWN} más</li>
+            )}
           </ul>
         )}
       </Panel>

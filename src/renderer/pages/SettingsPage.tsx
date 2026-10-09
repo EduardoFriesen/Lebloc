@@ -7,7 +7,8 @@ import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView } from '../components/ui/States';
 import { call } from '../lib/api';
-import { errorMessage, toFieldErrors } from '../lib/formErrors';
+import type { Settings } from '../../shared/types';
+import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 
 export function SettingsPage() {
@@ -16,31 +17,32 @@ export function SettingsPage() {
     <section className="max-w-3xl p-8">
       <PageHeader title="Ajustes" />
       <div className="flex flex-col gap-8">
-        <AsyncView state={settings}>{(data) => <ThresholdForm initial={data.lowPassesThreshold} />}</AsyncView>
+        <AsyncView state={settings}>{(data) => <SettingsForm initial={data} />}</AsyncView>
         <BackupPanel />
       </div>
     </section>
   );
 }
 
-function ThresholdForm({ initial }: { initial: number }) {
-  const [value, setValue] = useState(String(initial));
-  const [error, setError] = useState<string | undefined>();
+function SettingsForm({ initial }: { initial: Settings }) {
+  const [threshold, setThreshold] = useState(String(initial.lowPassesThreshold));
+  const [waiverMonths, setWaiverMonths] = useState(String(initial.waiverValidityMonths));
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const parsed = settingsInput.safeParse({ lowPassesThreshold: Number(value) });
+    const parsed = settingsInput.safeParse({ lowPassesThreshold: Number(threshold), waiverValidityMonths: Number(waiverMonths) });
     if (!parsed.success) {
-      setError(toFieldErrors(parsed.error).lowPassesThreshold);
+      setErrors(toFieldErrors(parsed.error));
       return;
     }
-    setError(undefined);
+    setErrors({});
     setBusy(true);
     try {
       await call('settings:update', parsed.data);
-      setNotice({ tone: 'success', text: 'Ajuste guardado.' });
+      setNotice({ tone: 'success', text: 'Ajustes guardados.' });
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
     } finally {
@@ -56,10 +58,21 @@ function ThresholdForm({ initial }: { initial: number }) {
         type="number"
         min={0}
         max={100}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        error={error}
+        value={threshold}
+        onChange={(event) => setThreshold(event.target.value)}
+        error={errors.lowPassesThreshold}
         hint="Se avisa cuando a un cliente le quedan esta cantidad de pases o menos."
+      />
+      <h2 className="font-display text-2xl font-bold uppercase">Ficha firmada</h2>
+      <TextField
+        label="Vigencia de la ficha (meses)"
+        type="number"
+        min={1}
+        max={120}
+        value={waiverMonths}
+        onChange={(event) => setWaiverMonths(event.target.value)}
+        error={errors.waiverValidityMonths}
+        hint="Pasado este tiempo desde la firma, la ficha figura como vencida."
       />
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div>

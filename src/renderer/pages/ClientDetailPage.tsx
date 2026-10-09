@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
-import type { Client, ClientAccount, Consumption, Payment, Sale } from '../../shared/types';
+import type { Client, ClientAccount, Consumption, Payment, Sale, WaiverSignature } from '../../shared/types';
 import { Button, ButtonLink } from '../components/ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
+import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
@@ -19,8 +20,11 @@ import {
   PASS_KIND_LABELS,
   PAYMENT_METHOD_LABELS,
   SPLIT_RULE_LABELS,
+  todayIso,
+  waiverLabel,
 } from '../lib/format';
-import { errorMessage } from '../lib/formErrors';
+import { waiverInput } from '../../shared/schemas';
+import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { PaymentForm } from './PaymentForm';
 import { SellPlanForm } from './SellPlanForm';
@@ -43,6 +47,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
+  const [signing, setSigning] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -123,7 +128,22 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         </div>
       )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
-        <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
+        <div className="flex flex-col gap-6 self-start">
+          <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
+          <WaiverPanel
+            account={account}
+            disabled={archived}
+            onSign={() => setSigning(true)}
+            onVoid={(waiver) =>
+              setPending({
+                title: 'Anular firma',
+                message: `Se anula la firma de la ficha del ${formatDate(waiver.signedAt)}.`,
+                confirmLabel: 'Anular firma',
+                action: () => call('waivers:void', { id: waiver.id }),
+              })
+            }
+          />
+        </div>
         <div className="flex flex-col gap-8">
           <SalesPanel
             sales={account.sales}
@@ -178,6 +198,19 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
           />
         )}
       </Dialog>
+      <Dialog open={signing} title="Registrar firma de la ficha" onClose={() => setSigning(false)}>
+        {signing && (
+          <WaiverForm
+            clientId={client.id}
+            onDone={() => {
+              setSigning(false);
+              setNotice({ tone: 'success', text: 'Firma de la ficha registrada.' });
+              reload();
+            }}
+            onCancel={() => setSigning(false)}
+          />
+        )}
+      </Dialog>
       <Dialog open={payingSale !== null} title="Registrar pago" onClose={() => setPayingSale(null)}>
         {payingSale && (
           <PaymentForm
@@ -213,7 +246,7 @@ interface PassesPanelProps {
 
 function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps) {
   return (
-    <section aria-labelledby="pases-title" className="flex flex-col gap-4 self-start bg-granite p-6 text-chalk">
+    <section aria-labelledby="pases-title" className="flex flex-col gap-4 bg-granite p-6 text-chalk">
       <h2 id="pases-title" className="font-display text-2xl font-bold uppercase">
         Pases
       </h2>
@@ -433,7 +466,7 @@ function ClientInfoPanel({ client }: { client: Client }) {
   return (
     <section aria-labelledby="ficha-title" className="flex flex-col gap-3 bg-white p-5">
       <h2 id="ficha-title" className="font-display text-2xl font-bold uppercase">
-        Ficha
+        Datos
       </h2>
       <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
         {rows.map(([label, value]) => (
@@ -459,5 +492,101 @@ function ClientInfoPanel({ client }: { client: Client }) {
         </div>
       )}
     </section>
+  );
+}
+
+interface WaiverPanelProps {
+  account: ClientAccount;
+  disabled: boolean;
+  onSign: () => void;
+  onVoid: (waiver: WaiverSignature) => void;
+}
+
+function WaiverPanel({ account, disabled, onSign, onVoid }: WaiverPanelProps) {
+  const { waiver, waivers } = account;
+  const tone = waiver.state === 'valid' ? 'bg-moss text-chalk' : 'bg-volt text-granite';
+  return (
+    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 bg-white p-5">
+      <h2 id="ficha-firmada-title" className="font-display text-2xl font-bold uppercase">
+        Ficha firmada
+      </h2>
+      <p role="status" className={`px-3 py-2 text-sm font-semibold ${tone}`}>
+        {waiverLabel(waiver)}
+      </p>
+      {!disabled && (
+        <div>
+          <Button variant="secondary" onClick={onSign}>
+            Registrar firma
+          </Button>
+        </div>
+      )}
+      {waivers.length === 0 ? (
+        <p className="text-sm text-granite-soft">Todavía no se registró ninguna firma.</p>
+      ) : (
+        <ul className="divide-y divide-granite/10 text-sm">
+          {waivers.map((signature) => (
+            <li key={signature.id} className={`flex items-center justify-between gap-2 py-2 ${signature.voidedAt ? 'text-granite-soft' : ''}`}>
+              <span>
+                Firmada el {formatDate(signature.signedAt)}
+                {signature.voidedAt && ' · Anulada'}
+              </span>
+              {!signature.voidedAt && !disabled && (
+                <Button variant="ghost" aria-label={`Anular firma del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
+                  Anular
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: () => void; onCancel: () => void }) {
+  const [signedAt, setSignedAt] = useState(todayIso());
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = waiverInput.safeParse({ clientId, signedAt });
+    if (!parsed.success) {
+      setErrors(toFieldErrors(parsed.error));
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    setServerError(null);
+    try {
+      await call('waivers:create', parsed.data);
+      onDone();
+    } catch (caught) {
+      setServerError(errorMessage(caught));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      <TextField
+        label="Fecha de firma"
+        type="date"
+        max={todayIso()}
+        value={signedAt}
+        onChange={(event) => setSignedAt(event.target.value)}
+        error={errors.signedAt}
+      />
+      {serverError && <Notice tone="error">{serverError}</Notice>}
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={busy}>
+          Registrar firma
+        </Button>
+      </div>
+    </form>
   );
 }

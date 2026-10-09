@@ -2,7 +2,7 @@ import { ageFrom } from '../../domain/client';
 import { toIsoDate } from '../../domain/dates';
 import type { PassKind } from '../../domain/passes';
 import type { SplitRule } from '../../domain/sale';
-import type { PaymentMethod } from '../../shared/types';
+import type { PaymentMethod, WaiverStatus } from '../../shared/types';
 
 export { formatMoney, formatMoneyInput } from '../../shared/money';
 
@@ -18,6 +18,12 @@ export const WEEKDAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Juev
 export function formatDate(iso: string): string {
   const [year, month, day] = iso.slice(0, 10).split('-');
   return `${day}/${month}/${year}`;
+}
+
+export function waiverLabel(waiver: WaiverStatus): string {
+  if (waiver.state === 'valid') return `Ficha vigente hasta ${formatDate(waiver.expiresAt ?? '')}`;
+  if (waiver.state === 'expired') return `Ficha vencida desde ${formatDate(waiver.expiresAt ?? '')}`;
+  return 'Sin ficha firmada';
 }
 
 export function formatDateTime(iso: string): string {

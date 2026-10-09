@@ -73,3 +73,45 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await page.getByRole('button', { name: 'Confirmar liquidación' }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/\$\s0,00/);
 });
+
+test('sell fully paid by default, renew an exhausted plan, sign the waiver and go back', async () => {
+  await page.getByRole('link', { name: 'Planes' }).click();
+  await page.getByRole('button', { name: 'Nuevo plan' }).click();
+  await label('Nombre').fill('Pase suelto');
+  await label('Pases libres').fill('1');
+  await label('Pases con profesor').fill('0');
+  await label('Precio del local').fill('5.000');
+  await page.getByRole('button', { name: 'Guardar plan' }).click();
+  await expect(page.getByRole('cell', { name: 'Pase suelto', exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('link', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Bruno');
+  await label('Apellido').fill('Sierra');
+  await label('Fecha de nacimiento').fill('1988-02-20');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Bruno Sierra' })).toBeVisible();
+  await expect(page.getByText('Sin ficha firmada')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Vender plan' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pase suelto' });
+  await expect(dialog.getByLabel('Pago completo')).toBeChecked();
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Consumir libre' }).click();
+  await page.getByRole('button', { name: 'Renovar' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Renovar plan' })).toBeVisible();
+  await expect(dialog.getByLabel('Plan', { exact: true })).toHaveValue(/\d+/);
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Plan renovado.')).toBeVisible();
+  await expect(page.getByText('Libres restantes: 1')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Registrar firma' }).click();
+  await dialog.getByRole('button', { name: 'Registrar firma' }).click();
+  await expect(page.getByText(/Ficha vigente hasta/)).toBeVisible();
+
+  await page.getByRole('button', { name: '← Volver' }).click();
+  await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toBeVisible();
+});
