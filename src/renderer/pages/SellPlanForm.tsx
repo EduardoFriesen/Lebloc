@@ -5,7 +5,7 @@ import { parseMoneyInput } from '../../shared/money';
 import { saleInput } from '../../shared/schemas';
 import type { PaymentMethod, Plan, Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { CheckboxField, MoneyField, SelectField, TextField } from '../components/ui/Field';
+import { MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { AsyncView, EmptyState } from '../components/ui/States';
 import { call } from '../lib/api';
@@ -43,6 +43,14 @@ export function SellPlanForm({ clientId, onDone, onCancel }: SellPlanFormProps) 
 
 type Preview = { snapshot: SaleSnapshot } | { error: string } | null;
 
+type PaymentMode = 'full' | 'partial' | 'none';
+
+const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
+  full: 'Pago completo',
+  partial: 'Pago parcial',
+  none: 'Sin pago ahora',
+};
+
 function previewSale(plan: Plan | undefined, teacher: Teacher | null, splitRule: SplitRule): Preview {
   if (!plan) return null;
   try {
@@ -78,7 +86,7 @@ function SellPlanFields({ plans, teachers, clientId, onDone, onCancel }: SellPla
   const [teacherId, setTeacherId] = useState('');
   const [splitRule, setSplitRule] = useState<SplitRule>('proportional');
   const [soldAt, setSoldAt] = useState(todayIso());
-  const [withPayment, setWithPayment] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('full');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [paidAt, setPaidAt] = useState(todayIso());
@@ -93,8 +101,10 @@ function SellPlanFields({ plans, teachers, clientId, onDone, onCancel }: SellPla
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const amountCents = withPayment ? parseMoneyInput(amount) : null;
-    const invalidAmount = withPayment && amountCents === null;
+    const totalCents = preview && 'snapshot' in preview ? preview.snapshot.totalCents : 0;
+    const withPayment = paymentMode === 'partial' || (paymentMode === 'full' && totalCents > 0);
+    const amountCents = paymentMode === 'partial' ? parseMoneyInput(amount) : totalCents;
+    const invalidAmount = paymentMode === 'partial' && amountCents === null;
     const parsed = saleInput.safeParse({
       clientId,
       planId: Number(planId),
@@ -165,15 +175,32 @@ function SellPlanFields({ plans, teachers, clientId, onDone, onCancel }: SellPla
 
       {preview && ('error' in preview ? <Notice tone="warning">{preview.error}</Notice> : <SaleBreakdown snapshot={preview.snapshot} />)}
 
-      <CheckboxField label="Registrar pago inicial" checked={withPayment} onChange={(event) => setWithPayment(event.target.checked)} />
-      {withPayment && (
+      <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
+        <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-granite-soft">Pago</legend>
+        {(Object.keys(PAYMENT_MODE_LABELS) as PaymentMode[]).map((mode) => (
+          <label key={mode} className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="paymentMode"
+              value={mode}
+              checked={paymentMode === mode}
+              onChange={() => setPaymentMode(mode)}
+              className="accent-volt"
+            />
+            {PAYMENT_MODE_LABELS[mode]}
+          </label>
+        ))}
+      </fieldset>
+      {paymentMode !== 'none' && (
         <div className="grid gap-3 md:grid-cols-3">
-          <MoneyField
-            label="Monto del pago"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            error={errors['initialPayment.amountCents']}
-          />
+          {paymentMode === 'partial' && (
+            <MoneyField
+              label="Monto del pago"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              error={errors['initialPayment.amountCents']}
+            />
+          )}
           <SelectField
             label="Medio de pago"
             value={method}

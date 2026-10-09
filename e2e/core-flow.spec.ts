@@ -49,7 +49,7 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await page.getByRole('button', { name: 'Vender plan' }).click();
   await label('Plan').selectOption({ label: 'Pack 2+2' });
   await label('Profesor').selectOption({ label: 'Juan Pared' });
-  await page.getByLabel('Registrar pago inicial').check();
+  await page.getByLabel('Pago parcial').check();
   await label('Monto del pago').fill('15.000');
   await page.getByRole('button', { name: 'Confirmar venta' }).click();
   await expect(page.getByText(/Deuda: \$\s15\.000,00/)).toBeVisible();
