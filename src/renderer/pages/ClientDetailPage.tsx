@@ -41,7 +41,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const { client } = account;
   const archived = client.archivedAt !== null;
   const [notice, setNotice] = useState<NoticeState | null>(null);
-  const [selling, setSelling] = useState(false);
+  const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [busy, setBusy] = useState(false);
@@ -123,13 +123,14 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         </div>
       )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
-        <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling(true)} />
+        <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
         <div className="flex flex-col gap-8">
           <SalesPanel
             sales={account.sales}
             payments={account.payments}
             disabled={archived}
             onPay={setPayingSale}
+            onRenew={(sale) => setSelling({ renewFrom: sale })}
             onVoidPayment={(payment) =>
               setPending({
                 title: 'Anular pago',
@@ -163,16 +164,19 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         </div>
       </div>
 
-      <Dialog open={selling} title="Vender plan" onClose={() => setSelling(false)}>
-        <SellPlanForm
-          clientId={client.id}
-          onDone={() => {
-            setSelling(false);
-            setNotice({ tone: 'success', text: 'Venta registrada.' });
-            reload();
-          }}
-          onCancel={() => setSelling(false)}
-        />
+      <Dialog open={selling !== null} title={selling?.renewFrom ? 'Renovar plan' : 'Vender plan'} onClose={() => setSelling(null)}>
+        {selling && (
+          <SellPlanForm
+            clientId={client.id}
+            renewFrom={selling.renewFrom}
+            onDone={() => {
+              setSelling(null);
+              setNotice({ tone: 'success', text: selling.renewFrom ? 'Plan renovado.' : 'Venta registrada.' });
+              reload();
+            }}
+            onCancel={() => setSelling(null)}
+          />
+        )}
       </Dialog>
       <Dialog open={payingSale !== null} title="Registrar pago" onClose={() => setPayingSale(null)}>
         {payingSale && (
@@ -247,6 +251,7 @@ interface SalesPanelProps {
   payments: Payment[];
   disabled: boolean;
   onPay: (sale: Sale) => void;
+  onRenew: (sale: Sale) => void;
   onVoidPayment: (payment: Payment) => void;
   onVoidSale: (sale: Sale) => void;
 }
@@ -270,7 +275,7 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
   );
 }
 
-function SaleCard({ sale, payments, disabled, onPay, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
+function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
   const voided = sale.voidedAt !== null;
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
@@ -344,6 +349,11 @@ function SaleCard({ sale, payments, disabled, onPay, onVoidPayment, onVoidSale }
       {!voided && !disabled && (
         <div className="flex flex-wrap gap-2">
           {sale.debtCents > 0 && <Button onClick={() => onPay(sale)}>Registrar pago</Button>}
+          {sale.remainingFree + sale.remainingTeacher === 0 && (
+            <Button variant="secondary" onClick={() => onRenew(sale)}>
+              Renovar
+            </Button>
+          )}
           {lastActive && (
             <Button variant="ghost" onClick={() => onVoidPayment(lastActive)}>
               Anular último pago

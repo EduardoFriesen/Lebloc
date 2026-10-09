@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { buildSaleSnapshot, SPLIT_RULES, type SaleSnapshot, type SplitRule } from '../../domain/sale';
 import { parseMoneyInput } from '../../shared/money';
 import { saleInput } from '../../shared/schemas';
-import type { PaymentMethod, Plan, Teacher } from '../../shared/types';
+import type { PaymentMethod, Plan, Sale, Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
@@ -15,11 +15,13 @@ import { useAsync } from '../lib/useAsync';
 
 interface SellPlanFormProps {
   clientId: number;
+  /** Exhausted sale being renewed: preloads its plan, teacher and split rule at current prices. */
+  renewFrom?: Sale;
   onDone: () => void;
   onCancel: () => void;
 }
 
-export function SellPlanForm({ clientId, onDone, onCancel }: SellPlanFormProps) {
+export function SellPlanForm({ clientId, renewFrom, onDone, onCancel }: SellPlanFormProps) {
   const options = useAsync(async () => {
     const [plans, teachers] = await Promise.all([call('plans:list', {}), call('teachers:list', {})]);
     return { plans, teachers };
@@ -36,7 +38,16 @@ export function SellPlanForm({ clientId, onDone, onCancel }: SellPlanFormProps) 
         </EmptyState>
       }
     >
-      {(data) => <SellPlanFields plans={data.plans} teachers={data.teachers} clientId={clientId} onDone={onDone} onCancel={onCancel} />}
+      {(data) => (
+        <SellPlanFields
+          plans={data.plans}
+          teachers={data.teachers}
+          clientId={clientId}
+          renewFrom={renewFrom}
+          onDone={onDone}
+          onCancel={onCancel}
+        />
+      )}
     </AsyncView>
   );
 }
@@ -81,10 +92,13 @@ function SaleBreakdown({ snapshot }: { snapshot: SaleSnapshot }) {
   );
 }
 
-function SellPlanFields({ plans, teachers, clientId, onDone, onCancel }: SellPlanFormProps & { plans: Plan[]; teachers: Teacher[] }) {
-  const [planId, setPlanId] = useState(String(plans[0]?.id ?? ''));
-  const [teacherId, setTeacherId] = useState('');
-  const [splitRule, setSplitRule] = useState<SplitRule>('proportional');
+function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel }: SellPlanFormProps & { plans: Plan[]; teachers: Teacher[] }) {
+  const renewPlan = plans.find((candidate) => candidate.id === renewFrom?.planId);
+  const renewTeacher = teachers.find((candidate) => candidate.id === renewFrom?.teacherId);
+  const renewUnavailable = renewFrom !== undefined && (!renewPlan || (renewFrom.teacherId !== null && !renewTeacher));
+  const [planId, setPlanId] = useState(String(renewPlan?.id ?? plans[0]?.id ?? ''));
+  const [teacherId, setTeacherId] = useState(String(renewTeacher?.id ?? ''));
+  const [splitRule, setSplitRule] = useState<SplitRule>(renewFrom?.splitRule ?? 'proportional');
   const [soldAt, setSoldAt] = useState(todayIso());
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('full');
   const [amount, setAmount] = useState('');
@@ -134,6 +148,7 @@ function SellPlanFields({ plans, teachers, clientId, onDone, onCancel }: SellPla
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      {renewUnavailable && <Notice tone="warning">El plan o el profesor original ya no están activos; elegí otro.</Notice>}
       <SelectField label="Plan" value={planId} onChange={(event) => setPlanId(event.target.value)} error={errors.planId}>
         {plans.map((candidate) => (
           <option key={candidate.id} value={candidate.id}>
