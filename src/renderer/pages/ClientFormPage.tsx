@@ -89,7 +89,7 @@ function ClientForm({ client }: { client: Client | null }) {
       const saved = client
         ? await call('clients:update', { ...parsed.data, id: client.id })
         : await call('clients:create', parsed.data);
-      navigate(`/clientes/${saved.id}`);
+      navigate(`/clientes/${saved.id}`, { replace: true });
     } catch (caught) {
       setServerError(errorMessage(caught));
       setBusy(false);

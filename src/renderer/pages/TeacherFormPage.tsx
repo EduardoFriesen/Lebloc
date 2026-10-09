@@ -84,7 +84,7 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
       const saved = teacher
         ? await call('teachers:update', { ...parsed.data, id: teacher.id })
         : await call('teachers:create', parsed.data);
-      navigate(`/profesores/${saved.id}`);
+      navigate(`/profesores/${saved.id}`, { replace: true });
     } catch (caught) {
       setServerError(errorMessage(caught));
       setBusy(false);
