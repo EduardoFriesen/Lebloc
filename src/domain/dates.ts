@@ -21,3 +21,10 @@ function utcDay(iso: string): number {
 export function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((utcDay(toIso) - utcDay(fromIso)) / DAY_MS);
 }
+
+export function addMonths(iso: string, months: number): string {
+  const [year, month, day] = parseIsoDate(iso);
+  const lastDay = new Date(Date.UTC(year, month - 1 + months + 1, 0)).getUTCDate();
+  const target = new Date(Date.UTC(year, month - 1 + months, Math.min(day, lastDay)));
+  return target.toISOString().slice(0, 10);
+}

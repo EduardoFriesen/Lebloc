@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysBetween, parseIsoDate, toIsoDate } from './dates';
+import { addMonths, daysBetween, parseIsoDate, toIsoDate } from './dates';
 
 describe('dates', () => {
   it('formats a local date as YYYY-MM-DD', () => {
@@ -15,5 +15,12 @@ describe('dates', () => {
     expect(daysBetween('2026-09-30', '2026-10-05')).toBe(5);
     expect(daysBetween('2026-10-05', '2026-10-05')).toBe(0);
     expect(daysBetween('2026-03-01', '2026-04-01')).toBe(31);
+  });
+
+  it('adds calendar months, clamping to the last day of shorter months', () => {
+    expect(addMonths('2026-10-09', 12)).toBe('2027-10-09');
+    expect(addMonths('2026-11-15', 3)).toBe('2027-02-15');
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
   });
 });
