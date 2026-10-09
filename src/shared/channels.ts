@@ -25,6 +25,8 @@ export const CHANNELS = [
   'payouts:void',
   'debtors:list',
   'dashboard:get',
+  'waivers:create',
+  'waivers:void',
   'settings:get',
   'settings:update',
   'backup:export',

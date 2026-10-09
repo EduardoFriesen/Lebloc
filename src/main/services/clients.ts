@@ -4,6 +4,7 @@ import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/sc
 import type { Client, ClientSummary } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
 import * as repo from '../repos/clients';
+import { waiverStatusResolver } from './waivers';
 
 export function getClient(ctx: Context, id: number): Client {
   const row = repo.findClientRow(ctx.db, id);
@@ -18,7 +19,10 @@ export function requireActiveClient(ctx: Context, id: number): Client {
 }
 
 export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
-  return repo.listClientSummaries(ctx.db, input.search, input.includeArchived);
+  const statusOf = waiverStatusResolver(ctx);
+  return repo
+    .listClientSummaries(ctx.db, input.search, input.includeArchived)
+    .map(({ waiverSignedAt, ...summary }) => ({ ...summary, waiver: statusOf(waiverSignedAt) }));
 }
 
 export function createClient(ctx: Context, input: ClientInput): Client {

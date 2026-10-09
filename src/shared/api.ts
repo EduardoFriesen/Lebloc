@@ -30,6 +30,8 @@ export const apiSchemas = {
   'payouts:void': schemas.idInput,
   'debtors:list': schemas.emptyInput,
   'dashboard:get': schemas.emptyInput,
+  'waivers:create': schemas.waiverInput,
+  'waivers:void': schemas.idInput,
   'settings:get': schemas.emptyInput,
   'settings:update': schemas.settingsInput,
   'backup:export': schemas.emptyInput,
@@ -63,6 +65,8 @@ export interface ApiOutputs {
   'payouts:void': T.TeacherPayout;
   'debtors:list': T.Debtor[];
   'dashboard:get': T.Dashboard;
+  'waivers:create': T.WaiverSignature;
+  'waivers:void': T.WaiverSignature;
   'settings:get': T.Settings;
   'settings:update': T.Settings;
   'backup:export': T.BackupOutcome;

@@ -2,6 +2,9 @@ import type { ClientInput, GuardianInput } from '../../shared/schemas';
 import type { Client, ClientSummary, Guardian } from '../../shared/types';
 import type { Db } from '../db/connection';
 import { escapeLike, SALE_STATS_CTE } from './saleStats';
+import { LAST_SIGNED_AT_SQL } from './waivers';
+
+export type ClientSummaryRow = Omit<ClientSummary, 'waiver'> & { waiverSignedAt: string | null };
 
 export type ClientFields = Omit<ClientInput, 'guardians'>;
 export type ClientRow = Omit<Client, 'guardians'>;
@@ -90,16 +93,17 @@ export function anonymizeClient(db: Db, id: number, now: string): void {
   db.prepare('DELETE FROM guardians WHERE client_id = ?').run(id);
 }
 
-export function listClientSummaries(db: Db, search: string, includeArchived: boolean): ClientSummary[] {
+export function listClientSummaries(db: Db, search: string, includeArchived: boolean): ClientSummaryRow[] {
   return db
-    .prepare<[{ search: string; includeArchived: number }], ClientSummary>(
+    .prepare<[{ search: string; includeArchived: number }], ClientSummaryRow>(
       `WITH ${SALE_STATS_CTE}
        SELECT c.id, c.first_name AS firstName, c.last_name AS lastName, c.birth_date AS birthDate,
          c.archived_at AS archivedAt,
          COUNT(ss.id) AS activeSales,
          COALESCE(SUM(ss.free_passes - ss.used_free), 0) AS remainingFree,
          COALESCE(SUM(ss.teacher_passes - ss.used_teacher), 0) AS remainingTeacher,
-         COALESCE(SUM(ss.total_cents - ss.paid_cents), 0) AS debtCents
+         COALESCE(SUM(ss.total_cents - ss.paid_cents), 0) AS debtCents,
+         ${LAST_SIGNED_AT_SQL} AS waiverSignedAt
        FROM clients c
        LEFT JOIN sale_stats ss ON ss.client_id = c.id
        WHERE (@includeArchived = 1 OR c.archived_at IS NULL)

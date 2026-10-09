@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clientInput, clientListInput, paymentInput, planInput, scheduleInput } from './schemas';
+import { clientInput, clientListInput, paymentInput, planInput, scheduleInput, settingsInput } from './schemas';
 
 const client = {
   firstName: '  Ana ',
@@ -46,5 +46,11 @@ describe('schemas', () => {
 
   it('applies list defaults', () => {
     expect(clientListInput.parse({})).toEqual({ search: '', includeArchived: false });
+  });
+
+  it('accepts a waiver validity between 1 and 120 months', () => {
+    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 0 }).success).toBe(false);
+    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 121 }).success).toBe(false);
+    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 12 }).success).toBe(true);
   });
 });

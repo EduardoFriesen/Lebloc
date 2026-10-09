@@ -1,7 +1,8 @@
 import type { Db } from './connection';
 import { migration001 } from './migrations/001_initial';
+import { migration002 } from './migrations/002_waivers';
 
-export const MIGRATIONS: readonly string[] = [migration001];
+export const MIGRATIONS: readonly string[] = [migration001, migration002];
 
 export function migrate(db: Db): void {
   const current = Number(db.pragma('user_version', { simple: true }));

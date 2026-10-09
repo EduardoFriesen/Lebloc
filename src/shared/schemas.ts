@@ -103,7 +103,11 @@ export const saleInput = z.object({
 export const paymentInput = z.object({ saleId: id, ...newPaymentFields });
 export const consumptionInput = z.object({ clientId: id, kind: passKindSchema, note: optionalText(200) });
 export const payoutInput = z.object({ teacherId: id, ...newPaymentFields, note: optionalText(200) });
-export const settingsInput = z.object({ lowPassesThreshold: z.number().int().min(0).max(100) });
+export const settingsInput = z.object({
+  lowPassesThreshold: z.number().int().min(0).max(100),
+  waiverValidityMonths: z.number().int().min(1).max(120),
+});
+export const waiverInput = z.object({ clientId: id, signedAt: isoDate });
 
 export type GuardianInput = z.infer<typeof guardianInput>;
 export type ClientInput = z.infer<typeof clientInput>;
@@ -119,3 +123,4 @@ export type PaymentInput = z.infer<typeof paymentInput>;
 export type ConsumptionInput = z.infer<typeof consumptionInput>;
 export type PayoutInput = z.infer<typeof payoutInput>;
 export type SettingsInput = z.infer<typeof settingsInput>;
+export type WaiverInput = z.infer<typeof waiverInput>;

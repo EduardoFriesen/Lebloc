@@ -1,5 +1,8 @@
 import type { PassKind } from '../domain/passes';
 import type { SplitRule } from '../domain/sale';
+import type { WaiverState, WaiverStatus } from '../domain/waiver';
+
+export type { WaiverState, WaiverStatus };
 
 export type PaymentMethod = 'cash' | 'transfer';
 
@@ -40,6 +43,7 @@ export interface ClientSummary {
   remainingFree: number;
   remainingTeacher: number;
   debtCents: number;
+  waiver: WaiverStatus;
 }
 
 export interface Social {
@@ -125,6 +129,23 @@ export interface ClientAccount {
   remainingTeacher: number;
   debtCents: number;
   lowOnPasses: boolean;
+  waivers: WaiverSignature[];
+  waiver: WaiverStatus;
+}
+
+export interface WaiverSignature {
+  id: number;
+  clientId: number;
+  signedAt: string;
+  recordedAt: string;
+  voidedAt: string | null;
+}
+
+export interface WaiverAlert {
+  clientId: number;
+  clientName: string;
+  state: WaiverState;
+  expiresAt: string | null;
 }
 
 export interface TeacherPayout {
@@ -182,10 +203,12 @@ export interface Dashboard {
   lowPasses: LowPassesAlert[];
   debtors: Debtor[];
   teacherBalances: TeacherBalance[];
+  waiverAlerts: WaiverAlert[];
 }
 
 export interface Settings {
   lowPassesThreshold: number;
+  waiverValidityMonths: number;
 }
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };

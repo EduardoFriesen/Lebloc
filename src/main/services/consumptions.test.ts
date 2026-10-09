@@ -107,10 +107,10 @@ describe('consumptions and client account', () => {
   });
 
   it('reads and updates the low-passes threshold', () => {
-    expect(getSettings(ctx)).toEqual({ lowPassesThreshold: 2 });
+    expect(getSettings(ctx)).toEqual({ lowPassesThreshold: 2, waiverValidityMonths: 12 });
     sellPlan(ctx, saleOf({}));
     expect(getClientAccount(ctx, clientId).lowOnPasses).toBe(false);
-    expect(updateSettings(ctx, { lowPassesThreshold: 8 })).toEqual({ lowPassesThreshold: 8 });
+    expect(updateSettings(ctx, { lowPassesThreshold: 8, waiverValidityMonths: 6 })).toEqual({ lowPassesThreshold: 8, waiverValidityMonths: 6 });
     expect(getClientAccount(ctx, clientId).lowOnPasses).toBe(true);
   });
 });

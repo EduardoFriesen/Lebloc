@@ -18,6 +18,7 @@ import { createPlan, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
+import { signWaiver, voidWaiver } from '../services/waivers';
 import type { Handlers } from './execute';
 
 export interface BackupOps {
@@ -53,6 +54,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'payouts:void': ({ id }) => voidPayout(ctx, id),
     'debtors:list': () => listDebtors(ctx),
     'dashboard:get': () => getDashboard(ctx),
+    'waivers:create': (input) => signWaiver(ctx, input),
+    'waivers:void': ({ id }) => voidWaiver(ctx, id),
     'settings:get': () => getSettings(ctx),
     'settings:update': (input) => updateSettings(ctx, input),
     'backup:export': () => backup.exportBackup(),

@@ -5,6 +5,7 @@ import { type Context, today } from '../context';
 import { listClientPassTotals, listDebtorRows } from '../repos/saleStats';
 import { listTeacherBalances } from './payouts';
 import { getSettings } from './settings';
+import { listWaiverAlerts } from './waivers';
 
 const DASHBOARD_DEBTORS = 10;
 
@@ -21,5 +22,6 @@ export function getDashboard(ctx: Context): Dashboard {
     ),
     debtors: listDebtors(ctx).slice(0, DASHBOARD_DEBTORS),
     teacherBalances: listTeacherBalances(ctx).filter((balance) => balance.balanceCents !== 0),
+    waiverAlerts: listWaiverAlerts(ctx),
   };
 }
