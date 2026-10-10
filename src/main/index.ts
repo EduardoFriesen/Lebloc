@@ -85,7 +85,12 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
 async function start(): Promise<void> {
   const userData = app.getPath('userData');
   const backupDir = join(userData, 'backups');
-  const holder = new DatabaseHolder(join(userData, 'lebloc.db'));
+  const dbPath = join(userData, 'lebloc.db');
+  // Dev only: `npm run seed` swaps the database for sample data; the old one stays in backups/.
+  const seed = !app.isPackaged && process.env.LEBLOC_SEED === '1' ? await import('./seed') : null;
+  await seed?.setAsideForSeed(dbPath, backupDir, new Date());
+  const holder = new DatabaseHolder(dbPath);
+  seed?.seedDatabase(holder.db, new Date());
   await createBackup(holder.db, backupDir, new Date());
 
   const ctx: Context = {

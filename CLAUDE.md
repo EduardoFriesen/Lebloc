@@ -10,6 +10,7 @@ Lebloc es un sistema de gestión para un local de escalada. Es una app de escrit
 
 ```bash
 npm run dev          # app en modo desarrollo (electron-vite)
+npm run seed         # como dev, pero antes reemplaza la base por datos de prueba (la anterior queda en backups/before-seed-*.db)
 npm test             # Vitest con el runtime de Electron (better-sqlite3 está compilado para Electron)
 npm test -- src/domain/allocation.test.ts -t "proportional"   # un archivo / un test
 npm run typecheck    # tsc sobre tsconfig.node.json y tsconfig.web.json
