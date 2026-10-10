@@ -53,6 +53,7 @@ export const clientUpdate = z.object({ id, ...clientFields });
 export const clientListInput = z.object({
   search: z.string().trim().max(80).default(''),
   includeArchived: z.boolean().default(false),
+  onlyDebtors: z.boolean().default(false),
 });
 
 export const socialInput = z.object({

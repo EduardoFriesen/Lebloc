@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { removeAt, replaceAt, sum } from './arrays';
-import { formatDate } from './format';
+import { debtLabel, formatDate } from './format';
 import { toFieldErrors } from './formErrors';
 
 describe('renderer helpers', () => {
@@ -25,5 +25,12 @@ describe('renderer helpers', () => {
 
   it('formats ISO dates as dd/mm/yyyy', () => {
     expect(formatDate('2026-10-05')).toBe('05/10/2026');
+  });
+
+  it('labels a debt with how long ago the oldest unpaid sale was', () => {
+    expect(debtLabel({ debtCents: 1_500_000, debtDays: 40 })).toMatch(/^Debe \$\s15\.000,00 · hace 40 días$/);
+    expect(debtLabel({ debtCents: 100, debtDays: 1 })).toMatch(/· hace 1 día$/);
+    expect(debtLabel({ debtCents: 100, debtDays: 0 })).toMatch(/· desde hoy$/);
+    expect(debtLabel({ debtCents: 100, debtDays: null })).toMatch(/^Debe \$\s1,00$/);
   });
 });

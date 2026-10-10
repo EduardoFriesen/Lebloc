@@ -5,7 +5,6 @@ import { buttonClass } from './ui/Button';
 const NAV_ITEMS = [
   { to: '/', label: 'Mostrador', end: true },
   { to: '/clientes', label: 'Clientes', end: false },
-  { to: '/deudores', label: 'Deudores', end: false },
   { to: '/planes', label: 'Planes', end: false },
   { to: '/profesores', label: 'Profesores', end: false },
   { to: '/ajustes', label: 'Ajustes', end: false },

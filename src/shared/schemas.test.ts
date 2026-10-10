@@ -45,7 +45,7 @@ describe('schemas', () => {
   });
 
   it('applies list defaults', () => {
-    expect(clientListInput.parse({})).toEqual({ search: '', includeArchived: false });
+    expect(clientListInput.parse({})).toEqual({ search: '', includeArchived: false, onlyDebtors: false });
   });
 
   it('accepts a waiver validity between 1 and 120 months', () => {

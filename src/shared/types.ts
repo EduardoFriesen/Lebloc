@@ -43,6 +43,8 @@ export interface ClientSummary {
   remainingFree: number;
   remainingTeacher: number;
   debtCents: number;
+  /** Days since the oldest sale that still has debt; null when the client owes nothing. */
+  debtDays: number | null;
   waiver: WaiverStatus;
 }
 

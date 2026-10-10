@@ -9,7 +9,7 @@ import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
+import { debtLabel, formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 
@@ -79,7 +79,7 @@ export function HomePage() {
                     badges={
                       (client.debtCents > 0 || client.waiver.state !== 'valid') && (
                         <>
-                          {client.debtCents > 0 && <Badge tone="debt">Debe {formatMoney(client.debtCents)}</Badge>}
+                          {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
                           {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
                         </>
                       )
@@ -165,7 +165,7 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
       <Panel
         title="Deudores"
         action={
-          <Link className="text-sm underline" to="/deudores">
+          <Link className="text-sm underline" to="/clientes?deuda=1">
             Ver todos
           </Link>
         }

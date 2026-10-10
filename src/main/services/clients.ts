@@ -1,4 +1,5 @@
 import { assertGuardianRule } from '../../domain/client';
+import { daysBetween } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/schemas';
 import type { Client, ClientSummary } from '../../shared/types';
@@ -20,9 +21,14 @@ export function requireActiveClient(ctx: Context, id: number): Client {
 
 export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
   const statusOf = waiverStatusResolver(ctx);
+  const now = today(ctx);
   return repo
-    .listClientSummaries(ctx.db, input.search, input.includeArchived)
-    .map(({ waiverSignedAt, ...summary }) => ({ ...summary, waiver: statusOf(waiverSignedAt) }));
+    .listClientSummaries(ctx.db, input.search, input.includeArchived, input.onlyDebtors)
+    .map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
+      ...summary,
+      debtDays: oldestDebtSoldAt === null ? null : daysBetween(oldestDebtSoldAt, now),
+      waiver: statusOf(waiverSignedAt),
+    }));
 }
 
 export function createClient(ctx: Context, input: ClientInput): Client {

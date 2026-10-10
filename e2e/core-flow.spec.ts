@@ -147,3 +147,19 @@ test('cards open from anywhere, not only from the name', async () => {
   await page.getByRole('link', { name: 'Editar Juan Pared' }).click();
   await expect(page.getByLabel('Importe por clase', { exact: true })).toBeVisible();
 });
+
+test('debtors live in Clientes behind "Solo con deuda", linked from the counter', async () => {
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await page.getByRole('link', { name: 'Ver todos' }).click();
+  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+  const cards = page.getByRole('list', { name: 'Clientes' });
+  await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+  await expect(cards.getByText(/^Debe \$\s15\.000,00 · desde hoy$/)).toBeVisible();
+  await expect(page.getByText(/Total adeudado/)).toBeVisible();
+
+  // The filter lives in the URL; react-router applies it in a transition, so wait for the new state.
+  await page.getByLabel('Solo con deuda').click();
+  await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+});

@@ -23,7 +23,6 @@ export const CHANNELS = [
   'consumptions:void',
   'payouts:create',
   'payouts:void',
-  'debtors:list',
   'dashboard:get',
   'waivers:create',
   'waivers:void',

@@ -13,7 +13,7 @@ describe('seedDatabase', () => {
   seedDatabase(ctx.db, now);
 
   it('loads clients, teachers and plans, including archived and inactive ones', () => {
-    const clients = listClients(ctx, { search: '', includeArchived: true });
+    const clients = listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false });
     expect(clients.length).toBeGreaterThanOrEqual(20);
     expect(clients.some((client) => client.archivedAt !== null)).toBe(true);
     expect(clients.some((client) => client.activeSales === 0)).toBe(true);

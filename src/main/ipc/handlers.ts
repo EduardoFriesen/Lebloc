@@ -11,7 +11,7 @@ import {
   updateClient,
 } from '../services/clients';
 import { consume, voidConsumption } from '../services/consumptions';
-import { getDashboard, listDebtors } from '../services/dashboard';
+import { getDashboard } from '../services/dashboard';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, registerPayout, voidPayout } from '../services/payouts';
 import { createPlan, listPlans, updatePlan } from '../services/plans';
@@ -52,7 +52,6 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'consumptions:void': ({ id }) => voidConsumption(ctx, id),
     'payouts:create': (input) => registerPayout(ctx, input),
     'payouts:void': ({ id }) => voidPayout(ctx, id),
-    'debtors:list': () => listDebtors(ctx),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),

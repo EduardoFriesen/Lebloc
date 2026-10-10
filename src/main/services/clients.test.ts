@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, createTestContext, minorClient, TEST_NOW, type TestContext } from '../test-context';
+import { adultClient, createTestContext, freePlan, minorClient, TEST_NOW, type TestContext } from '../test-context';
 import {
   anonymizeClient,
   archiveClient,
@@ -10,6 +10,9 @@ import {
   unarchiveClient,
   updateClient,
 } from './clients';
+import { registerPayment } from './payments';
+import { createPlan } from './plans';
+import { sellPlan } from './sales';
 
 describe('clients service', () => {
   let ctx: TestContext;
@@ -60,26 +63,49 @@ describe('clients service', () => {
   it('searches by name in either order and hides archived clients by default', () => {
     const ana = createClient(ctx, adultClient);
     createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
-    expect(listClients(ctx, { search: 'roca', includeArchived: false }).map((c) => c.id)).toEqual([ana.id]);
-    expect(listClients(ctx, { search: 'Roca Ana', includeArchived: false }).map((c) => c.id)).toEqual([ana.id]);
+    expect(listClients(ctx, { search: 'roca', includeArchived: false, onlyDebtors: false }).map((c) => c.id)).toEqual([ana.id]);
+    expect(listClients(ctx, { search: 'Roca Ana', includeArchived: false, onlyDebtors: false }).map((c) => c.id)).toEqual([ana.id]);
     archiveClient(ctx, ana.id);
-    expect(listClients(ctx, { search: '', includeArchived: false }).map((c) => c.lastName)).toEqual(['Sierra']);
-    expect(listClients(ctx, { search: '', includeArchived: true })).toHaveLength(2);
+    expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false }).map((c) => c.lastName)).toEqual(['Sierra']);
+    expect(listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false })).toHaveLength(2);
   });
 
   it('treats LIKE wildcards in the search as plain text', () => {
     createClient(ctx, adultClient);
-    expect(listClients(ctx, { search: '%', includeArchived: false })).toEqual([]);
+    expect(listClients(ctx, { search: '%', includeArchived: false, onlyDebtors: false })).toEqual([]);
   });
 
   it('summarizes a client without sales as zero passes and zero debt', () => {
     createClient(ctx, adultClient);
-    expect(listClients(ctx, { search: '', includeArchived: false })[0]).toMatchObject({
+    expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false })[0]).toMatchObject({
       activeSales: 0,
       remainingFree: 0,
       remainingTeacher: 0,
       debtCents: 0,
     });
+  });
+
+  it('lists only debtors on request, oldest unpaid sale first, with days since that sale', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, initialPayment: null });
+    const payInFull = (sale: { id: number; totalCents: number }) =>
+      registerPayment(ctx, { saleId: sale.id, amountCents: sale.totalCents, method: 'cash', paidAt: '2026-09-01' });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
+    payInFull(sell(ana, '2026-09-01'));
+    sell(ana, '2026-10-01');
+    sell(bruno, '2026-09-20');
+    payInFull(sell(carla, '2026-08-15'));
+
+    const debtors = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: true });
+    expect(debtors.map((client) => [client.firstName, client.debtDays])).toEqual([
+      ['Bruno', 15],
+      ['Ana', 4],
+    ]);
+    const everyone = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false });
+    expect(everyone.find((client) => client.id === carla)?.debtDays).toBeNull();
   });
 
   it('blocks edits on archived clients and allows unarchiving', () => {
