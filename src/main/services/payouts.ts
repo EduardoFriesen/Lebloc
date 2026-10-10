@@ -4,6 +4,7 @@ import type { PayoutInput } from '../../shared/schemas';
 import type { TeacherAccount, TeacherBalance, TeacherPayout } from '../../shared/types';
 import { type Context, nowIso } from '../context';
 import * as repo from '../repos/payouts';
+import { listEnrollments } from './enrollments';
 import { getTeacher } from './teachers';
 
 function toBalance(row: repo.BalanceRow): TeacherBalance {
@@ -27,6 +28,7 @@ export function getTeacherAccount(ctx: Context, teacherId: number): TeacherAccou
     teacher,
     payouts: repo.listPayoutsForTeacher(ctx.db, teacherId),
     shares: repo.listTeacherShares(ctx.db, teacherId),
+    enrollments: listEnrollments(ctx, { teacherId }),
   };
 }
 

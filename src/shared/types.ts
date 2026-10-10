@@ -182,6 +182,22 @@ export interface TeacherAccount extends TeacherBalance {
   teacher: Teacher;
   payouts: TeacherPayout[];
   shares: TeacherShare[];
+  /** This month's sales with this teacher. */
+  enrollments: Enrollment[];
+}
+
+/** A sale made this month: who enrolled, in what, and what's left of that sale. */
+export interface Enrollment {
+  saleId: number;
+  clientId: number;
+  clientName: string;
+  planName: string;
+  teacherName: string | null;
+  soldAt: string;
+  remainingFree: number;
+  remainingTeacher: number;
+  debtCents: number;
+  passStatus: PassStatus;
 }
 
 export interface Debtor {

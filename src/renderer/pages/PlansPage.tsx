@@ -14,7 +14,7 @@ import { formatMoney, formatMoneyInput } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 
-function passesSummary(plan: Plan): string {
+export function passesSummary(plan: Plan): string {
   const parts = [plan.freePasses > 0 && `${plan.freePasses} ${plan.freePasses === 1 ? 'libre' : 'libres'}`, plan.teacherPasses > 0 && `${plan.teacherPasses} con profesor`];
   return parts.filter(Boolean).join(' · ');
 }
@@ -49,14 +49,19 @@ export function PlansPage() {
             {data.map((plan) => (
               <Card
                 key={plan.id}
-                onSelect={() => setEditing(plan)}
+                to={`/planes/${plan.id}`}
                 title={plan.name}
                 subtitle={passesSummary(plan)}
                 muted={!plan.active}
                 badges={!plan.active && <Badge>Inactivo</Badge>}
+                actions={
+                  <Button variant="ghost" aria-label={`Editar ${plan.name}`} onClick={() => setEditing(plan)}>
+                    Editar
+                  </Button>
+                }
               >
                 <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
-                <p className="-mt-2 text-xs text-ink-soft">Precio del local · tocá para editar</p>
+                <p className="-mt-2 text-xs text-ink-soft">Precio del local</p>
               </Card>
             ))}
           </CardGrid>
@@ -69,7 +74,7 @@ export function PlansPage() {
   );
 }
 
-function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: () => void; onCancel: () => void }) {
+export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: () => void; onCancel: () => void }) {
   const [name, setName] = useState(plan?.name ?? '');
   const [freePasses, setFreePasses] = useState(String(plan?.freePasses ?? 0));
   const [teacherPasses, setTeacherPasses] = useState(String(plan?.teacherPasses ?? 0));

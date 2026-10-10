@@ -54,3 +54,8 @@ export function debtLabel({ debtCents, debtDays }: { debtCents: number; debtDays
   const amount = `Debe ${formatMoney(debtCents)}`;
   return debtDays === null ? amount : `${amount} · ${sinceLabel(debtDays)}`;
 }
+
+/** Current month in Spanish, lowercase ("octubre"). */
+export function currentMonthLabel(): string {
+  return new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
+}

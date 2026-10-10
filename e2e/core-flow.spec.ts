@@ -28,7 +28,7 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await label('Pases con profesor').fill('2');
   await label('Precio del local').fill('20.000');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.getByRole('button', { name: 'Pack 2+2', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pack 2+2', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('link', { name: 'Nuevo profesor' }).click();
@@ -82,7 +82,7 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await label('Pases con profesor').fill('0');
   await label('Precio del local').fill('5.000');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.getByRole('button', { name: 'Pase suelto', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pase suelto', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Clientes' }).click();
   await page.getByRole('link', { name: 'Nuevo cliente' }).click();
@@ -140,6 +140,8 @@ test('cards open from anywhere, not only from the name', async () => {
 
   await page.getByRole('link', { name: 'Planes' }).click();
   await page.getByRole('list', { name: 'Planes' }).getByRole('listitem').filter({ hasText: 'Pack 2+2' }).getByText(/Precio del local/).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Pack 2+2', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Editar plan' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
 
@@ -186,4 +188,17 @@ test('the counter tints clients by passes left, lists who has to renew, and Clie
   await page.getByRole('link', { name: 'Clientes', exact: true }).click();
   const clara = page.getByRole('list', { name: 'Clientes' }).getByRole('listitem').filter({ hasText: 'Clara Nube' });
   await expect(clara.getByText('Sin pases')).toBeVisible();
+});
+
+test("a plan and a teacher list this month's enrollments", async () => {
+  await page.getByRole('link', { name: 'Planes' }).click();
+  await page.getByRole('link', { name: 'Pack 2+2', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /^Inscriptos en / })).toBeVisible();
+  await expect(page.getByRole('list', { name: /^Inscriptos en / }).getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('link', { name: 'Juan Pared', exact: true }).click();
+  const enrolled = page.getByRole('list', { name: /^Inscriptos en / });
+  await expect(enrolled.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(enrolled.getByText(/Pack 2\+2 · vendido el/)).toBeVisible();
 });

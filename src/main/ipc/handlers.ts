@@ -15,7 +15,7 @@ import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, registerPayout, voidPayout } from '../services/payouts';
-import { createPlan, listPlans, updatePlan } from '../services/plans';
+import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
@@ -44,6 +44,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'teachers:update': (input) => updateTeacher(ctx, input),
     'teachers:account': ({ id }) => getTeacherAccount(ctx, id),
     'plans:list': ({ includeInactive }) => listPlans(ctx, includeInactive),
+    'plans:get': ({ id }) => getPlan(ctx, id),
+    'plans:enrollments': ({ id }) => getPlanEnrollments(ctx, id),
     'plans:create': (input) => createPlan(ctx, input),
     'plans:update': (input) => updatePlan(ctx, input),
     'sales:create': (input) => sellPlan(ctx, input),

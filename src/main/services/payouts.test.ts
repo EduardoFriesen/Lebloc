@@ -70,4 +70,18 @@ describe('teacher ledger', () => {
       'NOT_FOUND',
     );
   });
+
+  it('lists the clients enrolled with the teacher this month', () => {
+    const eva = createTeacher(ctx, { ...basicTeacher, firstName: 'Eva', lastName: 'Bloque' }).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const planId = createPlan(ctx, { ...mixedPlan, name: 'Otro pack' }).id;
+    const sale = (teacher: number, soldAt: string) =>
+      sellPlan(ctx, { clientId: bruno, planId, teacherId: teacher, splitRule: 'proportional', soldAt, initialPayment: null });
+    sale(eva, '2026-10-04');
+    sale(teacherId, '2026-09-28');
+
+    expect(getTeacherAccount(ctx, teacherId).enrollments.map((e) => [e.clientName, e.planName, e.teacherName])).toEqual([
+      ['Ana Roca', 'Pack 4+4', 'Juan Pared'],
+    ]);
+  });
 });

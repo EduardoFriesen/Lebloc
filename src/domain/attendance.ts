@@ -1,3 +1,5 @@
+import { toIsoDate } from './dates';
+
 export interface TimeRange {
   from: Date;
   to: Date;
@@ -26,4 +28,9 @@ export function attendanceWindows(now: Date): AttendanceWindows {
     todayStart: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
     renewalFrom: shift(now, -RENEWAL_DAYS),
   };
+}
+
+/** First day of the local month as an ISO date: sales from then on count as this month's enrollments. */
+export function monthStart(now: Date): string {
+  return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
 }

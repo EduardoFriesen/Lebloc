@@ -19,6 +19,8 @@ export const apiSchemas = {
   'teachers:update': schemas.teacherUpdate,
   'teachers:account': schemas.idInput,
   'plans:list': schemas.activeListInput,
+  'plans:get': schemas.idInput,
+  'plans:enrollments': schemas.idInput,
   'plans:create': schemas.planInput,
   'plans:update': schemas.planUpdate,
   'sales:create': schemas.saleInput,
@@ -54,6 +56,8 @@ export interface ApiOutputs {
   'teachers:update': T.Teacher;
   'teachers:account': T.TeacherAccount;
   'plans:list': T.Plan[];
+  'plans:get': T.Plan;
+  'plans:enrollments': T.Enrollment[];
   'plans:create': T.Plan;
   'plans:update': T.Plan;
   'sales:create': T.Sale;

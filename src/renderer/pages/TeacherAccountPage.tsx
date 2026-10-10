@@ -6,13 +6,14 @@ import type { PaymentMethod, TeacherAccount } from '../../shared/types';
 import { Button, ButtonLink } from '../components/ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
+import { EnrollmentsSection } from '../components/ui/Enrollments';
 import { MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import { formatDate, formatMoney, formatMoneyInput, fullName, PAYMENT_METHOD_LABELS, todayIso, WEEKDAY_LABELS } from '../lib/format';
+import { currentMonthLabel, formatDate, formatMoney, formatMoneyInput, fullName, PAYMENT_METHOD_LABELS, todayIso, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 
@@ -77,6 +78,14 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           hint={account.balanceCents < 0 ? 'A favor del local' : 'Pendiente de pagar al profesor'}
         />
       </dl>
+
+      <div className="mb-8">
+        <EnrollmentsSection
+          enrollments={account.enrollments}
+          context="plan"
+          empty={`Nadie se anotó con ${teacher.firstName} en ${currentMonthLabel()}.`}
+        />
+      </div>
 
       <div className="grid gap-8 xl:grid-cols-2">
         <section aria-labelledby="liquidaciones-title" className="flex flex-col gap-3">

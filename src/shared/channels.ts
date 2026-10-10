@@ -14,6 +14,8 @@ export const CHANNELS = [
   'teachers:update',
   'teachers:account',
   'plans:list',
+  'plans:get',
+  'plans:enrollments',
   'plans:create',
   'plans:update',
   'sales:create',

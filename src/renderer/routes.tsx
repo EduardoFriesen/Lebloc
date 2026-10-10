@@ -6,6 +6,7 @@ import { ClientFormPage } from './pages/ClientFormPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { HomePage } from './pages/HomePage';
 import { PlansPage } from './pages/PlansPage';
+import { PlanDetailPage } from './pages/PlanDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeacherAccountPage } from './pages/TeacherAccountPage';
 import { TeacherFormPage } from './pages/TeacherFormPage';
@@ -33,6 +34,7 @@ export function AppRoutes() {
         <Route path="clientes/:id" element={<ClientDetailPage />} />
         <Route path="clientes/:id/editar" element={<ClientFormPage />} />
         <Route path="planes" element={<PlansPage />} />
+        <Route path="planes/:id" element={<PlanDetailPage />} />
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/nuevo" element={<TeacherFormPage />} />
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
