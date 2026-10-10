@@ -271,7 +271,7 @@ function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps)
         <Button disabled={disabled || account.remainingTeacher <= 0} onClick={() => onConsume('teacher')}>
           Consumir con profesor
         </Button>
-        <Button variant="secondary" className="border border-canvas/40" disabled={disabled} onClick={onSell}>
+        <Button variant="secondary" className="border border-cream/40" disabled={disabled} onClick={onSell}>
           Vender plan
         </Button>
       </div>

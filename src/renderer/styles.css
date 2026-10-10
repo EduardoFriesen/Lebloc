@@ -25,6 +25,22 @@
   --shadow-warm: 0 1px 2px rgb(45 42 62 / 0.06), 0 8px 24px -10px rgb(45 42 62 / 0.2);
 }
 
+/* "Cielo de noche": mismo atardecer con el fondo oscuro. Lo activa lib/preferences.ts. */
+:root[data-theme='dark'] {
+  color-scheme: dark; /* inputs nativos (fecha, select) y barras de scroll también oscuros */
+  --color-canvas: #1d1b27;
+  --color-surface: #282536;
+  --color-sunken: #353047;
+  --color-ink: #f3eadb;
+  --color-ink-soft: #b8afc6;
+  --color-accent-ink: #f0a273;
+  --color-dusk: #363b6a;
+  --color-dusk-soft: #4a5088;
+  --color-moss: #8fb07f;
+  --color-danger: #f08a7a;
+  --shadow-warm: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -10px rgb(0 0 0 / 0.55);
+}
+
 body {
   @apply bg-canvas text-ink font-sans antialiased;
   /* Grano de papel: ruido SVG muy tenue sobre el crema. */

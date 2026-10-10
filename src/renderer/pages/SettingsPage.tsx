@@ -9,6 +9,7 @@ import { AsyncView } from '../components/ui/States';
 import { call } from '../lib/api';
 import type { Settings } from '../../shared/types';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
+import { type FontSize, loadPreferences, type Preferences, savePreferences, type ThemePref } from '../lib/preferences';
 import { useAsync } from '../lib/useAsync';
 
 export function SettingsPage() {
@@ -17,10 +18,85 @@ export function SettingsPage() {
     <section className="max-w-3xl p-8">
       <PageHeader title="Ajustes" />
       <div className="flex flex-col gap-8">
+        <AppearancePanel />
         <AsyncView state={settings}>{(data) => <SettingsForm initial={data} />}</AsyncView>
         <BackupPanel />
       </div>
     </section>
+  );
+}
+
+const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Oscuro' },
+  { value: 'auto', label: 'Automático' },
+];
+
+const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
+  { value: 'small', label: 'Chica' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'large', label: 'Grande' },
+  { value: 'xlarge', label: 'Muy grande' },
+];
+
+function AppearancePanel() {
+  const [preferences, setPreferences] = useState<Preferences>(loadPreferences);
+
+  function change(next: Partial<Preferences>) {
+    const updated = { ...preferences, ...next };
+    setPreferences(updated);
+    savePreferences(updated);
+  }
+
+  return (
+    <div className="flex flex-col gap-5 rounded-2xl bg-surface p-6 shadow-warm">
+      <div>
+        <h2 className="font-display text-2xl font-semibold">Apariencia</h2>
+        <p className="text-sm text-ink-soft">Se aplica al instante y queda guardado en esta PC. Automático sigue el tema del sistema.</p>
+      </div>
+      <Segmented legend="Tema" name="theme" value={preferences.theme} options={THEME_OPTIONS} onChange={(theme) => change({ theme })} />
+      <Segmented
+        legend="Tamaño de letra"
+        name="font-size"
+        value={preferences.fontSize}
+        options={FONT_SIZE_OPTIONS}
+        onChange={(fontSize) => change({ fontSize })}
+      />
+    </div>
+  );
+}
+
+interface SegmentedProps<T extends string> {
+  legend: string;
+  name: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}
+
+function Segmented<T extends string>({ legend, name, value, options, onChange }: SegmentedProps<T>) {
+  return (
+    <fieldset>
+      <legend className="text-sm font-semibold text-ink-soft">{legend}</legend>
+      <div className="inline-flex flex-wrap gap-1 rounded-full bg-sunken p-1">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className="relative cursor-pointer rounded-full px-4 py-1.5 text-sm font-semibold text-ink-soft transition hover:text-ink has-[:checked]:bg-accent has-[:checked]:text-cream has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-solid"
+          >
+            <input
+              type="radio"
+              className="absolute inset-0 cursor-pointer appearance-none rounded-full opacity-0"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

@@ -115,3 +115,17 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await page.getByRole('button', { name: '← Volver' }).click();
   await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toBeVisible();
 });
+
+test('switch to the dark theme and a larger font, and keep both after reloading', async () => {
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('radio', { name: 'Oscuro' }).check();
+  await page.getByRole('radio', { name: 'Grande', exact: true }).check();
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).toHaveCSS('font-size', '18px');
+
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).toHaveCSS('font-size', '18px');
+  await expect(page.getByRole('radio', { name: 'Oscuro' })).toBeChecked();
+});

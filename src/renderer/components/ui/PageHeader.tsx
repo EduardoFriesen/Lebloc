@@ -13,7 +13,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
       <div aria-hidden="true" className="flex flex-col gap-0.5">
         <span className="h-1 rounded-full bg-accent" />
         <span className="h-1 rounded-full bg-ochre" />
-        <span className="h-1 rounded-full bg-dusk" />
+        <span className="h-1 rounded-full bg-dusk-soft" />
       </div>
     </header>
   );
