@@ -4,6 +4,8 @@ import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { getDashboard, listDebtors } from './dashboard';
+import { registerPayment } from './payments';
+import { getTeacherAccount } from './payouts';
 import { createPlan } from './plans';
 import { sellPlan, voidSale } from './sales';
 import { createTeacher } from './teachers';
@@ -63,5 +65,33 @@ describe('debtors and dashboard', () => {
     expect(dashboard.renewals.map((client) => [client.id, client.passStatus])).toEqual([[anaId, 'none']]);
     expect(dashboard.teacherBalances.map((balance) => balance.teacherName)).toEqual(['Juan Pared']);
     expect(dashboard.debtors.map((debtor) => debtor.clientName)).toEqual(['Ana Roca', 'Bruno Sierra', 'Carla Vía']);
+  });
+
+  it('summarizes clients with passes, debtors once each with their total, and the teacher balance', () => {
+    sellPlan(ctx, saleOf({}));
+    sellPlan(ctx, saleOf({ soldAt: '2026-10-01' }));
+
+    const single = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1, priceCents: 500_000 });
+    const brunoId = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const brunoSale = sellPlan(ctx, saleOf({ clientId: brunoId, planId: single.id }));
+    registerPayment(ctx, { saleId: brunoSale.id, amountCents: 500_000, method: 'cash', paidAt: '2026-10-05' });
+    consume(ctx, { clientId: brunoId, kind: 'free', note: null });
+
+    const carlaId = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Vía' }).id;
+    sellPlan(ctx, saleOf({ clientId: carlaId }));
+    archiveClient(ctx, carlaId);
+
+    const juanId = createTeacher(ctx, basicTeacher).id;
+    createTeacher(ctx, { ...basicTeacher, firstName: 'Eva', lastName: 'Bloque' });
+    const darioId = createClient(ctx, { ...adultClient, firstName: 'Dario', lastName: 'Toma' }).id;
+    const mixedId = createPlan(ctx, mixedPlan).id;
+    sellPlan(ctx, saleOf({ clientId: darioId, planId: mixedId, teacherId: juanId, initialPayment: { amountCents: 1_500_000, method: 'cash', paidAt: '2026-10-05' } }));
+
+    expect(getDashboard(ctx).summary).toEqual({
+      activeClients: 2,
+      debtorCount: 2,
+      debtTotalCents: 4_000_000 + 1_500_000,
+      teacherBalanceCents: getTeacherAccount(ctx, juanId).balanceCents,
+    });
   });
 });

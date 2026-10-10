@@ -211,7 +211,17 @@ export interface Debtor {
   daysSinceSale: number;
 }
 
+export interface DashboardSummary {
+  /** Active clients with at least one pass left. */
+  activeClients: number;
+  debtorCount: number;
+  debtTotalCents: number;
+  /** Sum of every teacher's balance (negative when the local is owed). */
+  teacherBalanceCents: number;
+}
+
 export interface Dashboard {
+  summary: DashboardSummary;
   /** Low or no passes and came in the last 30 days. */
   renewals: ClientSummary[];
   debtors: Debtor[];

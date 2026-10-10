@@ -45,9 +45,9 @@ describe('signed waivers', () => {
   });
 
   it('shows the waiver state in the counter search', () => {
-    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false })[0]?.waiver.state).toBe('missing');
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false })[0]?.waiver.state).toBe('missing');
     signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-05' });
-    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false })[0]?.waiver.state).toBe('valid');
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false })[0]?.waiver.state).toBe('valid');
   });
 
   it('alerts on active clients whose waiver is missing or expired', () => {

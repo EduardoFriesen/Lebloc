@@ -16,16 +16,31 @@ export function ClientsPage() {
   // In the URL so "Volver" from a client keeps the filter, and the counter's "Ver todos" can link to it.
   const [params, setParams] = useSearchParams();
   const onlyDebtors = params.get('deuda') === '1';
+  const onlyWithPasses = params.get('pases') === '1';
   const clients = useAsync(
-    () => call('clients:list', { search, includeArchived, onlyDebtors }),
-    [search, includeArchived, onlyDebtors],
+    () => call('clients:list', { search, includeArchived, onlyDebtors, onlyWithPasses }),
+    [search, includeArchived, onlyDebtors, onlyWithPasses],
     { keepPreviousData: true },
   );
   const empty = search
     ? { title: 'Sin resultados', text: 'Probá con otro nombre o apellido.' }
     : onlyDebtors
       ? { title: 'Nadie debe nada', text: 'Todas las ventas están saldadas.' }
-      : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
+      : onlyWithPasses
+        ? { title: 'Nadie tiene pases', text: 'Ningún cliente tiene pases disponibles.' }
+        : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
+
+  function setFilter(key: 'deuda' | 'pases', on: boolean) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (on) next.set(key, '1');
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   return (
     <section className="p-8">
@@ -35,11 +50,8 @@ export function ClientsPage() {
           <TextField label="Buscar" type="search" placeholder="Nombre o apellido" value={search} onChange={(event) => setSearch(event.target.value)} />
         </div>
         <CheckboxField label="Incluir archivados" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
-        <CheckboxField
-          label="Solo con deuda"
-          checked={onlyDebtors}
-          onChange={(event) => setParams(event.target.checked ? { deuda: '1' } : {}, { replace: true })}
-        />
+        <CheckboxField label="Solo con pases" checked={onlyWithPasses} onChange={(event) => setFilter('pases', event.target.checked)} />
+        <CheckboxField label="Solo con deuda" checked={onlyDebtors} onChange={(event) => setFilter('deuda', event.target.checked)} />
       </div>
       <AsyncView
         state={clients}

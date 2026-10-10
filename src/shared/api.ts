@@ -14,6 +14,7 @@ export const apiSchemas = {
   'clients:anonymize': schemas.idInput,
   'clients:account': schemas.idInput,
   'teachers:list': schemas.activeListInput,
+  'teachers:balances': schemas.emptyInput,
   'teachers:get': schemas.idInput,
   'teachers:create': schemas.teacherInput,
   'teachers:update': schemas.teacherUpdate,
@@ -51,6 +52,7 @@ export interface ApiOutputs {
   'clients:anonymize': T.Client;
   'clients:account': T.ClientAccount;
   'teachers:list': T.Teacher[];
+  'teachers:balances': T.TeacherBalance[];
   'teachers:get': T.Teacher;
   'teachers:create': T.Teacher;
   'teachers:update': T.Teacher;

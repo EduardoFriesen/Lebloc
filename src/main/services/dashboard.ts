@@ -1,7 +1,7 @@
 import { daysBetween } from '../../domain/dates';
 import type { Dashboard, Debtor } from '../../shared/types';
 import { type Context, today } from '../context';
-import { listDebtorRows } from '../repos/saleStats';
+import { listDebtorRows, summaryCounts } from '../repos/saleStats';
 import { listRenewals } from './clients';
 import { listTeacherBalances } from './payouts';
 import { listWaiverAlerts } from './waivers';
@@ -14,10 +14,15 @@ export function listDebtors(ctx: Context): Debtor[] {
 }
 
 export function getDashboard(ctx: Context): Dashboard {
+  const teacherBalances = listTeacherBalances(ctx);
   return {
+    summary: {
+      ...summaryCounts(ctx.db),
+      teacherBalanceCents: teacherBalances.reduce((total, balance) => total + balance.balanceCents, 0),
+    },
     renewals: listRenewals(ctx),
     debtors: listDebtors(ctx).slice(0, DASHBOARD_DEBTORS),
-    teacherBalances: listTeacherBalances(ctx).filter((balance) => balance.balanceCents !== 0),
+    teacherBalances: teacherBalances.filter((balance) => balance.balanceCents !== 0),
     waiverAlerts: listWaiverAlerts(ctx),
   };
 }

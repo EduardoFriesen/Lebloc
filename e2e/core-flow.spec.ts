@@ -202,3 +202,24 @@ test("a plan and a teacher list this month's enrollments", async () => {
   await expect(enrolled.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
   await expect(enrolled.getByText(/Pack 2\+2 · vendido el/)).toBeVisible();
 });
+
+test('the counter summary opens the detail behind each number', async () => {
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  const summary = page.getByRole('region', { name: 'Resumen' });
+  const clients = page.getByRole('list', { name: 'Clientes' });
+
+  await summary.getByRole('link', { name: 'Deudores' }).click();
+  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+  await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await summary.getByRole('link', { name: 'Clientes con pases' }).click();
+  await expect(page.getByLabel('Solo con pases')).toBeChecked();
+  await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await summary.getByRole('link', { name: 'Saldo con profesores' }).click();
+  const juan = page.getByRole('list', { name: 'Profesores' }).getByRole('listitem').filter({ hasText: 'Juan Pared' });
+  await expect(juan.getByText('Saldo')).toBeVisible();
+});

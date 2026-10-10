@@ -9,6 +9,7 @@ export const CHANNELS = [
   'clients:anonymize',
   'clients:account',
   'teachers:list',
+  'teachers:balances',
   'teachers:get',
   'teachers:create',
   'teachers:update',

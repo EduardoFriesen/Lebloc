@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Teacher } from '../../shared/types';
 import { ButtonLink } from '../components/ui/Button';
-import { Badge, Card, CardGrid } from '../components/ui/Card';
+import { Badge, Card, CardGrid, Stat } from '../components/ui/Card';
 import { CheckboxField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
@@ -15,7 +15,15 @@ function scheduleLines(teacher: Teacher): string[] {
 
 export function TeachersPage() {
   const [includeInactive, setIncludeInactive] = useState(false);
-  const teachers = useAsync(() => call('teachers:list', { includeInactive }), [includeInactive], { keepPreviousData: true });
+  const teachers = useAsync(
+    async () => {
+      const [list, balances] = await Promise.all([call('teachers:list', { includeInactive }), call('teachers:balances', {})]);
+      const balanceById = new Map(balances.map((balance) => [balance.teacherId, balance.balanceCents]));
+      return list.map((teacher) => ({ ...teacher, balanceCents: balanceById.get(teacher.id) ?? 0 }));
+    },
+    [includeInactive],
+    { keepPreviousData: true },
+  );
 
   return (
     <section className="p-8">
@@ -52,6 +60,11 @@ export function TeachersPage() {
                   </ButtonLink>
                 }
               >
+                <dl>
+                  <Stat label="Saldo">
+                    <span className={teacher.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(teacher.balanceCents)}</span>
+                  </Stat>
+                </dl>
                 {teacher.schedules.length === 0 ? (
                   <p className="text-sm text-ink-soft">Sin horarios</p>
                 ) : (

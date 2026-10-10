@@ -14,7 +14,7 @@ import {
 import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
 import { registerPayment, voidPayment } from '../services/payments';
-import { getTeacherAccount, registerPayout, voidPayout } from '../services/payouts';
+import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
 import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
@@ -39,6 +39,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'clients:anonymize': ({ id }) => anonymizeClient(ctx, id),
     'clients:account': ({ id }) => getClientAccount(ctx, id),
     'teachers:list': ({ includeInactive }) => listTeachers(ctx, includeInactive),
+    'teachers:balances': () => listTeacherBalances(ctx),
     'teachers:get': ({ id }) => getTeacher(ctx, id),
     'teachers:create': (input) => createTeacher(ctx, input),
     'teachers:update': (input) => updateTeacher(ctx, input),

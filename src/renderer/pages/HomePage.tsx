@@ -1,7 +1,7 @@
 import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
-import type { ClientSummary, Dashboard } from '../../shared/types';
+import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, FOCUS_WITHIN, PassBadge, STRETCHED } from '../components/ui/Card';
 import { TextField } from '../components/ui/Field';
@@ -185,7 +185,7 @@ function Panel({ title, action, children }: { title: string; action?: ReactNode;
 /** One alert line; the whole row opens `to`, not just the name. */
 function AlertRow({ to, name, children }: { to: string; name: string; children: ReactNode }) {
   return (
-    <li className={`relative -mx-2 flex justify-between gap-2 rounded-lg px-2 py-2 hover:bg-sunken/60 ${FOCUS_WITHIN}`}>
+    <li className={`relative -mx-2 flex items-baseline justify-between gap-2 rounded-lg px-2 py-2 hover:bg-sunken/60 ${FOCUS_WITHIN}`}>
       <Link className={`font-semibold ${STRETCHED}`} to={to}>
         {name}
       </Link>
@@ -205,9 +205,33 @@ function AlertList<T>({ items, empty, render }: { items: readonly T[]; empty: st
   );
 }
 
+/** Three headline numbers; each row opens the screen with the detail. */
+function SummaryPanel({ summary }: { summary: DashboardSummary }) {
+  const value = 'font-display text-2xl leading-none';
+  return (
+    <Panel title="Resumen">
+      <ul className="flex flex-col">
+        <AlertRow to="/clientes?pases=1" name="Clientes con pases">
+          <span className={value}>{summary.activeClients}</span>
+        </AlertRow>
+        <AlertRow to="/clientes?deuda=1" name="Deudores">
+          <span>
+            <span className={value}>{summary.debtorCount}</span>
+            {summary.debtorCount > 0 && <span className="text-sm text-accent-ink"> · {formatMoney(summary.debtTotalCents)}</span>}
+          </span>
+        </AlertRow>
+        <AlertRow to="/profesores" name="Saldo con profesores">
+          <span className={`${value} ${summary.teacherBalanceCents < 0 ? 'text-danger' : ''}`}>{formatMoney(summary.teacherBalanceCents)}</span>
+        </AlertRow>
+      </ul>
+    </Panel>
+  );
+}
+
 function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
   return (
     <>
+      <SummaryPanel summary={dashboard.summary} />
       <Panel
         title="Deudores"
         action={
@@ -235,17 +259,6 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
           render={(alert) => (
             <AlertRow key={alert.clientId} to={`/clientes/${alert.clientId}`} name={alert.clientName}>
               <span>{alert.expiresAt ? `Vencida ${formatDate(alert.expiresAt)}` : 'Sin firmar'}</span>
-            </AlertRow>
-          )}
-        />
-      </Panel>
-      <Panel title="Saldos con profesores">
-        <AlertList
-          items={dashboard.teacherBalances}
-          empty="No hay saldos pendientes con profesores."
-          render={(balance) => (
-            <AlertRow key={balance.teacherId} to={`/profesores/${balance.teacherId}`} name={balance.teacherName}>
-              <span className={balance.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(balance.balanceCents)}</span>
             </AlertRow>
           )}
         />

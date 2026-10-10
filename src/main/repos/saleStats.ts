@@ -52,3 +52,30 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
     )
     .all({ planId: filter.planId ?? null, teacherId: filter.teacherId ?? null, from: filter.from });
 }
+
+export interface SummaryCounts {
+  activeClients: number;
+  debtorCount: number;
+  debtTotalCents: number;
+}
+
+/** Active (not archived) clients with passes left, and those who owe, with the total owed. */
+export function summaryCounts(db: Db): SummaryCounts {
+  return db
+    .prepare<[], SummaryCounts>(
+      `WITH ${SALE_STATS_CTE},
+       per_client AS (
+         SELECT ss.client_id,
+           SUM(ss.free_passes - ss.used_free + ss.teacher_passes - ss.used_teacher) AS passes,
+           SUM(ss.total_cents - ss.paid_cents) AS debt
+         FROM sale_stats ss
+         JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
+         GROUP BY ss.client_id
+       )
+       SELECT COUNT(CASE WHEN passes > 0 THEN 1 END) AS activeClients,
+         COUNT(CASE WHEN debt > 0 THEN 1 END) AS debtorCount,
+         COALESCE(SUM(CASE WHEN debt > 0 THEN debt END), 0) AS debtTotalCents
+       FROM per_client`,
+    )
+    .get() as SummaryCounts;
+}

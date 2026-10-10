@@ -100,6 +100,7 @@ export interface ClientSummaryFilters {
   search: string;
   includeArchived: boolean;
   onlyDebtors: boolean;
+  onlyWithPasses?: boolean;
   /** ISO timestamps: only clients with an active consumption in [attendedFrom, attendedTo). */
   attendedFrom?: string;
   attendedTo?: string;
@@ -134,7 +135,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          AND (@attendedFrom IS NULL OR ${ATTENDED_SQL('@attendedFrom', '@attendedTo')})
          AND (@notAttendedSince IS NULL OR NOT ${ATTENDED_SQL('@notAttendedSince', 'NULL')})
        GROUP BY c.id
-       HAVING @onlyDebtors = 0 OR debtCents > 0
+       HAVING (@onlyDebtors = 0 OR debtCents > 0) AND (@onlyWithPasses = 0 OR remainingFree + remainingTeacher > 0)
        ORDER BY CASE WHEN @onlyDebtors = 1 THEN oldestDebtSoldAt END, c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE
        LIMIT 200`,
     )
@@ -142,6 +143,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
       search: escapeLike(filters.search),
       includeArchived: filters.includeArchived ? 1 : 0,
       onlyDebtors: filters.onlyDebtors ? 1 : 0,
+      onlyWithPasses: filters.onlyWithPasses ? 1 : 0,
       attendedFrom: filters.attendedFrom ?? null,
       attendedTo: filters.attendedTo ?? null,
       notAttendedSince: filters.notAttendedSince ?? null,
