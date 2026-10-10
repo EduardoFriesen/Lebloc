@@ -30,12 +30,12 @@ export function TeacherAccountPage() {
 
 function Stat({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
   return (
-    <div className="rounded-2xl bg-paper p-5 shadow-warm">
-      <dt className="text-sm font-semibold text-granite-soft">{label}</dt>
+    <div className="rounded-2xl bg-surface p-5 shadow-warm">
+      <dt className="text-sm font-semibold text-ink-soft">{label}</dt>
       <dd data-testid={testId} className="font-display text-4xl font-bold">
         {value}
       </dd>
-      {hint && <dd className="text-xs text-granite-soft">{hint}</dd>}
+      {hint && <dd className="text-xs text-ink-soft">{hint}</dd>}
     </div>
   );
 }
@@ -100,7 +100,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
               </thead>
               <tbody>
                 {account.payouts.map((payout) => (
-                  <tr key={payout.id} className={payout.voidedAt ? 'text-granite-soft' : ''}>
+                  <tr key={payout.id} className={payout.voidedAt ? 'text-ink-soft' : ''}>
                     <td>{formatDate(payout.paidAt)}</td>
                     <td>{PAYMENT_METHOD_LABELS[payout.method]}</td>
                     <td>{formatMoney(payout.amountCents)}</td>
@@ -163,14 +163,14 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         </section>
       </div>
 
-      <section aria-labelledby="agenda-title" className="mt-8 grid gap-4 rounded-2xl bg-paper p-5 shadow-warm md:grid-cols-2">
+      <section aria-labelledby="agenda-title" className="mt-8 grid gap-4 rounded-2xl bg-surface p-5 shadow-warm md:grid-cols-2">
         <h2 id="agenda-title" className="sr-only">
           Agenda y contacto
         </h2>
         <div className="text-sm">
           <h3 className="font-semibold">Horarios</h3>
           {teacher.schedules.length === 0 ? (
-            <p className="text-granite-soft">Sin horarios cargados.</p>
+            <p className="text-ink-soft">Sin horarios cargados.</p>
           ) : (
             <ul>
               {teacher.schedules.map((schedule, index) => (

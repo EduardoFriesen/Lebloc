@@ -98,7 +98,7 @@ function ClientForm({ client }: { client: Client | null }) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-8">
-      <fieldset className="rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Datos personales</legend>
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Nombre" required {...bind('firstName')} />
@@ -116,7 +116,7 @@ function ClientForm({ client }: { client: Client | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Contacto de emergencia</legend>
         <div className="grid gap-4 md:grid-cols-3">
           <TextField label="Nombre del contacto" {...bind('emergencyName')} />
@@ -125,14 +125,14 @@ function ClientForm({ client }: { client: Client | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Tutores</legend>
-        <p className="text-sm text-granite-soft">Obligatorio para menores de 18 años.</p>
+        <p className="text-sm text-ink-soft">Obligatorio para menores de 18 años.</p>
         {minor && guardians.length === 0 && <Notice tone="warning">Es menor de edad: cargá al menos un tutor.</Notice>}
         {guardians.map((guardian, index) => {
           const n = index + 1;
           return (
-            <div key={index} className="grid items-end gap-3 border-t border-granite/15 pt-4 md:grid-cols-3">
+            <div key={index} className="grid items-end gap-3 border-t border-ink/15 pt-4 md:grid-cols-3">
               {GUARDIAN_FIELDS.map(({ key, label }) => (
                 <TextField
                   key={key}

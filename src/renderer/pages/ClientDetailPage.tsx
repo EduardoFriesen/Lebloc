@@ -246,20 +246,20 @@ interface PassesPanelProps {
 
 function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps) {
   return (
-    <section aria-labelledby="pases-title" className="flex flex-col gap-4 rounded-2xl bg-dusk p-6 text-chalk shadow-warm">
+    <section aria-labelledby="pases-title" className="flex flex-col gap-4 rounded-2xl bg-dusk p-6 text-cream shadow-warm">
       <h2 id="pases-title" className="font-display text-2xl font-semibold">
         Pases
       </h2>
       <p className="font-display text-6xl leading-none">
         {account.remainingFree + account.remainingTeacher}
-        <span className="ml-2 font-sans text-sm text-chalk/75">disponibles</span>
+        <span className="ml-2 font-sans text-sm text-cream/75">disponibles</span>
       </p>
       <div className="flex flex-col gap-1 text-sm">
         <p>Libres restantes: {account.remainingFree}</p>
         <p>Con profesor restantes: {account.remainingTeacher}</p>
       </div>
       {account.lowOnPasses && (
-        <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-granite">
+        <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-night">
           Quedan pocos pases: ofrecé renovar el plan.
         </p>
       )}
@@ -271,7 +271,7 @@ function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps)
         <Button disabled={disabled || account.remainingTeacher <= 0} onClick={() => onConsume('teacher')}>
           Consumir con profesor
         </Button>
-        <Button variant="secondary" className="border border-chalk/40" disabled={disabled} onClick={onSell}>
+        <Button variant="secondary" className="border border-canvas/40" disabled={disabled} onClick={onSell}>
           Vender plan
         </Button>
       </div>
@@ -313,13 +313,13 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
     .reduce<Payment | null>((last, payment) => (!last || payment.id > last.id ? payment : last), null);
-  const border = voided ? 'border-granite/30 opacity-70' : sale.debtCents > 0 ? 'border-volt' : 'border-moss';
+  const border = voided ? 'border-ink/30 opacity-70' : sale.debtCents > 0 ? 'border-accent' : 'border-moss';
 
   return (
-    <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 rounded-2xl bg-paper p-5 shadow-warm ${border}`}>
+    <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 rounded-2xl bg-surface p-5 shadow-warm ${border}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-xl font-semibold">{sale.planName}</h3>
-        <p className="text-sm text-granite-soft">
+        <p className="text-sm text-ink-soft">
           {formatDate(sale.soldAt)}
           {sale.teacherName && ` · con ${sale.teacherName}`}
           {voided && ' · Anulada'}
@@ -327,19 +327,19 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
       </header>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-4">
         <div>
-          <dt className="text-granite-soft">Local</dt>
+          <dt className="text-ink-soft">Local</dt>
           <dd>{formatMoney(sale.localPriceCents)}</dd>
         </div>
         <div>
-          <dt className="text-granite-soft">Recargo profesor</dt>
+          <dt className="text-ink-soft">Recargo profesor</dt>
           <dd>{formatMoney(sale.teacherSurchargeCents)}</dd>
         </div>
         <div>
-          <dt className="text-granite-soft">Total</dt>
+          <dt className="text-ink-soft">Total</dt>
           <dd className="font-semibold">{formatMoney(sale.totalCents)}</dd>
         </div>
         <div>
-          <dt className="text-granite-soft">Reparto</dt>
+          <dt className="text-ink-soft">Reparto</dt>
           <dd>{sale.teacherSurchargeCents > 0 ? SPLIT_RULE_LABELS[sale.splitRule] : '—'}</dd>
         </div>
       </dl>
@@ -348,7 +348,7 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
       </p>
       {!voided &&
         (sale.debtCents > 0 ? (
-          <p className="font-semibold text-volt-ink">Deuda: {formatMoney(sale.debtCents)}</p>
+          <p className="font-semibold text-accent-ink">Deuda: {formatMoney(sale.debtCents)}</p>
         ) : (
           <p className="font-semibold text-moss">Saldada</p>
         ))}
@@ -366,7 +366,7 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
           </thead>
           <tbody>
             {payments.map((payment) => (
-              <tr key={payment.id} className={payment.voidedAt ? 'text-granite-soft' : ''}>
+              <tr key={payment.id} className={payment.voidedAt ? 'text-ink-soft' : ''}>
                 <td>{formatDate(payment.paidAt)}</td>
                 <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
                 <td>{formatMoney(payment.amountCents)}</td>
@@ -424,7 +424,7 @@ function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: C
           </thead>
           <tbody>
             {consumptions.map((consumption) => (
-              <tr key={consumption.id} className={consumption.voidedAt ? 'text-granite-soft' : ''}>
+              <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
                 <td>{formatDateTime(consumption.consumedAt)}</td>
                 <td>{PASS_KIND_LABELS[consumption.kind]}</td>
                 <td>{consumption.note ?? '—'}</td>
@@ -464,14 +464,14 @@ function ClientInfoPanel({ client }: { client: Client }) {
     ['Última actualización', formatDateTime(client.updatedAt)],
   ];
   return (
-    <section aria-labelledby="ficha-title" className="flex flex-col gap-3 rounded-2xl bg-paper p-5 shadow-warm">
+    <section aria-labelledby="ficha-title" className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-warm">
       <h2 id="ficha-title" className="font-display text-2xl font-semibold">
         Datos
       </h2>
       <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-granite-soft">{label}</dt>
+            <dt className="text-ink-soft">{label}</dt>
             <dd>{value}</dd>
           </div>
         ))}
@@ -504,9 +504,9 @@ interface WaiverPanelProps {
 
 function WaiverPanel({ account, disabled, onSign, onVoid }: WaiverPanelProps) {
   const { waiver, waivers } = account;
-  const tone = waiver.state === 'valid' ? 'bg-moss text-chalk' : 'bg-ochre text-granite';
+  const tone = waiver.state === 'valid' ? 'bg-moss text-canvas' : 'bg-ochre text-night';
   return (
-    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 rounded-2xl bg-paper p-5 shadow-warm">
+    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-warm">
       <h2 id="ficha-firmada-title" className="font-display text-2xl font-semibold">
         Ficha firmada
       </h2>
@@ -521,11 +521,11 @@ function WaiverPanel({ account, disabled, onSign, onVoid }: WaiverPanelProps) {
         </div>
       )}
       {waivers.length === 0 ? (
-        <p className="text-sm text-granite-soft">Todavía no se registró ninguna firma.</p>
+        <p className="text-sm text-ink-soft">Todavía no se registró ninguna firma.</p>
       ) : (
-        <ul className="divide-y divide-granite/10 text-sm">
+        <ul className="divide-y divide-ink/10 text-sm">
           {waivers.map((signature) => (
-            <li key={signature.id} className={`flex items-center justify-between gap-2 py-2 ${signature.voidedAt ? 'text-granite-soft' : ''}`}>
+            <li key={signature.id} className={`flex items-center justify-between gap-2 py-2 ${signature.voidedAt ? 'text-ink-soft' : ''}`}>
               <span>
                 Firmada el {formatDate(signature.signedAt)}
                 {signature.voidedAt && ' · Anulada'}

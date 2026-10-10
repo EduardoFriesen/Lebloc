@@ -51,7 +51,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
   }
 
   return (
-    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
       <h2 className="font-display text-2xl font-semibold">Aviso de pocos pases</h2>
       <TextField
         label="Avisar cuando queden pases"
@@ -107,9 +107,9 @@ function BackupPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+    <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
       <h2 className="font-display text-2xl font-semibold">Backup</h2>
-      <p className="text-sm text-granite-soft">
+      <p className="text-sm text-ink-soft">
         Cada vez que se abre la app se guarda un backup automático (se conservan los últimos 10). Exportá una copia a un
         pendrive con regularidad: si la PC se rompe, es la única forma de recuperar los datos.
       </p>

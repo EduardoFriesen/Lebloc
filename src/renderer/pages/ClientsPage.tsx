@@ -48,7 +48,7 @@ export function ClientsPage() {
             </thead>
             <tbody>
               {data.map((client) => (
-                <tr key={client.id} className={client.archivedAt ? 'text-granite-soft' : ''}>
+                <tr key={client.id} className={client.archivedAt ? 'text-ink-soft' : ''}>
                   <td>
                     <Link className="font-semibold underline-offset-4 hover:underline" to={`/clientes/${client.id}`}>
                       {fullName(client)}
@@ -57,7 +57,7 @@ export function ClientsPage() {
                   <td>{ageLabel(client.birthDate)}</td>
                   <td>{client.remainingFree}</td>
                   <td>{client.remainingTeacher}</td>
-                  <td className={client.debtCents > 0 ? 'font-semibold text-volt-ink' : ''}>
+                  <td className={client.debtCents > 0 ? 'font-semibold text-accent-ink' : ''}>
                     {client.debtCents > 0 ? formatMoney(client.debtCents) : '—'}
                   </td>
                   <td>{client.archivedAt ? 'Archivado' : 'Activo'}</td>

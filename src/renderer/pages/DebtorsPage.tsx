@@ -24,7 +24,7 @@ export function DebtorsPage() {
         {(data) => (
           <>
             <p className="mb-4 font-display text-3xl font-semibold">
-              Total adeudado <span className="text-volt-ink">{formatMoney(sum(data.map((debtor) => debtor.debtCents)))}</span>
+              Total adeudado <span className="text-accent-ink">{formatMoney(sum(data.map((debtor) => debtor.debtCents)))}</span>
             </p>
             <table className={tableClass}>
               <thead>
@@ -49,7 +49,7 @@ export function DebtorsPage() {
                     <td>{formatDate(debtor.soldAt)}</td>
                     <td>{debtor.daysSinceSale} días</td>
                     <td>{formatMoney(debtor.totalCents)}</td>
-                    <td className="font-semibold text-volt-ink">{formatMoney(debtor.debtCents)}</td>
+                    <td className="font-semibold text-accent-ink">{formatMoney(debtor.debtCents)}</td>
                   </tr>
                 ))}
               </tbody>

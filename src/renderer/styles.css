@@ -3,28 +3,30 @@
 @import '@fontsource-variable/nunito/index.css';
 
 /* "Atardecer en la montaña": colores tomados del logo (terracota, mostaza, índigo) sobre crema.
-   Los nombres de token vienen de la estética anterior; el comentario indica qué son hoy. */
+   Los tokens son semánticos y el tema oscuro los redefine; los marcados "fijo" no cambian. */
 @theme {
-  --color-chalk: #fbf4ea; /* crema: fondo */
-  --color-chalk-deep: #efe2cf; /* arena: skeletons, hover */
-  --color-paper: #fffaf2; /* tarjetas, tablas, avisos */
-  --color-granite: #2d2a3e; /* tinta berenjena */
-  --color-granite-soft: #5d5870; /* texto secundario */
-  --color-volt: #a4501f; /* terracota: acento y botón primario */
-  --color-volt-ink: #8a3f14; /* texto terracota */
+  --color-canvas: #fbf4ea; /* fondo */
+  --color-surface: #fffaf2; /* cartas, tablas, avisos */
+  --color-sunken: #efe2cf; /* arena: skeletons, hover, cabeceras */
+  --color-ink: #2d2a3e; /* texto */
+  --color-ink-soft: #5d5870; /* texto secundario */
+  --color-accent: #a4501f; /* fijo. terracota: rellenos (botón primario, franjas) */
+  --color-accent-ink: #8a3f14; /* texto terracota */
   --color-dusk: #363b63; /* índigo: menú lateral, botón secundario */
   --color-dusk-soft: #4a5080;
-  --color-ochre: #c8923a; /* mostaza: avisos, indicadores (no usar como texto sobre índigo) */
-  --color-peach: #f2b48c; /* durazno: texto de acento sobre índigo */
+  --color-ochre: #c8923a; /* fijo. mostaza: avisos e indicadores, con texto night */
+  --color-peach: #f2b48c; /* fijo. texto de acento sobre índigo */
   --color-moss: #56724c; /* salvia: éxito */
   --color-danger: #a2382a; /* ladrillo: error */
+  --color-cream: #fbf4ea; /* fijo. texto sobre índigo/terracota y el sol del logo */
+  --color-night: #2d2a3e; /* fijo. texto sobre mostaza */
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-sans: 'Nunito Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
   --shadow-warm: 0 1px 2px rgb(45 42 62 / 0.06), 0 8px 24px -10px rgb(45 42 62 / 0.2);
 }
 
 body {
-  @apply bg-chalk text-granite font-sans antialiased;
+  @apply bg-canvas text-ink font-sans antialiased;
   /* Grano de papel: ruido SVG muy tenue sobre el crema. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -47,12 +49,12 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-volt);
+  outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Sobre índigo el terracota no contrasta: el foco va en crema. */
 nav :focus-visible,
 .bg-dusk :focus-visible {
-  outline-color: var(--color-chalk);
+  outline-color: var(--color-cream);
 }

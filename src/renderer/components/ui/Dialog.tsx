@@ -28,7 +28,7 @@ export function Dialog({ open, title, onClose, dismissible = true, children }: D
       onCancel={(event) => {
         if (!dismissible) event.preventDefault();
       }}
-      className="m-auto w-full max-w-xl rounded-3xl border-t-4 border-volt bg-chalk p-0 text-granite shadow-2xl backdrop:bg-dusk/60"
+      className="m-auto w-full max-w-xl rounded-3xl border-t-4 border-accent bg-canvas p-0 text-ink shadow-2xl backdrop:bg-dusk/60"
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">

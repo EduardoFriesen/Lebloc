@@ -1,7 +1,7 @@
 import { type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, useId } from 'react';
 
 const CONTROL =
-  'w-full rounded-xl border border-granite/25 bg-paper px-3 py-2 text-sm text-granite aria-[invalid=true]:border-danger';
+  'w-full rounded-xl border border-ink/25 bg-surface px-3 py-2 text-sm text-ink aria-[invalid=true]:border-danger';
 
 function describedBy(id: string, error?: string, hint?: string): string | undefined {
   if (error) return `${id}-error`;
@@ -12,12 +12,12 @@ function describedBy(id: string, error?: string, hint?: string): string | undefi
 function FieldShell({ id, label, error, hint, children }: { id: string; label: string; error?: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-semibold text-granite-soft">
+      <label htmlFor={id} className="text-sm font-semibold text-ink-soft">
         {label}
       </label>
       {children}
       {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-granite-soft">
+        <p id={`${id}-hint`} className="text-xs text-ink-soft">
           {hint}
         </p>
       )}
@@ -68,7 +68,7 @@ export function CheckboxField({ label, ...props }: Omit<InputHTMLAttributes<HTML
   const id = useId();
   return (
     <div className="flex items-center gap-2">
-      <input id={id} type="checkbox" className="h-4 w-4 accent-volt" {...props} />
+      <input id={id} type="checkbox" className="h-4 w-4 accent-accent" {...props} />
       <label htmlFor={id} className="text-sm">
         {label}
       </label>

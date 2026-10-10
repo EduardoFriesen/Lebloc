@@ -93,7 +93,7 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-8">
-      <fieldset className="rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Datos</legend>
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Nombre" {...bind('firstName')} error={errors.firstName} />
@@ -107,7 +107,7 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Días y horarios</legend>
         {schedules.map((schedule, index) => {
           const n = index + 1;
@@ -151,7 +151,7 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-4 rounded-2xl bg-paper p-6 shadow-warm">
+      <fieldset className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
         <legend className="font-display text-xl font-semibold">Redes sociales</legend>
         {socials.map((social, index) => {
           const n = index + 1;

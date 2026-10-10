@@ -54,7 +54,7 @@ export function HomePage() {
         />
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
         {query === '' ? (
-          <p className="text-sm text-granite-soft">Escribí un nombre para empezar.</p>
+          <p className="text-sm text-ink-soft">Escribí un nombre para empezar.</p>
         ) : (
           <AsyncView
             state={results}
@@ -70,14 +70,14 @@ export function HomePage() {
             {(clients) => (
               <ul className="flex flex-col gap-2">
                 {clients.map((client) => (
-                  <li key={client.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-paper p-4 shadow-warm">
+                  <li key={client.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-warm">
                     <div>
                       <Link className="font-display text-xl font-semibold hover:underline" to={`/clientes/${client.id}`}>
                         {fullName(client)}
                       </Link>
-                      <p className="text-sm text-granite-soft">
+                      <p className="text-sm text-ink-soft">
                         Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
-                        {client.debtCents > 0 && <span className="font-semibold text-volt-ink"> · Debe {formatMoney(client.debtCents)}</span>}
+                        {client.debtCents > 0 && <span className="font-semibold text-accent-ink"> · Debe {formatMoney(client.debtCents)}</span>}
                         {client.waiver.state !== 'valid' && <span className="font-semibold text-danger"> · {waiverLabel(client.waiver)}</span>}
                       </p>
                     </div>
@@ -117,7 +117,7 @@ export function HomePage() {
 function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="rounded-2xl bg-paper p-5 shadow-warm">
+    <section aria-labelledby={id} className="rounded-2xl bg-surface p-5 shadow-warm">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <h2 id={id} className="font-display text-xl font-semibold">
           {title}
@@ -134,9 +134,9 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
     <>
       <Panel title="Pocos pases">
         {dashboard.lowPasses.length === 0 ? (
-          <p className="text-sm text-granite-soft">Nadie está por quedarse sin pases.</p>
+          <p className="text-sm text-ink-soft">Nadie está por quedarse sin pases.</p>
         ) : (
-          <ul className="divide-y divide-granite/10 text-sm">
+          <ul className="divide-y divide-ink/10 text-sm">
             {dashboard.lowPasses.map((alert) => (
               <li key={alert.clientId} className="flex justify-between py-2">
                 <Link className="font-semibold hover:underline" to={`/clientes/${alert.clientId}`}>
@@ -157,9 +157,9 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         }
       >
         {dashboard.debtors.length === 0 ? (
-          <p className="text-sm text-granite-soft">No hay deudas pendientes.</p>
+          <p className="text-sm text-ink-soft">No hay deudas pendientes.</p>
         ) : (
-          <ul className="divide-y divide-granite/10 text-sm">
+          <ul className="divide-y divide-ink/10 text-sm">
             {dashboard.debtors.map((debtor) => (
               <li key={debtor.saleId} className="flex justify-between gap-2 py-2">
                 <Link className="font-semibold hover:underline" to={`/clientes/${debtor.clientId}`}>
@@ -175,9 +175,9 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
       </Panel>
       <Panel title="Fichas por firmar">
         {dashboard.waiverAlerts.length === 0 ? (
-          <p className="text-sm text-granite-soft">Todas las fichas están al día.</p>
+          <p className="text-sm text-ink-soft">Todas las fichas están al día.</p>
         ) : (
-          <ul className="divide-y divide-granite/10 text-sm">
+          <ul className="divide-y divide-ink/10 text-sm">
             {dashboard.waiverAlerts.slice(0, WAIVER_ALERTS_SHOWN).map((alert) => (
               <li key={alert.clientId} className="flex justify-between gap-2 py-2">
                 <Link className="font-semibold hover:underline" to={`/clientes/${alert.clientId}`}>
@@ -187,16 +187,16 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
               </li>
             ))}
             {dashboard.waiverAlerts.length > WAIVER_ALERTS_SHOWN && (
-              <li className="py-2 text-granite-soft">y {dashboard.waiverAlerts.length - WAIVER_ALERTS_SHOWN} más</li>
+              <li className="py-2 text-ink-soft">y {dashboard.waiverAlerts.length - WAIVER_ALERTS_SHOWN} más</li>
             )}
           </ul>
         )}
       </Panel>
       <Panel title="Saldos con profesores">
         {dashboard.teacherBalances.length === 0 ? (
-          <p className="text-sm text-granite-soft">No hay saldos pendientes con profesores.</p>
+          <p className="text-sm text-ink-soft">No hay saldos pendientes con profesores.</p>
         ) : (
-          <ul className="divide-y divide-granite/10 text-sm">
+          <ul className="divide-y divide-ink/10 text-sm">
             {dashboard.teacherBalances.map((balance) => (
               <li key={balance.teacherId} className="flex justify-between py-2">
                 <Link className="font-semibold hover:underline" to={`/profesores/${balance.teacherId}`}>

@@ -80,7 +80,7 @@ export function PaymentForm({ sale, payments, onDone, onCancel }: PaymentFormPro
         <option value="transfer">Transferencia</option>
       </SelectField>
       <TextField label="Fecha" type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} error={errors.paidAt} />
-      {split && <p className="text-sm text-granite-soft">{split}</p>}
+      {split && <p className="text-sm text-ink-soft">{split}</p>}
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>

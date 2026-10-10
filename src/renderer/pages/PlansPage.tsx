@@ -55,7 +55,7 @@ export function PlansPage() {
             </thead>
             <tbody>
               {data.map((plan) => (
-                <tr key={plan.id} className={plan.active ? '' : 'text-granite-soft'}>
+                <tr key={plan.id} className={plan.active ? '' : 'text-ink-soft'}>
                   <td className="font-semibold">{plan.name}</td>
                   <td>{plan.freePasses}</td>
                   <td>{plan.teacherPasses}</td>

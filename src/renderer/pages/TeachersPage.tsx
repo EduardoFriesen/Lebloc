@@ -62,7 +62,7 @@ export function TeachersPage() {
                     </Link>
                   </td>
                   <td>{formatMoney(teacher.classRateCents)}</td>
-                  <td className="text-granite-soft">{scheduleSummary(teacher)}</td>
+                  <td className="text-ink-soft">{scheduleSummary(teacher)}</td>
                   <td>{teacher.active ? 'Activo' : 'Inactivo'}</td>
                   <td className="text-right">
                     <ButtonLink variant="ghost" to={`/profesores/${teacher.id}/editar`} aria-label={`Editar ${fullName(teacher)}`}>
