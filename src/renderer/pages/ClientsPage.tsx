@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ButtonLink } from '../components/ui/Button';
-import { Badge, Card, CardGrid, Stat } from '../components/ui/Card';
+import { Badge, Card, CardGrid, PassBadge, Stat } from '../components/ui/Card';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
@@ -69,10 +69,12 @@ export function ClientsPage() {
                   title={fullName(client)}
                   subtitle={ageLabel(client.birthDate)}
                   muted={client.archivedAt !== null}
+                  tone={client.passStatus}
                   badges={
-                    (client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
+                    (client.passStatus !== 'ok' || client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
                       <>
                         {client.archivedAt && <Badge>Archivado</Badge>}
+                        {!client.archivedAt && <PassBadge status={client.passStatus} />}
                         {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
                         {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
                       </>

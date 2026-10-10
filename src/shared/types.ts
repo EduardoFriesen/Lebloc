@@ -1,8 +1,8 @@
-import type { PassKind } from '../domain/passes';
+import type { PassKind, PassStatus } from '../domain/passes';
 import type { SplitRule } from '../domain/sale';
 import type { WaiverState, WaiverStatus } from '../domain/waiver';
 
-export type { WaiverState, WaiverStatus };
+export type { PassStatus, WaiverState, WaiverStatus };
 
 export type PaymentMethod = 'cash' | 'transfer';
 
@@ -45,6 +45,7 @@ export interface ClientSummary {
   debtCents: number;
   /** Days since the oldest sale that still has debt; null when the client owes nothing. */
   debtDays: number | null;
+  passStatus: PassStatus;
   waiver: WaiverStatus;
 }
 
@@ -194,15 +195,9 @@ export interface Debtor {
   daysSinceSale: number;
 }
 
-export interface LowPassesAlert {
-  clientId: number;
-  clientName: string;
-  remainingFree: number;
-  remainingTeacher: number;
-}
-
 export interface Dashboard {
-  lowPasses: LowPassesAlert[];
+  /** Low or no passes and came in the last 30 days. */
+  renewals: ClientSummary[];
   debtors: Debtor[];
   teacherBalances: TeacherBalance[];
   waiverAlerts: WaiverAlert[];

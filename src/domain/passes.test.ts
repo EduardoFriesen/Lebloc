@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectDomainError } from '../test/helpers';
-import { isLowOnPasses, pickSaleForConsumption, remainingPasses, totalPasses, type SaleAvailability } from './passes';
+import { isLowOnPasses, passStatus, pickSaleForConsumption, remainingPasses, totalPasses, type SaleAvailability } from './passes';
 
 describe('remainingPasses', () => {
   it('subtracts used passes per kind', () => {
@@ -32,5 +32,16 @@ describe('pickSaleForConsumption', () => {
   it('fails when no sale has passes of that kind', () => {
     expectDomainError(() => pickSaleForConsumption([{ saleId: 1, soldAt: '2026-08-01', remaining: { free: 0, teacher: 0 } }], 'free'), 'NO_PASSES_AVAILABLE');
     expectDomainError(() => pickSaleForConsumption([], 'teacher'), 'NO_PASSES_AVAILABLE');
+  });
+});
+
+describe('passStatus', () => {
+  it('is none with zero passes, low up to the threshold and ok above it', () => {
+    expect(passStatus(0, 2)).toBe('none');
+    expect(passStatus(1, 2)).toBe('low');
+    expect(passStatus(2, 2)).toBe('low');
+    expect(passStatus(3, 2)).toBe('ok');
+    expect(passStatus(0, 0)).toBe('none');
+    expect(passStatus(1, 0)).toBe('ok');
   });
 });

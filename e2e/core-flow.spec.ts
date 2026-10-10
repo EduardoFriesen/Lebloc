@@ -163,3 +163,27 @@ test('debtors live in Clientes behind "Solo con deuda", linked from the counter'
   await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
   await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
 });
+
+test('the counter tints clients by passes left, lists who has to renew, and Clientes follows the same colors', async () => {
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  await page.getByRole('link', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Clara');
+  await label('Apellido').fill('Nube');
+  await label('Fecha de nacimiento').fill('1995-01-01');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Clara Nube' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  const results = page.getByRole('list', { name: 'Resultados' });
+  await label('Buscar cliente').fill('Clara');
+  await expect(results.getByRole('listitem').filter({ hasText: 'Clara Nube' }).getByText('Sin pases')).toBeVisible();
+  await label('Buscar cliente').fill('Bruno');
+  await expect(results.getByRole('listitem').filter({ hasText: 'Bruno Sierra' }).getByText('Pocos pases')).toBeVisible();
+
+  await label('Buscar cliente').fill('');
+  await expect(page.getByRole('list', { name: 'Tienen que renovar' }).getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  const clara = page.getByRole('list', { name: 'Clientes' }).getByRole('listitem').filter({ hasText: 'Clara Nube' });
+  await expect(clara.getByText('Sin pases')).toBeVisible();
+});

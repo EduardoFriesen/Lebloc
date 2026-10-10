@@ -25,6 +25,14 @@ export function isLowOnPasses(remainingTotal: number, threshold: number): boolea
   return remainingTotal <= threshold;
 }
 
+export type PassStatus = 'ok' | 'low' | 'none';
+
+/** Drives the card color: none (no passes left, or never bought), low (up to the threshold), ok. */
+export function passStatus(remainingTotal: number, threshold: number): PassStatus {
+  if (remainingTotal <= 0) return 'none';
+  return isLowOnPasses(remainingTotal, threshold) ? 'low' : 'ok';
+}
+
 export function pickSaleForConsumption(sales: readonly SaleAvailability[], kind: PassKind): number {
   const [oldest] = sales
     .filter((sale) => sale.remaining[kind] > 0)

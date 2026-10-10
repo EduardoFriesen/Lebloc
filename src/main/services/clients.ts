@@ -1,10 +1,13 @@
 import { assertGuardianRule } from '../../domain/client';
+import { attendanceWindows } from '../../domain/attendance';
 import { daysBetween } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
+import { passStatus } from '../../domain/passes';
 import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/schemas';
 import type { Client, ClientSummary } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
 import * as repo from '../repos/clients';
+import { getSettings } from './settings';
 import { waiverStatusResolver } from './waivers';
 
 export function getClient(ctx: Context, id: number): Client {
@@ -19,16 +22,42 @@ export function requireActiveClient(ctx: Context, id: number): Client {
   return client;
 }
 
-export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
+function summaries(ctx: Context, filters: repo.ClientSummaryFilters): ClientSummary[] {
   const statusOf = waiverStatusResolver(ctx);
+  const { lowPassesThreshold } = getSettings(ctx);
   const now = today(ctx);
-  return repo
-    .listClientSummaries(ctx.db, input.search, input.includeArchived, input.onlyDebtors)
-    .map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
-      ...summary,
-      debtDays: oldestDebtSoldAt === null ? null : daysBetween(oldestDebtSoldAt, now),
-      waiver: statusOf(waiverSignedAt),
-    }));
+  return repo.listClientSummaries(ctx.db, filters).map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
+    ...summary,
+    debtDays: oldestDebtSoldAt === null ? null : daysBetween(oldestDebtSoldAt, now),
+    passStatus: passStatus(summary.remainingFree + summary.remainingTeacher, lowPassesThreshold),
+    waiver: statusOf(waiverSignedAt),
+  }));
+}
+
+export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
+  return summaries(ctx, input);
+}
+
+/** Preload for the counter: who came last week around this time and hasn't come yet today. */
+export function listUsualAttendees(ctx: Context): ClientSummary[] {
+  const { usualSlot, todayStart } = attendanceWindows(ctx.clock.now());
+  return summaries(ctx, {
+    search: '',
+    includeArchived: false,
+    onlyDebtors: false,
+    attendedFrom: usualSlot.from.toISOString(),
+    attendedTo: usualSlot.to.toISOString(),
+    notAttendedSince: todayStart.toISOString(),
+  });
+}
+
+/** Who has to renew: low or no passes, and came in the last 30 days. Those with no passes first. */
+export function listRenewals(ctx: Context): ClientSummary[] {
+  const { renewalFrom } = attendanceWindows(ctx.clock.now());
+  const recent = summaries(ctx, { search: '', includeArchived: false, onlyDebtors: false, attendedFrom: renewalFrom.toISOString() });
+  return recent
+    .filter((client) => client.passStatus !== 'ok')
+    .sort((a, b) => Number(b.passStatus === 'none') - Number(a.passStatus === 'none'));
 }
 
 export function createClient(ctx: Context, input: ClientInput): Client {

@@ -7,9 +7,12 @@ import {
   createClient,
   getClient,
   listClients,
+  listRenewals,
+  listUsualAttendees,
   unarchiveClient,
   updateClient,
 } from './clients';
+import { consume, voidConsumption } from './consumptions';
 import { registerPayment } from './payments';
 import { createPlan } from './plans';
 import { sellPlan } from './sales';
@@ -82,6 +85,7 @@ describe('clients service', () => {
       remainingFree: 0,
       remainingTeacher: 0,
       debtCents: 0,
+      passStatus: 'none',
     });
   });
 
@@ -134,5 +138,54 @@ describe('clients service', () => {
 
   it('fails with NOT_FOUND for unknown clients', () => {
     expectDomainError(() => getClient(ctx, 999), 'NOT_FOUND');
+  });
+
+  describe('counter lists', () => {
+    // TEST_NOW is Monday 5/10/2026 12:00 local time.
+    function clientWith(firstName: string, passes: number): number {
+      const planId = createPlan(ctx, { name: `Pack ${passes}`, freePasses: passes, teacherPasses: 0, priceCents: 0, active: true }).id;
+      const clientId = createClient(ctx, { ...adultClient, firstName, lastName: 'Test' }).id;
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-08-01', initialPayment: null });
+      return clientId;
+    }
+
+    function climbAt(clientId: number, when: Date) {
+      ctx.clock.set(when);
+      const consumption = consume(ctx, { clientId, kind: 'free', note: null });
+      ctx.clock.set(TEST_NOW);
+      return consumption;
+    }
+
+    it('preloads who came last week within an hour of now, minus who came today, voided and archived', () => {
+      climbAt(clientWith('Ana', 8), new Date(2026, 8, 28, 11, 10));
+      climbAt(clientWith('Bruno', 8), new Date(2026, 8, 28, 9, 59));
+      const carla = clientWith('Carla', 8);
+      climbAt(carla, new Date(2026, 8, 28, 12, 30));
+      climbAt(carla, new Date(2026, 9, 5, 9, 0));
+      const dario = clientWith('Dario', 8);
+      voidConsumption(ctx, climbAt(dario, new Date(2026, 8, 28, 12, 0)).id);
+      const eva = clientWith('Eva', 8);
+      climbAt(eva, new Date(2026, 8, 28, 12, 50));
+      archiveClient(ctx, eva);
+
+      expect(listUsualAttendees(ctx).map((client) => client.firstName)).toEqual(['Ana']);
+    });
+
+    it('lists who has to renew: low or no passes and came in the last 30 days, no passes first', () => {
+      const luis = clientWith('Luis', 3);
+      climbAt(luis, new Date(2026, 8, 25, 18, 0));
+      climbAt(luis, new Date(2026, 8, 25, 19, 0));
+      const mara = clientWith('Mara', 1);
+      climbAt(mara, new Date(2026, 8, 30, 18, 0));
+      climbAt(clientWith('Nora', 8), new Date(2026, 9, 2, 18, 0));
+      const omar = clientWith('Omar', 3);
+      climbAt(omar, new Date(2026, 7, 20, 18, 0));
+      climbAt(omar, new Date(2026, 7, 21, 18, 0));
+
+      expect(listRenewals(ctx).map((client) => [client.firstName, client.passStatus])).toEqual([
+        ['Mara', 'none'],
+        ['Luis', 'low'],
+      ]);
+    });
   });
 });

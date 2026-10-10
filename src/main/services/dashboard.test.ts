@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { SaleInput } from '../../shared/schemas';
 import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
+import { consume } from './consumptions';
 import { getDashboard, listDebtors } from './dashboard';
 import { createPlan } from './plans';
 import { sellPlan, voidSale } from './sales';
@@ -42,9 +43,10 @@ describe('debtors and dashboard', () => {
     ]);
   });
 
-  it('shows low-pass alerts for active clients and only non-zero teacher balances', () => {
+  it('shows who has to renew among active clients and only non-zero teacher balances', () => {
     const single = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1, priceCents: 500_000 });
     sellPlan(ctx, saleOf({ planId: single.id }));
+    consume(ctx, { clientId: anaId, kind: 'free', note: null });
 
     const brunoId = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
     const juanId = createTeacher(ctx, basicTeacher).id;
@@ -54,10 +56,11 @@ describe('debtors and dashboard', () => {
 
     const carlaId = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Vía' }).id;
     sellPlan(ctx, saleOf({ clientId: carlaId, planId: single.id }));
+    consume(ctx, { clientId: carlaId, kind: 'free', note: null });
     archiveClient(ctx, carlaId);
 
     const dashboard = getDashboard(ctx);
-    expect(dashboard.lowPasses).toEqual([{ clientId: anaId, clientName: 'Ana Roca', remainingFree: 1, remainingTeacher: 0 }]);
+    expect(dashboard.renewals.map((client) => [client.id, client.passStatus])).toEqual([[anaId, 'none']]);
     expect(dashboard.teacherBalances.map((balance) => balance.teacherName)).toEqual(['Juan Pared']);
     expect(dashboard.debtors.map((debtor) => debtor.clientName)).toEqual(['Ana Roca', 'Bruno Sierra', 'Carla Vía']);
   });

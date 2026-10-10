@@ -359,6 +359,12 @@ export function seedDatabase(db: Db, now: Date): void {
     payoutPart(facundo, 0.5, 'transfer', 6, 'Mitad del saldo');
     payoutPart(sol, 1, 'cash', 3, null);
 
+    // La semana pasada a esta misma hora vinieron varios: es la precarga del Mostrador.
+    for (const clientId of [ana, carla, julieta, mateo, nicolas, sofia]) {
+      at(7, now.getHours());
+      consume(ctx, { clientId, kind: 'free', note: null });
+    }
+
     // Emilia y Franco: recién llegados, todavía sin ficha firmada.
     const emilia = client(6, { firstName: 'Emilia', lastName: 'Godoy', birthDate: '2003-05-25', phone: '11 4000-0118' });
     sell(emilia, pack8, 5);

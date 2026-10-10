@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { seedDatabase } from './seed';
-import { listClients } from './services/clients';
+import { listClients, listUsualAttendees } from './services/clients';
 import { getDashboard } from './services/dashboard';
 import { listPlans } from './services/plans';
 import { listTeachers } from './services/teachers';
@@ -24,10 +24,14 @@ describe('seedDatabase', () => {
   it('feeds every dashboard alert', () => {
     const dashboard = getDashboard(ctx);
     expect(dashboard.debtors.length).toBeGreaterThan(0);
-    expect(dashboard.lowPasses.length).toBeGreaterThan(0);
+    expect(dashboard.renewals.length).toBeGreaterThan(0);
     expect(dashboard.teacherBalances.length).toBeGreaterThan(0);
     const waiverStates = new Set(dashboard.waiverAlerts.map((alert) => alert.state));
     expect(waiverStates).toEqual(new Set(['missing', 'expired']));
+  });
+
+  it('preloads the counter with people who came last week at this time', () => {
+    expect(listUsualAttendees(ctx).length).toBeGreaterThanOrEqual(5);
   });
 
   it('never writes movements in the future', () => {

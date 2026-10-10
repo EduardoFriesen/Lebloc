@@ -1,5 +1,6 @@
 export const CHANNELS = [
   'clients:list',
+  'counter:usual',
   'clients:get',
   'clients:create',
   'clients:update',

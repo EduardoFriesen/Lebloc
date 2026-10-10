@@ -4,7 +4,7 @@ import type { Db } from '../db/connection';
 import { escapeLike, SALE_STATS_CTE } from './saleStats';
 import { LAST_SIGNED_AT_SQL } from './waivers';
 
-export type ClientSummaryRow = Omit<ClientSummary, 'waiver' | 'debtDays'> & {
+export type ClientSummaryRow = Omit<ClientSummary, 'waiver' | 'debtDays' | 'passStatus'> & {
   waiverSignedAt: string | null;
   oldestDebtSoldAt: string | null;
 };
@@ -96,9 +96,26 @@ export function anonymizeClient(db: Db, id: number, now: string): void {
   db.prepare('DELETE FROM guardians WHERE client_id = ?').run(id);
 }
 
-export function listClientSummaries(db: Db, search: string, includeArchived: boolean, onlyDebtors: boolean): ClientSummaryRow[] {
+export interface ClientSummaryFilters {
+  search: string;
+  includeArchived: boolean;
+  onlyDebtors: boolean;
+  /** ISO timestamps: only clients with an active consumption in [attendedFrom, attendedTo). */
+  attendedFrom?: string;
+  attendedTo?: string;
+  /** ISO timestamp: leave out clients with an active consumption since then. */
+  notAttendedSince?: string;
+}
+
+// Active (not voided) consumption of the client in c, between @from and @to; NULL bounds are open.
+const ATTENDED_SQL = (from: string, to: string) => `EXISTS (
+  SELECT 1 FROM consumptions co JOIN sales s ON s.id = co.sale_id
+  WHERE s.client_id = c.id AND co.voided_at IS NULL
+    AND (${from} IS NULL OR co.consumed_at >= ${from}) AND (${to} IS NULL OR co.consumed_at < ${to}))`;
+
+export function listClientSummaries(db: Db, filters: ClientSummaryFilters): ClientSummaryRow[] {
   return db
-    .prepare<[{ search: string; includeArchived: number; onlyDebtors: number }], ClientSummaryRow>(
+    .prepare<[Record<string, string | number | null>], ClientSummaryRow>(
       `WITH ${SALE_STATS_CTE}
        SELECT c.id, c.first_name AS firstName, c.last_name AS lastName, c.birth_date AS birthDate,
          c.archived_at AS archivedAt,
@@ -114,10 +131,19 @@ export function listClientSummaries(db: Db, search: string, includeArchived: boo
          AND (@search = ''
            OR (c.first_name || ' ' || c.last_name) LIKE '%' || @search || '%' ESCAPE '\\'
            OR (c.last_name || ' ' || c.first_name) LIKE '%' || @search || '%' ESCAPE '\\')
+         AND (@attendedFrom IS NULL OR ${ATTENDED_SQL('@attendedFrom', '@attendedTo')})
+         AND (@notAttendedSince IS NULL OR NOT ${ATTENDED_SQL('@notAttendedSince', 'NULL')})
        GROUP BY c.id
        HAVING @onlyDebtors = 0 OR debtCents > 0
        ORDER BY CASE WHEN @onlyDebtors = 1 THEN oldestDebtSoldAt END, c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE
        LIMIT 200`,
     )
-    .all({ search: escapeLike(search), includeArchived: includeArchived ? 1 : 0, onlyDebtors: onlyDebtors ? 1 : 0 });
+    .all({
+      search: escapeLike(filters.search),
+      includeArchived: filters.includeArchived ? 1 : 0,
+      onlyDebtors: filters.onlyDebtors ? 1 : 0,
+      attendedFrom: filters.attendedFrom ?? null,
+      attendedTo: filters.attendedTo ?? null,
+      notAttendedSince: filters.notAttendedSince ?? null,
+    });
 }
