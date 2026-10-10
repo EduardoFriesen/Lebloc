@@ -219,8 +219,8 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Mostrador' }).click();
-  await summary.getByRole('link', { name: 'Fichas por firmar' }).click();
-  await expect(page.getByLabel('Ficha por firmar')).toBeChecked();
+  await summary.getByRole('link', { name: 'Fichas por actualizar' }).click();
+  await expect(page.getByLabel('Ficha por actualizar')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
 

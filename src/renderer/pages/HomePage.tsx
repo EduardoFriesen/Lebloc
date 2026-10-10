@@ -197,7 +197,7 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
             {summary.debtorCount > 0 && <span className="text-sm text-accent-ink"> · {formatMoney(summary.debtTotalCents)}</span>}
           </span>
         </AlertRow>
-        <AlertRow to="/clientes?fichas=1" name="Fichas por firmar">
+        <AlertRow to="/clientes?fichas=1" name="Fichas por actualizar">
           <span className={value}>{summary.pendingWaivers}</span>
         </AlertRow>
         <AlertRow to="/profesores" name="Saldo con profesores">
