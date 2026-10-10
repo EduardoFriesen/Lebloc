@@ -28,7 +28,7 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await label('Pases con profesor').fill('2');
   await label('Precio del local').fill('20.000');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.getByRole('cell', { name: 'Pack 2+2', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pack 2+2', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('link', { name: 'Nuevo profesor' }).click();
@@ -82,7 +82,7 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await label('Pases con profesor').fill('0');
   await label('Precio del local').fill('5.000');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.getByRole('cell', { name: 'Pase suelto', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pase suelto', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Clientes' }).click();
   await page.getByRole('link', { name: 'Nuevo cliente' }).click();
@@ -128,4 +128,22 @@ test('switch to the dark theme and a larger font, and keep both after reloading'
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(html).toHaveCSS('font-size', '18px');
   await expect(page.getByRole('radio', { name: 'Oscuro' })).toBeChecked();
+});
+
+test('cards open from anywhere, not only from the name', async () => {
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  const card = page.getByRole('list', { name: 'Clientes' }).getByRole('listitem').filter({ hasText: 'Ana Roca' });
+  // The stretched title link covers the whole card, so a real click on the stats lands on it; `force`
+  // skips Playwright's "covered by another element" check and clicks at those coordinates.
+  await card.getByText('Pases libres').click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Ana Roca' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Planes' }).click();
+  await page.getByRole('list', { name: 'Planes' }).getByRole('listitem').filter({ hasText: 'Pack 2+2' }).getByText(/Precio del local/).click({ force: true });
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Editar plan' })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('link', { name: 'Editar Juan Pared' }).click();
+  await expect(page.getByLabel('Importe por clase', { exact: true })).toBeVisible();
 });

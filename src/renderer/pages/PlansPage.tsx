@@ -3,16 +3,21 @@ import { parseMoneyInput } from '../../shared/money';
 import { planInput } from '../../shared/schemas';
 import type { Plan } from '../../shared/types';
 import { Button } from '../components/ui/Button';
+import { Badge, Card, CardGrid } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, MoneyField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
-import { tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { formatMoney, formatMoneyInput } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+
+function passesSummary(plan: Plan): string {
+  const parts = [plan.freePasses > 0 && `${plan.freePasses} ${plan.freePasses === 1 ? 'libre' : 'libres'}`, plan.teacherPasses > 0 && `${plan.teacherPasses} con profesor`];
+  return parts.filter(Boolean).join(' · ');
+}
 
 export function PlansPage() {
   const plans = useAsync(() => call('plans:list', { includeInactive: true }), []);
@@ -40,36 +45,21 @@ export function PlansPage() {
         }
       >
         {(data) => (
-          <table className={tableClass}>
-            <thead>
-              <tr>
-                <th scope="col">Nombre</th>
-                <th scope="col">Libres</th>
-                <th scope="col">Con profesor</th>
-                <th scope="col">Precio del local</th>
-                <th scope="col">Estado</th>
-                <th scope="col">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((plan) => (
-                <tr key={plan.id} className={plan.active ? '' : 'text-ink-soft'}>
-                  <td className="font-semibold">{plan.name}</td>
-                  <td>{plan.freePasses}</td>
-                  <td>{plan.teacherPasses}</td>
-                  <td>{formatMoney(plan.priceCents)}</td>
-                  <td>{plan.active ? 'Activo' : 'Inactivo'}</td>
-                  <td className="text-right">
-                    <Button variant="ghost" aria-label={`Editar ${plan.name}`} onClick={() => setEditing(plan)}>
-                      Editar
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <CardGrid label="Planes">
+            {data.map((plan) => (
+              <Card
+                key={plan.id}
+                onSelect={() => setEditing(plan)}
+                title={plan.name}
+                subtitle={passesSummary(plan)}
+                muted={!plan.active}
+                badges={!plan.active && <Badge>Inactivo</Badge>}
+              >
+                <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
+                <p className="-mt-2 text-xs text-ink-soft">Precio del local · tocá para editar</p>
+              </Card>
+            ))}
+          </CardGrid>
         )}
       </AsyncView>
       <Dialog open={editing !== null} title={editing === 'new' ? 'Nuevo plan' : 'Editar plan'} onClose={() => setEditing(null)}>

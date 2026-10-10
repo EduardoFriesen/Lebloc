@@ -64,13 +64,16 @@ body {
   font-variation-settings: 'SOFT' 100;
 }
 
-:focus-visible {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 2px;
-}
+/* En @layer base para que una utilidad (focus-visible:outline-none) lo pueda pisar, como en las cartas. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 
-/* Sobre índigo el terracota no contrasta: el foco va en crema. */
-nav :focus-visible,
-.bg-dusk :focus-visible {
-  outline-color: var(--color-cream);
+  /* Sobre índigo el terracota no contrasta: el foco va en crema. */
+  nav :focus-visible,
+  .bg-dusk :focus-visible {
+    outline-color: var(--color-cream);
+  }
 }

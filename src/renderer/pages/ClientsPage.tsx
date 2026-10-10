@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ButtonLink } from '../components/ui/Button';
+import { Badge, Card, CardGrid, Stat } from '../components/ui/Card';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
-import { tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import { ageLabel, formatMoney, fullName } from '../lib/format';
+import { ageLabel, formatMoney, fullName, waiverLabel } from '../lib/format';
 import { useAsync } from '../lib/useAsync';
 
 export function ClientsPage() {
@@ -35,36 +34,31 @@ export function ClientsPage() {
         }
       >
         {(data) => (
-          <table className={tableClass}>
-            <thead>
-              <tr>
-                <th scope="col">Cliente</th>
-                <th scope="col">Edad</th>
-                <th scope="col">Pases libres</th>
-                <th scope="col">Pases con profesor</th>
-                <th scope="col">Deuda</th>
-                <th scope="col">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((client) => (
-                <tr key={client.id} className={client.archivedAt ? 'text-ink-soft' : ''}>
-                  <td>
-                    <Link className="font-semibold underline-offset-4 hover:underline" to={`/clientes/${client.id}`}>
-                      {fullName(client)}
-                    </Link>
-                  </td>
-                  <td>{ageLabel(client.birthDate)}</td>
-                  <td>{client.remainingFree}</td>
-                  <td>{client.remainingTeacher}</td>
-                  <td className={client.debtCents > 0 ? 'font-semibold text-accent-ink' : ''}>
-                    {client.debtCents > 0 ? formatMoney(client.debtCents) : '—'}
-                  </td>
-                  <td>{client.archivedAt ? 'Archivado' : 'Activo'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <CardGrid label="Clientes">
+            {data.map((client) => (
+              <Card
+                key={client.id}
+                to={`/clientes/${client.id}`}
+                title={fullName(client)}
+                subtitle={ageLabel(client.birthDate)}
+                muted={client.archivedAt !== null}
+                badges={
+                  (client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
+                    <>
+                      {client.archivedAt && <Badge>Archivado</Badge>}
+                      {client.debtCents > 0 && <Badge tone="debt">Debe {formatMoney(client.debtCents)}</Badge>}
+                      {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
+                    </>
+                  )
+                }
+              >
+                <dl className="flex gap-6">
+                  <Stat label="Pases libres">{client.remainingFree}</Stat>
+                  <Stat label="Con profesor">{client.remainingTeacher}</Stat>
+                </dl>
+              </Card>
+            ))}
+          </CardGrid>
         )}
       </AsyncView>
     </section>

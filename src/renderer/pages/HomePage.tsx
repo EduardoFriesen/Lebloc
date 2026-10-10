@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard } from '../../shared/types';
 import { Button } from '../components/ui/Button';
+import { Badge, Card, CardGrid, FOCUS_WITHIN, STRETCHED } from '../components/ui/Card';
 import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -68,39 +69,43 @@ export function HomePage() {
             }
           >
             {(clients) => (
-              <ul className="flex flex-col gap-2">
+              <CardGrid label="Resultados">
                 {clients.map((client) => (
-                  <li key={client.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-warm">
-                    <div>
-                      <Link className="font-display text-xl font-semibold hover:underline" to={`/clientes/${client.id}`}>
-                        {fullName(client)}
-                      </Link>
-                      <p className="text-sm text-ink-soft">
-                        Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
-                        {client.debtCents > 0 && <span className="font-semibold text-accent-ink"> · Debe {formatMoney(client.debtCents)}</span>}
-                        {client.waiver.state !== 'valid' && <span className="font-semibold text-danger"> · {waiverLabel(client.waiver)}</span>}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        disabled={busy || client.remainingFree <= 0}
-                        aria-label={`Pase libre para ${fullName(client)}`}
-                        onClick={() => void consume(client, 'free')}
-                      >
-                        Libre
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={busy || client.remainingTeacher <= 0}
-                        aria-label={`Pase con profesor para ${fullName(client)}`}
-                        onClick={() => void consume(client, 'teacher')}
-                      >
-                        Con profesor
-                      </Button>
-                    </div>
-                  </li>
+                  <Card
+                    key={client.id}
+                    to={`/clientes/${client.id}`}
+                    title={fullName(client)}
+                    subtitle={`Libres: ${client.remainingFree} · Con profesor: ${client.remainingTeacher}`}
+                    badges={
+                      (client.debtCents > 0 || client.waiver.state !== 'valid') && (
+                        <>
+                          {client.debtCents > 0 && <Badge tone="debt">Debe {formatMoney(client.debtCents)}</Badge>}
+                          {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
+                        </>
+                      )
+                    }
+                    actions={
+                      <>
+                        <Button
+                          disabled={busy || client.remainingFree <= 0}
+                          aria-label={`Pase libre para ${fullName(client)}`}
+                          onClick={() => void consume(client, 'free')}
+                        >
+                          Libre
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={busy || client.remainingTeacher <= 0}
+                          aria-label={`Pase con profesor para ${fullName(client)}`}
+                          onClick={() => void consume(client, 'teacher')}
+                        >
+                          Con profesor
+                        </Button>
+                      </>
+                    }
+                  />
                 ))}
-              </ul>
+              </CardGrid>
             )}
           </AsyncView>
         )}
@@ -129,6 +134,18 @@ function Panel({ title, action, children }: { title: string; action?: ReactNode;
   );
 }
 
+/** One alert line; the whole row opens `to`, not just the name. */
+function AlertRow({ to, name, children }: { to: string; name: string; children: ReactNode }) {
+  return (
+    <li className={`relative -mx-2 flex justify-between gap-2 rounded-lg px-2 py-2 hover:bg-sunken/60 ${FOCUS_WITHIN}`}>
+      <Link className={`font-semibold ${STRETCHED}`} to={to}>
+        {name}
+      </Link>
+      {children}
+    </li>
+  );
+}
+
 function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
   return (
     <>
@@ -136,14 +153,11 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         {dashboard.lowPasses.length === 0 ? (
           <p className="text-sm text-ink-soft">Nadie está por quedarse sin pases.</p>
         ) : (
-          <ul className="divide-y divide-ink/10 text-sm">
+          <ul className="flex flex-col text-sm">
             {dashboard.lowPasses.map((alert) => (
-              <li key={alert.clientId} className="flex justify-between py-2">
-                <Link className="font-semibold hover:underline" to={`/clientes/${alert.clientId}`}>
-                  {alert.clientName}
-                </Link>
+              <AlertRow key={alert.clientId} to={`/clientes/${alert.clientId}`} name={alert.clientName}>
                 <span>{alert.remainingFree + alert.remainingTeacher} restantes</span>
-              </li>
+              </AlertRow>
             ))}
           </ul>
         )}
@@ -159,16 +173,13 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         {dashboard.debtors.length === 0 ? (
           <p className="text-sm text-ink-soft">No hay deudas pendientes.</p>
         ) : (
-          <ul className="divide-y divide-ink/10 text-sm">
+          <ul className="flex flex-col text-sm">
             {dashboard.debtors.map((debtor) => (
-              <li key={debtor.saleId} className="flex justify-between gap-2 py-2">
-                <Link className="font-semibold hover:underline" to={`/clientes/${debtor.clientId}`}>
-                  {debtor.clientName}
-                </Link>
+              <AlertRow key={debtor.saleId} to={`/clientes/${debtor.clientId}`} name={debtor.clientName}>
                 <span>
                   {formatMoney(debtor.debtCents)} · {debtor.daysSinceSale} días
                 </span>
-              </li>
+              </AlertRow>
             ))}
           </ul>
         )}
@@ -177,14 +188,11 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         {dashboard.waiverAlerts.length === 0 ? (
           <p className="text-sm text-ink-soft">Todas las fichas están al día.</p>
         ) : (
-          <ul className="divide-y divide-ink/10 text-sm">
+          <ul className="flex flex-col text-sm">
             {dashboard.waiverAlerts.slice(0, WAIVER_ALERTS_SHOWN).map((alert) => (
-              <li key={alert.clientId} className="flex justify-between gap-2 py-2">
-                <Link className="font-semibold hover:underline" to={`/clientes/${alert.clientId}`}>
-                  {alert.clientName}
-                </Link>
+              <AlertRow key={alert.clientId} to={`/clientes/${alert.clientId}`} name={alert.clientName}>
                 <span>{alert.expiresAt ? `Vencida ${formatDate(alert.expiresAt)}` : 'Sin firmar'}</span>
-              </li>
+              </AlertRow>
             ))}
             {dashboard.waiverAlerts.length > WAIVER_ALERTS_SHOWN && (
               <li className="py-2 text-ink-soft">y {dashboard.waiverAlerts.length - WAIVER_ALERTS_SHOWN} más</li>
@@ -196,14 +204,11 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         {dashboard.teacherBalances.length === 0 ? (
           <p className="text-sm text-ink-soft">No hay saldos pendientes con profesores.</p>
         ) : (
-          <ul className="divide-y divide-ink/10 text-sm">
+          <ul className="flex flex-col text-sm">
             {dashboard.teacherBalances.map((balance) => (
-              <li key={balance.teacherId} className="flex justify-between py-2">
-                <Link className="font-semibold hover:underline" to={`/profesores/${balance.teacherId}`}>
-                  {balance.teacherName}
-                </Link>
+              <AlertRow key={balance.teacherId} to={`/profesores/${balance.teacherId}`} name={balance.teacherName}>
                 <span className={balance.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(balance.balanceCents)}</span>
-              </li>
+              </AlertRow>
             ))}
           </ul>
         )}
