@@ -35,7 +35,9 @@ function summaries(ctx: Context, filters: repo.ClientSummaryFilters): ClientSumm
 }
 
 export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
-  return summaries(ctx, input);
+  const clients = summaries(ctx, input);
+  // ponytail: filters after the query's LIMIT 200; move the waiver rule to SQL if there are ever more clients than that.
+  return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state !== 'valid') : clients;
 }
 
 /** Preload for the counter: who came last week around this time and hasn't come yet today. */

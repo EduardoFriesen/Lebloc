@@ -46,7 +46,7 @@ export function Card({ title, to, onSelect, subtitle, badges, actions, muted = f
   const background = muted ? 'bg-sunken/70' : TONE_CLASSES[tone];
   // Strip: details | badges (wrap among themselves) | actions (never wrap below).
   const layout = strip
-    ? 'grid grid-cols-[minmax(13rem,1fr)_auto_auto] items-center gap-x-4 px-5 py-3'
+    ? `grid items-center gap-x-4 px-5 py-3 ${actions ? 'grid-cols-[minmax(13rem,1fr)_auto_auto]' : 'grid-cols-[minmax(0,1fr)_auto]'}`
     : 'flex h-full flex-col gap-3 p-5 hover:-translate-y-0.5';
   return (
     <li>

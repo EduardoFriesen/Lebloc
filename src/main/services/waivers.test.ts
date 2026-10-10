@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { adultClient, createTestContext, type TestContext } from '../test-context';
 import { getClientAccount } from './account';
 import { archiveClient, createClient, listClients } from './clients';
-import { getDashboard } from './dashboard';
 import { updateSettings } from './settings';
-import { signWaiver, voidWaiver } from './waivers';
+import { listWaiverAlerts, signWaiver, voidWaiver } from './waivers';
 
 describe('signed waivers', () => {
   let ctx: TestContext;
@@ -45,9 +44,9 @@ describe('signed waivers', () => {
   });
 
   it('shows the waiver state in the counter search', () => {
-    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false })[0]?.waiver.state).toBe('missing');
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]?.waiver.state).toBe('missing');
     signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-05' });
-    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false })[0]?.waiver.state).toBe('valid');
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]?.waiver.state).toBe('valid');
   });
 
   it('alerts on active clients whose waiver is missing or expired', () => {
@@ -58,7 +57,7 @@ describe('signed waivers', () => {
     const archivedId = createClient(ctx, { ...adultClient, firstName: 'Dani', lastName: 'Zeta' }).id;
     archiveClient(ctx, archivedId);
 
-    expect(getDashboard(ctx).waiverAlerts).toEqual([
+    expect(listWaiverAlerts(ctx)).toEqual([
       { clientId: anaId, clientName: 'Ana Roca', state: 'missing', expiresAt: null },
       { clientId: brunoId, clientName: 'Bruno Sierra', state: 'expired', expiresAt: '2026-01-01' },
     ]);

@@ -55,6 +55,7 @@ export const clientListInput = z.object({
   includeArchived: z.boolean().default(false),
   onlyDebtors: z.boolean().default(false),
   onlyWithPasses: z.boolean().default(false),
+  onlyPendingWaiver: z.boolean().default(false),
 });
 
 export const socialInput = z.object({

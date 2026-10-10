@@ -1,4 +1,4 @@
-import type { Debtor, Enrollment } from '../../shared/types';
+import type { Enrollment } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregates per non-voided sale. Use as `WITH ${SALE_STATS_CTE} SELECT ... FROM sale_stats`.
@@ -14,21 +14,6 @@ export const SALE_STATS_CTE = `sale_stats AS (
 
 export function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
-export function listDebtorRows(db: Db): Omit<Debtor, 'daysSinceSale'>[] {
-  return db
-    .prepare<[], Omit<Debtor, 'daysSinceSale'>>(
-      `WITH ${SALE_STATS_CTE}
-       SELECT ss.id AS saleId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
-         ss.plan_name AS planName, ss.sold_at AS soldAt, ss.total_cents AS totalCents,
-         ss.total_cents - ss.paid_cents AS debtCents
-       FROM sale_stats ss
-       JOIN clients c ON c.id = ss.client_id
-       WHERE ss.total_cents - ss.paid_cents > 0
-       ORDER BY ss.sold_at, ss.id`,
-    )
-    .all();
 }
 
 export type EnrollmentRow = Omit<Enrollment, 'passStatus'>;

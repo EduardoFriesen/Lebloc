@@ -3,12 +3,13 @@ import type { SaleInput } from '../../shared/schemas';
 import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
-import { getDashboard, listDebtors } from './dashboard';
+import { getDashboard } from './dashboard';
 import { registerPayment } from './payments';
 import { getTeacherAccount } from './payouts';
 import { createPlan } from './plans';
-import { sellPlan, voidSale } from './sales';
+import { sellPlan } from './sales';
 import { createTeacher } from './teachers';
+import { signWaiver } from './waivers';
 
 describe('debtors and dashboard', () => {
   let ctx: TestContext;
@@ -33,19 +34,7 @@ describe('debtors and dashboard', () => {
     };
   }
 
-  it('lists debtors oldest first with days since sale, excluding settled and voided sales', () => {
-    const unpaid = sellPlan(ctx, saleOf({ soldAt: '2026-09-05' }));
-    sellPlan(ctx, saleOf({ soldAt: '2026-10-01', initialPayment: { amountCents: 2_000_000, method: 'cash', paidAt: '2026-10-01' } }));
-    voidSale(ctx, sellPlan(ctx, saleOf({ soldAt: '2026-09-20' })).id);
-    const partial = sellPlan(ctx, saleOf({ soldAt: '2026-10-03', initialPayment: { amountCents: 500_000, method: 'cash', paidAt: '2026-10-03' } }));
-
-    expect(listDebtors(ctx)).toEqual([
-      { saleId: unpaid.id, clientId: anaId, clientName: 'Ana Roca', planName: 'Pack 8 libres', soldAt: '2026-09-05', totalCents: 2_000_000, debtCents: 2_000_000, daysSinceSale: 30 },
-      { saleId: partial.id, clientId: anaId, clientName: 'Ana Roca', planName: 'Pack 8 libres', soldAt: '2026-10-03', totalCents: 2_000_000, debtCents: 1_500_000, daysSinceSale: 2 },
-    ]);
-  });
-
-  it('shows who has to renew among active clients and only non-zero teacher balances', () => {
+  it('shows who has to renew among active clients', () => {
     const single = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1, priceCents: 500_000 });
     sellPlan(ctx, saleOf({ planId: single.id }));
     consume(ctx, { clientId: anaId, kind: 'free', note: null });
@@ -63,11 +52,9 @@ describe('debtors and dashboard', () => {
 
     const dashboard = getDashboard(ctx);
     expect(dashboard.renewals.map((client) => [client.id, client.passStatus])).toEqual([[anaId, 'none']]);
-    expect(dashboard.teacherBalances.map((balance) => balance.teacherName)).toEqual(['Juan Pared']);
-    expect(dashboard.debtors.map((debtor) => debtor.clientName)).toEqual(['Ana Roca', 'Bruno Sierra', 'Carla Vía']);
   });
 
-  it('summarizes clients with passes, debtors once each with their total, and the teacher balance', () => {
+  it('summarizes clients with passes, debtors once each, pending waivers and the teacher balance', () => {
     sellPlan(ctx, saleOf({}));
     sellPlan(ctx, saleOf({ soldAt: '2026-10-01' }));
 
@@ -87,10 +74,15 @@ describe('debtors and dashboard', () => {
     const mixedId = createPlan(ctx, mixedPlan).id;
     sellPlan(ctx, saleOf({ clientId: darioId, planId: mixedId, teacherId: juanId, initialPayment: { amountCents: 1_500_000, method: 'cash', paidAt: '2026-10-05' } }));
 
+    // Ana never signed and Dario's waiver expired (12 months by default); Bruno is valid, Carla archived.
+    signWaiver(ctx, { clientId: brunoId, signedAt: '2026-10-01' });
+    signWaiver(ctx, { clientId: darioId, signedAt: '2025-09-01' });
+
     expect(getDashboard(ctx).summary).toEqual({
       activeClients: 2,
       debtorCount: 2,
       debtTotalCents: 4_000_000 + 1_500_000,
+      pendingWaivers: 2,
       teacherBalanceCents: getTeacherAccount(ctx, juanId).balanceCents,
     });
   });

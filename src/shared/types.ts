@@ -200,22 +200,13 @@ export interface Enrollment {
   passStatus: PassStatus;
 }
 
-export interface Debtor {
-  saleId: number;
-  clientId: number;
-  clientName: string;
-  planName: string;
-  soldAt: string;
-  totalCents: number;
-  debtCents: number;
-  daysSinceSale: number;
-}
-
 export interface DashboardSummary {
   /** Active clients with at least one pass left. */
   activeClients: number;
   debtorCount: number;
   debtTotalCents: number;
+  /** Active clients whose waiver is missing or expired. */
+  pendingWaivers: number;
   /** Sum of every teacher's balance (negative when the local is owed). */
   teacherBalanceCents: number;
 }
@@ -224,9 +215,6 @@ export interface Dashboard {
   summary: DashboardSummary;
   /** Low or no passes and came in the last 30 days. */
   renewals: ClientSummary[];
-  debtors: Debtor[];
-  teacherBalances: TeacherBalance[];
-  waiverAlerts: WaiverAlert[];
 }
 
 export interface Settings {

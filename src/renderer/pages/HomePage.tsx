@@ -10,12 +10,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { debtLabel, formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel, WEEKDAY_LABELS } from '../lib/format';
+import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
-
-/** Rows per alert panel, so the right column leaves room for the kiosk. */
-const ALERT_ROWS = 4;
 
 export function HomePage() {
   const [search, setSearch] = useState('');
@@ -91,15 +88,6 @@ export function HomePage() {
             </AsyncView>
           </ListSection>
         )}
-        <ListSection title="Tienen que renovar">
-          <AsyncView
-            state={dashboard}
-            isEmpty={(data) => data.renewals.length === 0}
-            empty={<p className="text-sm text-ink-soft">Nadie que haya venido este mes se está quedando sin pases.</p>}
-          >
-            {(data) => <PagedList items={data.renewals} label="Tienen que renovar" render={strip} />}
-          </AsyncView>
-        </ListSection>
       </div>
       <aside aria-label="Alertas" className="flex flex-col gap-6">
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
@@ -194,18 +182,7 @@ function AlertRow({ to, name, children }: { to: string; name: string; children: 
   );
 }
 
-/** First ALERT_ROWS items as rows, then "y N más". */
-function AlertList<T>({ items, empty, render }: { items: readonly T[]; empty: string; render: (item: T) => ReactNode }) {
-  if (items.length === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
-  return (
-    <ul className="flex flex-col text-sm">
-      {items.slice(0, ALERT_ROWS).map(render)}
-      {items.length > ALERT_ROWS && <li className="py-2 text-ink-soft">y {items.length - ALERT_ROWS} más</li>}
-    </ul>
-  );
-}
-
-/** Three headline numbers; each row opens the screen with the detail. */
+/** Headline numbers; each row opens the screen with the detail. */
 function SummaryPanel({ summary }: { summary: DashboardSummary }) {
   const value = 'font-display text-2xl leading-none';
   return (
@@ -220,6 +197,9 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
             {summary.debtorCount > 0 && <span className="text-sm text-accent-ink"> · {formatMoney(summary.debtTotalCents)}</span>}
           </span>
         </AlertRow>
+        <AlertRow to="/clientes?fichas=1" name="Fichas por firmar">
+          <span className={value}>{summary.pendingWaivers}</span>
+        </AlertRow>
         <AlertRow to="/profesores" name="Saldo con profesores">
           <span className={`${value} ${summary.teacherBalanceCents < 0 ? 'text-danger' : ''}`}>{formatMoney(summary.teacherBalanceCents)}</span>
         </AlertRow>
@@ -232,37 +212,27 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
   return (
     <>
       <SummaryPanel summary={dashboard.summary} />
-      <Panel
-        title="Deudores"
-        action={
-          <Link className="text-sm underline" to="/clientes?deuda=1">
-            Ver todos
-          </Link>
-        }
-      >
-        <AlertList
-          items={dashboard.debtors}
-          empty="No hay deudas pendientes."
-          render={(debtor) => (
-            <AlertRow key={debtor.saleId} to={`/clientes/${debtor.clientId}`} name={debtor.clientName}>
-              <span>
-                {formatMoney(debtor.debtCents)} · {debtor.daysSinceSale} días
-              </span>
-            </AlertRow>
-          )}
-        />
-      </Panel>
-      <Panel title="Fichas por firmar">
-        <AlertList
-          items={dashboard.waiverAlerts}
-          empty="Todas las fichas están al día."
-          render={(alert) => (
-            <AlertRow key={alert.clientId} to={`/clientes/${alert.clientId}`} name={alert.clientName}>
-              <span>{alert.expiresAt ? `Vencida ${formatDate(alert.expiresAt)}` : 'Sin firmar'}</span>
-            </AlertRow>
-          )}
-        />
+      <Panel title="Tienen que renovar">
+        {dashboard.renewals.length === 0 ? (
+          <p className="text-sm text-ink-soft">Nadie que haya venido este mes se está quedando sin pases.</p>
+        ) : (
+          <PagedList items={dashboard.renewals} label="Tienen que renovar" render={(client) => <RenewalStrip key={client.id} client={client} />} />
+        )}
       </Panel>
     </>
+  );
+}
+
+/** Compact tinted card for the side panel: no pass buttons (they don't fit); it opens the client to renew. */
+function RenewalStrip({ client }: { client: ClientSummary }) {
+  return (
+    <Card
+      strip
+      tone={client.passStatus}
+      to={`/clientes/${client.id}`}
+      title={fullName(client)}
+      subtitle={`Libres: ${client.remainingFree} · Con profesor: ${client.remainingTeacher}`}
+      badges={<PassBadge status={client.passStatus} />}
+    />
   );
 }

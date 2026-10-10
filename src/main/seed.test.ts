@@ -6,6 +6,7 @@ import { listClients, listUsualAttendees } from './services/clients';
 import { getDashboard } from './services/dashboard';
 import { listPlans } from './services/plans';
 import { listTeachers } from './services/teachers';
+import { listWaiverAlerts } from './services/waivers';
 
 describe('seedDatabase', () => {
   const now = new Date(2026, 9, 9, 12, 0, 0);
@@ -13,7 +14,7 @@ describe('seedDatabase', () => {
   seedDatabase(ctx.db, now);
 
   it('loads clients, teachers and plans, including archived and inactive ones', () => {
-    const clients = listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false, onlyWithPasses: false });
+    const clients = listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
     expect(clients.length).toBeGreaterThanOrEqual(20);
     expect(clients.some((client) => client.archivedAt !== null)).toBe(true);
     expect(clients.some((client) => client.activeSales === 0)).toBe(true);
@@ -21,13 +22,14 @@ describe('seedDatabase', () => {
     expect(listPlans(ctx, true).some((plan) => !plan.active)).toBe(true);
   });
 
-  it('feeds every dashboard alert', () => {
-    const dashboard = getDashboard(ctx);
-    expect(dashboard.debtors.length).toBeGreaterThan(0);
-    expect(dashboard.renewals.length).toBeGreaterThan(0);
-    expect(dashboard.teacherBalances.length).toBeGreaterThan(0);
-    const waiverStates = new Set(dashboard.waiverAlerts.map((alert) => alert.state));
-    expect(waiverStates).toEqual(new Set(['missing', 'expired']));
+  it('feeds every number of the counter summary and the renewals list', () => {
+    const { summary, renewals } = getDashboard(ctx);
+    expect(summary.activeClients).toBeGreaterThan(0);
+    expect(summary.debtorCount).toBeGreaterThan(0);
+    expect(summary.pendingWaivers).toBeGreaterThan(0);
+    expect(summary.teacherBalanceCents).toBeGreaterThan(0);
+    expect(renewals.length).toBeGreaterThan(0);
+    expect(new Set(listWaiverAlerts(ctx).map((alert) => alert.state))).toEqual(new Set(['missing', 'expired']));
   });
 
   it('preloads the counter with people who came last week at this time', () => {

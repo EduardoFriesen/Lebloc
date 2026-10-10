@@ -150,9 +150,9 @@ test('cards open from anywhere, not only from the name', async () => {
   await expect(page.getByLabel('Importe por clase', { exact: true })).toBeVisible();
 });
 
-test('debtors live in Clientes behind "Solo con deuda", linked from the counter', async () => {
+test('debtors live in Clientes behind "Solo con deuda", linked from the counter summary', async () => {
   await page.getByRole('link', { name: 'Mostrador' }).click();
-  await page.getByRole('link', { name: 'Ver todos' }).click();
+  await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: 'Deudores' }).click();
   await expect(page.getByLabel('Solo con deuda')).toBeChecked();
   const cards = page.getByRole('list', { name: 'Clientes' });
   await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
@@ -217,6 +217,12 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(page.getByLabel('Solo con pases')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await summary.getByRole('link', { name: 'Fichas por firmar' }).click();
+  await expect(page.getByLabel('Ficha por firmar')).toBeChecked();
+  await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Mostrador' }).click();
   await summary.getByRole('link', { name: 'Saldo con profesores' }).click();

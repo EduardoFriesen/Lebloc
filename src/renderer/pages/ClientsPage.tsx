@@ -17,9 +17,10 @@ export function ClientsPage() {
   const [params, setParams] = useSearchParams();
   const onlyDebtors = params.get('deuda') === '1';
   const onlyWithPasses = params.get('pases') === '1';
+  const onlyPendingWaiver = params.get('fichas') === '1';
   const clients = useAsync(
-    () => call('clients:list', { search, includeArchived, onlyDebtors, onlyWithPasses }),
-    [search, includeArchived, onlyDebtors, onlyWithPasses],
+    () => call('clients:list', { search, includeArchived, onlyDebtors, onlyWithPasses, onlyPendingWaiver }),
+    [search, includeArchived, onlyDebtors, onlyWithPasses, onlyPendingWaiver],
     { keepPreviousData: true },
   );
   const empty = search
@@ -28,9 +29,11 @@ export function ClientsPage() {
       ? { title: 'Nadie debe nada', text: 'Todas las ventas están saldadas.' }
       : onlyWithPasses
         ? { title: 'Nadie tiene pases', text: 'Ningún cliente tiene pases disponibles.' }
-        : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
+        : onlyPendingWaiver
+          ? { title: 'Fichas al día', text: 'Todas las fichas están al día.' }
+          : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
 
-  function setFilter(key: 'deuda' | 'pases', on: boolean) {
+  function setFilter(key: 'deuda' | 'pases' | 'fichas', on: boolean) {
     setParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -52,6 +55,7 @@ export function ClientsPage() {
         <CheckboxField label="Incluir archivados" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
         <CheckboxField label="Solo con pases" checked={onlyWithPasses} onChange={(event) => setFilter('pases', event.target.checked)} />
         <CheckboxField label="Solo con deuda" checked={onlyDebtors} onChange={(event) => setFilter('deuda', event.target.checked)} />
+        <CheckboxField label="Ficha por firmar" checked={onlyPendingWaiver} onChange={(event) => setFilter('fichas', event.target.checked)} />
       </div>
       <AsyncView
         state={clients}
