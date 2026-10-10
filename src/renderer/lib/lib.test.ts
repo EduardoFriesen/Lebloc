@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { removeAt, replaceAt, sum } from './arrays';
-import { debtLabel, formatDate } from './format';
+import { debtLabel, formatDate, localMonth } from './format';
 import { toFieldErrors } from './formErrors';
 
 describe('renderer helpers', () => {
@@ -32,5 +32,10 @@ describe('renderer helpers', () => {
     expect(debtLabel({ debtCents: 100, debtDays: 1 })).toMatch(/· hace 1 día$/);
     expect(debtLabel({ debtCents: 100, debtDays: 0 })).toMatch(/· desde hoy$/);
     expect(debtLabel({ debtCents: 100, debtDays: null })).toMatch(/^Debe \$\s1,00$/);
+  });
+
+  it('takes the month of a UTC timestamp in local time', () => {
+    expect(localMonth(new Date(2026, 9, 31, 23, 30).toISOString())).toBe('2026-10');
+    expect(localMonth(new Date(2026, 10, 1, 0, 5).toISOString())).toBe('2026-11');
   });
 });

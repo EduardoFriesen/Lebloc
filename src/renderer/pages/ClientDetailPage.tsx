@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { Client, ClientAccount, Consumption, Payment, Sale, WaiverSignature } from '../../shared/types';
@@ -17,6 +17,7 @@ import {
   formatDateTime,
   formatMoney,
   fullName,
+  localMonth,
   PASS_KIND_LABELS,
   PAYMENT_METHOD_LABELS,
   SPLIT_RULE_LABELS,
@@ -130,21 +131,23 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
         <div className="flex flex-col gap-6 self-start">
           <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
-          <WaiverPanel
-            account={account}
-            disabled={archived}
-            onSign={() => setSigning(true)}
-            onVoid={(waiver) =>
-              setPending({
-                title: 'Anular firma',
-                message: `Se anula la firma de la ficha del ${formatDate(waiver.signedAt)}.`,
-                confirmLabel: 'Anular firma',
-                action: () => call('waivers:void', { id: waiver.id }),
-              })
-            }
-          />
+          <ClientInfoPanel client={client}>
+            <WaiverSection
+              account={account}
+              disabled={archived}
+              onSign={() => setSigning(true)}
+              onVoid={(waiver) =>
+                setPending({
+                  title: 'Anular firma',
+                  message: `Se anula la firma de la ficha del ${formatDate(waiver.signedAt)}.`,
+                  confirmLabel: 'Anular firma',
+                  action: () => call('waivers:void', { id: waiver.id }),
+                })
+              }
+            />
+          </ClientInfoPanel>
         </div>
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           <SalesPanel
             sales={account.sales}
             payments={account.payments}
@@ -180,7 +183,6 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
               })
             }
           />
-          <ClientInfoPanel client={client} />
         </div>
       </div>
 
@@ -246,7 +248,7 @@ interface PassesPanelProps {
 
 function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps) {
   return (
-    <section aria-labelledby="pases-title" className="flex flex-col gap-4 rounded-2xl bg-dusk p-6 text-cream shadow-warm">
+    <section aria-labelledby="pases-title" className="flex flex-col gap-3 rounded-2xl bg-dusk p-5 text-cream shadow-warm">
       <h2 id="pases-title" className="font-display text-2xl font-semibold">
         Pases
       </h2>
@@ -291,7 +293,7 @@ interface SalesPanelProps {
 
 function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
   return (
-    <section aria-labelledby="ventas-title" className="flex flex-col gap-4">
+    <section aria-labelledby="ventas-title" className="flex flex-col gap-3">
       <h2 id="ventas-title" className="font-display text-2xl font-semibold">
         Ventas
       </h2>
@@ -401,55 +403,80 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
   );
 }
 
+/** One month of consumptions (current month by default) in a short table that scrolls inside itself. */
 function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: Consumption[]; disabled: boolean; onVoid: (consumption: Consumption) => void }) {
+  const [month, setMonth] = useState(() => localMonth(new Date().toISOString()));
+  const visible = consumptions.filter((consumption) => localMonth(consumption.consumedAt) === month);
+  const monthName = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T00:00`));
+
   return (
-    <section aria-labelledby="consumos-title" className="flex flex-col gap-4">
-      <h2 id="consumos-title" className="font-display text-2xl font-semibold">
-        Consumos
-      </h2>
+    <section aria-labelledby="consumos-title" className="flex flex-col gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="consumos-title" className="font-display text-2xl font-semibold">
+          Consumos
+          {consumptions.length > 0 && <span className="ml-2 font-sans text-sm font-normal text-ink-soft">{visible.length} en el mes</span>}
+        </h2>
+        {consumptions.length > 0 && (
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
+            Mes
+            <input
+              type="month"
+              required
+              value={month}
+              onChange={(event) => event.target.value && setMonth(event.target.value)}
+              className="rounded-xl border border-ink/25 bg-surface px-3 py-1 text-sm text-ink"
+            />
+          </label>
+        )}
+      </header>
       {consumptions.length === 0 ? (
         <EmptyState title="Sin consumos todavía" />
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-ink-soft">Sin consumos en {monthName}.</p>
       ) : (
-        <table className={tableClass}>
-          <thead>
-            <tr>
-              <th scope="col">Fecha</th>
-              <th scope="col">Tipo</th>
-              <th scope="col">Nota</th>
-              <th scope="col">Estado</th>
-              <th scope="col">
-                <span className="sr-only">Acciones</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {consumptions.map((consumption) => (
-              <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
-                <td>{formatDateTime(consumption.consumedAt)}</td>
-                <td>{PASS_KIND_LABELS[consumption.kind]}</td>
-                <td>{consumption.note ?? '—'}</td>
-                <td>{consumption.voidedAt ? 'Anulado' : 'Activo'}</td>
-                <td className="text-right">
-                  {!consumption.voidedAt && !disabled && (
-                    <Button
-                      variant="ghost"
-                      aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
-                      onClick={() => onVoid(consumption)}
-                    >
-                      Anular
-                    </Button>
-                  )}
-                </td>
+        <div className="max-h-72 overflow-y-auto rounded-2xl">
+          <table className={`${tableClass} overflow-visible! [&_td]:py-1! [&_th]:py-1.5! [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface`}>
+            <caption className="sr-only">Consumos de {monthName}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Día</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Estado</th>
+                <th scope="col">
+                  <span className="sr-only">Acciones</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {visible.map((consumption) => (
+                <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
+                  <td>{formatDateTime(consumption.consumedAt)}</td>
+                  <td>{PASS_KIND_LABELS[consumption.kind]}</td>
+                  <td>{consumption.voidedAt ? 'Anulado' : 'Activo'}</td>
+                  <td className="text-right">
+                    {!consumption.voidedAt && !disabled && (
+                      <Button
+                        variant="ghost"
+                        className="px-3! py-0.5! text-xs"
+                        aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
+                        onClick={() => onVoid(consumption)}
+                      >
+                        Anular
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
 }
 
-function ClientInfoPanel({ client }: { client: Client }) {
+/** Personal data, tutors and the signed waiver (passed as children). */
+function ClientInfoPanel({ client, children }: { client: Client; children: ReactNode }) {
   const rows: [string, string][] = [
     ['Fecha de nacimiento', client.birthDate ? formatDate(client.birthDate) : '—'],
     ['Inscripción', formatDate(client.enrolledAt)],
@@ -478,7 +505,7 @@ function ClientInfoPanel({ client }: { client: Client }) {
       </dl>
       {client.guardians.length > 0 && (
         <div className="text-sm">
-          <h3 className="font-semibold">Tutores</h3>
+          <h3 className={SUBTITLE}>Tutores</h3>
           <ul>
             {client.guardians.map((guardian) => (
               <li key={guardian.id}>
@@ -491,47 +518,50 @@ function ClientInfoPanel({ client }: { client: Client }) {
           </ul>
         </div>
       )}
+      {children}
     </section>
   );
 }
 
-interface WaiverPanelProps {
+const SUBTITLE = 'font-display text-lg font-semibold';
+
+interface WaiverSectionProps {
   account: ClientAccount;
   disabled: boolean;
   onSign: () => void;
   onVoid: (waiver: WaiverSignature) => void;
 }
 
-function WaiverPanel({ account, disabled, onSign, onVoid }: WaiverPanelProps) {
+function WaiverSection({ account, disabled, onSign, onVoid }: WaiverSectionProps) {
   const { waiver, waivers } = account;
   const tone = waiver.state === 'valid' ? 'bg-moss text-canvas' : 'bg-ochre text-night';
   return (
-    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-warm">
-      <h2 id="ficha-firmada-title" className="font-display text-2xl font-semibold">
-        Ficha firmada
-      </h2>
+    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-2 border-t border-ink/10 pt-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="ficha-firmada-title" className={SUBTITLE}>
+          Ficha firmada
+        </h3>
+        {!disabled && (
+          <Button variant="secondary" className="px-4! py-1!" onClick={onSign}>
+            Registrar firma
+          </Button>
+        )}
+      </header>
       <p role="status" className={`rounded-xl px-3 py-2 text-sm font-semibold ${tone}`}>
         {waiverLabel(waiver)}
       </p>
-      {!disabled && (
-        <div>
-          <Button variant="secondary" onClick={onSign}>
-            Registrar firma
-          </Button>
-        </div>
-      )}
       {waivers.length === 0 ? (
         <p className="text-sm text-ink-soft">Todavía no se registró ninguna firma.</p>
       ) : (
         <ul className="divide-y divide-ink/10 text-sm">
           {waivers.map((signature) => (
-            <li key={signature.id} className={`flex items-center justify-between gap-2 py-2 ${signature.voidedAt ? 'text-ink-soft' : ''}`}>
+            <li key={signature.id} className={`flex items-center justify-between gap-2 py-1 ${signature.voidedAt ? 'text-ink-soft' : ''}`}>
               <span>
                 Firmada el {formatDate(signature.signedAt)}
                 {signature.voidedAt && ' · Anulada'}
               </span>
               {!signature.voidedAt && !disabled && (
-                <Button variant="ghost" aria-label={`Anular firma del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
+                <Button variant="ghost" className="px-3! py-0.5! text-xs" aria-label={`Anular firma del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
                   Anular
                 </Button>
               )}

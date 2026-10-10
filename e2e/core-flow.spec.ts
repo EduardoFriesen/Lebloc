@@ -56,6 +56,9 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
 
   await page.getByRole('button', { name: 'Consumir con profesor' }).click();
   await expect(page.getByText('Con profesor restantes: 1')).toBeVisible();
+  await expect(page.getByRole('table', { name: /^Consumos de / }).getByRole('cell', { name: 'Con profesor' })).toBeVisible();
+  await label('Mes').fill('2020-01');
+  await expect(page.getByText('Sin consumos en enero de 2020.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Registrar pago' }).click();
   await label('Monto').fill('15.000');

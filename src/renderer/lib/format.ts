@@ -59,3 +59,8 @@ export function debtLabel({ debtCents, debtDays }: { debtCents: number; debtDays
 export function currentMonthLabel(): string {
   return new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
 }
+
+/** "YYYY-MM" of an ISO timestamp, in local time (what <input type="month"> uses). */
+export function localMonth(iso: string): string {
+  return toIsoDate(new Date(iso)).slice(0, 7);
+}
