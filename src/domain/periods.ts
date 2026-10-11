@@ -25,6 +25,13 @@ const monthIndex = (iso: string) => {
   return year * 12 + month;
 };
 
+/** A "YYYY-MM" month as a range: the whole month, or up to today while it is running. */
+export function monthRange(month: string, today: string): DateRange {
+  const from = `${month}-01`;
+  const to = monthEnd(from);
+  return { from, to: today >= from && today < to ? today : to };
+}
+
 export function presetRange(preset: PeriodPreset, today: string): DateRange {
   const thisMonth = monthStart(today);
   switch (preset) {

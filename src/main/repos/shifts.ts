@@ -47,6 +47,16 @@ export function listShiftsInMonth(db: Db, month: string, employeeId: number | nu
     .all({ ...monthBounds(month), employeeId });
 }
 
+/** Non-voided shifts of one employee between two dates (inclusive), oldest first. */
+export function listValidShifts(db: Db, employeeId: number, from: string, to: string): WorkShift[] {
+  return db
+    .prepare<[{ employeeId: number; from: string; to: string }], WorkShift>(
+      `${SELECT} WHERE w.employee_id = @employeeId AND w.voided_at IS NULL AND w.worked_on BETWEEN @from AND @to
+       ORDER BY w.worked_on, w.id`,
+    )
+    .all({ employeeId, from, to });
+}
+
 /** Non-voided minutes and cost of the month, per employee. */
 export function monthTotals(db: Db, month: string): ShiftTotals[] {
   return db

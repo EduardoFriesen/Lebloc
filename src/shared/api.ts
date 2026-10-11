@@ -52,6 +52,7 @@ export const apiSchemas = {
   'employees:list': schemas.employeeListInput,
   'employees:create': schemas.employeeInput,
   'employees:update': schemas.employeeUpdate,
+  'employees:payslip': schemas.payslipInput,
   'shifts:month': schemas.shiftListInput,
   'shifts:create': schemas.shiftInput,
   'shifts:void': schemas.idInput,
@@ -121,6 +122,7 @@ export interface ApiOutputs {
   'employees:list': T.EmployeeSummary[];
   'employees:create': T.Employee;
   'employees:update': T.Employee;
+  'employees:payslip': T.Payslip;
   'shifts:month': T.WorkShift[];
   'shifts:create': T.WorkShift;
   'shifts:void': T.WorkShift;

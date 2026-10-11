@@ -23,6 +23,7 @@ import { call } from '../lib/api';
 import { currentMonthIso, EMPLOYEE_KIND_LABELS, formatDate, formatHours, formatMoney, fullName } from '../lib/format';
 import { useAsync } from '../lib/useAsync';
 import { EmployeeForm } from './EmployeeForm';
+import { PayslipView } from './PayslipView';
 import { ShiftForm } from './ShiftForm';
 
 const HEADING = 'font-display text-2xl font-semibold';
@@ -38,6 +39,7 @@ export function EmployeesPage() {
   // Open shift form, with the employee it starts on (null: the first active one).
   const [shiftFor, setShiftFor] = useState<{ employeeId: number | null } | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
+  const [payslipFor, setPayslipFor] = useState<Employee | null>(null);
 
   const employees = useAsync(() => call('employees:list', { includeInactive, month }), [includeInactive, month], {
     keepPreviousData: true,
@@ -126,6 +128,9 @@ export function EmployeesPage() {
                             Cargar horas
                           </Button>
                         )}
+                        <Button variant="ghost" aria-label={`Liquidar sueldo de ${fullName(employee)}`} onClick={() => setPayslipFor(employee)}>
+                          Liquidar
+                        </Button>
                         <Button variant="edit" aria-label={`Editar ${fullName(employee)}`} onClick={() => setEditing(employee)}>
                           Editar
                         </Button>
@@ -193,6 +198,9 @@ export function EmployeesPage() {
             onCancel={() => setShiftFor(null)}
           />
         )}
+      </Dialog>
+      <Dialog open={payslipFor !== null} title="Liquidación de sueldo" onClose={() => setPayslipFor(null)}>
+        {payslipFor !== null && <PayslipView employee={payslipFor} month={month} onClose={() => setPayslipFor(null)} />}
       </Dialog>
       <ConfirmDialog
         request={pending}

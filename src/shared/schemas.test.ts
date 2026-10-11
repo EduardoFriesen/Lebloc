@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { clientInput, clientListInput, expenseInput, financeRangeInput, monthInput, paymentInput, planInput, scheduleInput, settingsInput, shiftInput } from './schemas';
+import {
+  clientInput,
+  clientListInput,
+  expenseInput,
+  financeRangeInput,
+  monthInput,
+  paymentInput,
+  payslipInput,
+  planInput,
+  scheduleInput,
+  settingsInput,
+  shiftInput,
+} from './schemas';
 
 const client = {
   firstName: '  Ana ',
@@ -69,6 +81,15 @@ describe('schemas', () => {
     expect(financeRangeInput.safeParse({ from: '2026-10-11', to: '2026-10-01' }).success).toBe(false);
     expect(financeRangeInput.safeParse({ from: '2023-01-01', to: '2026-10-11' }).success).toBe(false);
     expect(financeRangeInput.safeParse({ from: 'ayer', to: '2026-10-11' }).success).toBe(false);
+  });
+
+  it('accepts a payslip range in order, the error on the end date', () => {
+    expect(payslipInput.safeParse({ employeeId: 1, from: '2026-10-01', to: '2026-10-15' }).success).toBe(true);
+    expect(payslipInput.safeParse({ employeeId: 1, from: '2026-10-05', to: '2026-10-05' }).success).toBe(true);
+    const reversed = payslipInput.safeParse({ employeeId: 1, from: '2026-10-15', to: '2026-10-01' });
+    expect(reversed.success).toBe(false);
+    expect(reversed.error?.issues[0]?.path).toEqual(['to']);
+    expect(payslipInput.safeParse({ employeeId: 0, from: '2026-10-01', to: '2026-10-15' }).success).toBe(false);
   });
 
   it('applies list defaults', () => {

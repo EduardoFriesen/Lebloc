@@ -180,6 +180,9 @@ export const employeeInput = z.object(employeeFields);
 export const employeeUpdate = z.object({ id, ...employeeFields });
 export const employeeListInput = z.object({ includeInactive: z.boolean().default(false), month });
 export const shiftListInput = z.object({ month, employeeId: id.optional() });
+export const payslipInput = z
+  .object({ employeeId: id, from: isoDate, to: isoDate })
+  .refine((range) => range.from <= range.to, { message: 'El inicio tiene que ser anterior al fin', path: ['to'] });
 export const shiftInput = z.object({
   employeeId: id,
   workedOn: isoDate,
@@ -211,3 +214,4 @@ export type ExpenseInput = z.infer<typeof expenseInput>;
 export type EmployeeInput = z.infer<typeof employeeInput>;
 export type EmployeeUpdate = z.infer<typeof employeeUpdate>;
 export type ShiftInput = z.infer<typeof shiftInput>;
+export type PayslipInput = z.infer<typeof payslipInput>;

@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
 import { shiftCostCents } from '../../domain/staff';
-import type { EmployeeInput, EmployeeUpdate, ShiftInput } from '../../shared/schemas';
-import type { Employee, EmployeeSummary, StaffStats, WorkShift } from '../../shared/types';
+import type { EmployeeInput, EmployeeUpdate, PayslipInput, ShiftInput } from '../../shared/schemas';
+import type { Employee, EmployeeSummary, Payslip, StaffStats, WorkShift } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
 import * as employees from '../repos/employees';
 import * as shifts from '../repos/shifts';
@@ -63,6 +63,18 @@ export function voidShift(ctx: Context, id: number): WorkShift {
 
 export function listShifts(ctx: Context, month: string, employeeId: number | null): WorkShift[] {
   return shifts.listShiftsInMonth(ctx.db, month, employeeId);
+}
+
+/** Adds up each shift's own cost snapshot, so a rate change mid-range is paid at both rates. */
+export function getPayslip(ctx: Context, { employeeId, from, to }: PayslipInput): Payslip {
+  const employee = getEmployee(ctx, employeeId);
+  const rows = shifts.listValidShifts(ctx.db, employeeId, from, to);
+  return {
+    employee,
+    shifts: rows,
+    totalMinutes: rows.reduce((total, row) => total + row.minutes, 0),
+    totalCents: rows.reduce((total, row) => total + row.costCents, 0),
+  };
 }
 
 export function getStaffStats(ctx: Context, month: string): StaffStats {

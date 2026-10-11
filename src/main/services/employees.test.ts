@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { EmployeeInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
-import { createEmployee, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from './employees';
+import { createEmployee, getPayslip, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from './employees';
 
 const lucia: EmployeeInput = {
   firstName: 'Lucía',
@@ -79,6 +79,37 @@ describe('employees and shifts', () => {
     expect(listEmployees(ctx, true, '2026-10')).toHaveLength(3);
     expect(listShifts(ctx, '2026-10', marcosId)).toHaveLength(1);
     expect(getStaffStats(ctx, '2026-10')).toEqual({ active: 2, staff: 1, casual: 1, monthMinutes: 390, monthCostCents: 2_850_000 });
+  });
+
+  describe('payslip', () => {
+    it("adds up the range's valid shifts, each at the rate it was recorded with, oldest first", () => {
+      const marcosId = createEmployee(ctx, { ...lucia, firstName: 'Marcos' }).id;
+      shift({ workedOn: '2026-09-30', minutes: 60 });
+      const first = shift({ workedOn: '2026-10-01', minutes: 270 });
+      voidShift(ctx, shift({ workedOn: '2026-10-02', minutes: 600 }).id);
+      shift({ employeeId: marcosId, workedOn: '2026-10-02', minutes: 120 });
+      updateEmployee(ctx, { ...lucia, id: luciaId, hourlyRateCents: 600_000 });
+      const last = shift({ workedOn: '2026-10-04', minutes: 90 });
+      shift({ workedOn: '2026-10-05', minutes: 60 });
+
+      const slip = getPayslip(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-04' });
+
+      expect(slip.employee).toMatchObject({ id: luciaId, firstName: 'Lucía', hourlyRateCents: 600_000 });
+      expect(slip.shifts.map((row) => row.id)).toEqual([first.id, last.id]);
+      expect(slip.totalMinutes).toBe(360);
+      expect(slip.totalCents).toBe(2_250_000 + 900_000);
+    });
+
+    it('still settles an employee who is no longer active', () => {
+      shift();
+      updateEmployee(ctx, { ...lucia, id: luciaId, active: false });
+      expect(getPayslip(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-31' }).totalCents).toBe(2_250_000);
+    });
+
+    it('comes back empty for a range without shifts and fails on unknown employees', () => {
+      expect(getPayslip(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-31' })).toMatchObject({ shifts: [], totalMinutes: 0, totalCents: 0 });
+      expectDomainError(() => getPayslip(ctx, { employeeId: 999, from: '2026-10-01', to: '2026-10-31' }), 'NOT_FOUND');
+    });
   });
 
   it('fails on unknown employees when updating', () => {

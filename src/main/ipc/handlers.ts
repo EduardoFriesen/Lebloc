@@ -13,7 +13,7 @@ import {
 } from '../services/clients';
 import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
-import { createEmployee, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from '../services/employees';
+import { createEmployee, getPayslip, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from '../services/employees';
 import { createExpense, getExpenseMonth, voidExpense } from '../services/expenses';
 import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
@@ -85,6 +85,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'employees:list': ({ includeInactive, month }) => listEmployees(ctx, includeInactive, month),
     'employees:create': (input) => createEmployee(ctx, input),
     'employees:update': (input) => updateEmployee(ctx, input),
+    'employees:payslip': (input) => getPayslip(ctx, input),
     'shifts:month': ({ month, employeeId }) => listShifts(ctx, month, employeeId ?? null),
     'shifts:create': (input) => recordShift(ctx, input),
     'shifts:void': ({ id }) => voidShift(ctx, id),

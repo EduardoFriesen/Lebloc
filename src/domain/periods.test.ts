@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, bucketize, bucketKey, bucketKeys, granularityFor, percentChange, presetRange, previousRange } from './periods';
+import { addDays, bucketize, bucketKey, bucketKeys, granularityFor, monthRange, percentChange, presetRange, previousRange } from './periods';
 
 describe('periods', () => {
   it('adds days across months and years', () => {
@@ -16,6 +16,12 @@ describe('periods', () => {
     expect(presetRange('this_year', today)).toEqual({ from: '2026-01-01', to: '2026-10-11' });
     expect(presetRange('last_month', '2026-03-15')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
     expect(presetRange('last_month', '2026-01-10')).toEqual({ from: '2025-12-01', to: '2025-12-31' });
+  });
+
+  it('covers a whole month, or up to today in the current one', () => {
+    expect(monthRange('2026-10', '2026-10-11')).toEqual({ from: '2026-10-01', to: '2026-10-11' });
+    expect(monthRange('2026-09', '2026-10-11')).toEqual({ from: '2026-09-01', to: '2026-09-30' });
+    expect(monthRange('2028-02', '2026-10-11')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
   });
 
   it('compares month-aligned ranges with the same months before', () => {

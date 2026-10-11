@@ -411,6 +411,15 @@ export interface WorkShift {
   voidedAt: string | null;
 }
 
+/** What an employee earned between two dates, for a pay receipt. Nothing is recorded as paid. */
+export interface Payslip {
+  employee: Employee;
+  /** Non-voided shifts of the range, oldest first. */
+  shifts: WorkShift[];
+  totalMinutes: number;
+  totalCents: number;
+}
+
 export interface StaffStats {
   /** Active employees, and how many of them are staff or casual. */
   active: number;

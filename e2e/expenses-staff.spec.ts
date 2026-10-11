@@ -61,3 +61,21 @@ test('add an employee and record a shift', async () => {
   await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
   await expect(summary()).toContainText(/Sueldos del mes\s*\$\s22\.500,00/);
 });
+
+test("show an employee's payslip for a range of dates", async () => {
+  await page.getByRole('navigation').getByRole('link', { name: 'Empleados' }).click();
+  await page.getByRole('button', { name: 'Liquidar sueldo de Lucía Paz' }).click();
+  const slip = page.getByRole('dialog');
+  await expect(slip.getByRole('heading', { name: 'Liquidación de sueldo' })).toBeVisible();
+  await expect(slip).toContainText(/Horas trabajadas\s*4,5 h/);
+  await expect(slip).toContainText(/Total a pagar\s*\$\s22\.500,00/);
+  await expect(slip.getByRole('table', { name: 'Turnos de la liquidación' }).getByRole('row', { name: /4,5 h/ })).toBeVisible();
+
+  await slip.getByLabel('Desde', { exact: true }).fill('2099-01-01');
+  await expect(slip.getByText('El inicio tiene que ser anterior al fin')).toBeVisible();
+  await slip.getByLabel('Desde', { exact: true }).fill('2020-01-01');
+  await slip.getByLabel('Hasta', { exact: true }).fill('2020-01-31');
+  await expect(slip.getByText('No tiene turnos entre el 01/01/2020 y el 31/01/2020.')).toBeVisible();
+  await slip.getByRole('button', { name: 'Cerrar' }).click();
+  await expect(slip).toBeHidden();
+});
