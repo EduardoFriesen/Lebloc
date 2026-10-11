@@ -5,6 +5,7 @@ import type { PaymentMethod, Product } from '../../shared/types';
 import { call } from '../lib/api';
 import { errorMessage } from '../lib/formErrors';
 import { formatMoney, PAYMENT_METHOD_LABELS } from '../lib/format';
+import { matchesSearch } from '../lib/search';
 import { useAsync } from '../lib/useAsync';
 import { Button } from './ui/Button';
 import { SelectField, TextField } from './ui/Field';
@@ -19,8 +20,6 @@ function changeQuantity(cart: Cart, productId: number, delta: number): Cart {
   const next = current + delta;
   return next > 0 ? { ...rest, [productId]: next } : rest;
 }
-
-const normalize = (text: string) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase();
 
 /** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. */
 export function KioskSalePanel({ onSold }: { onSold: () => void }) {
@@ -73,12 +72,11 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
         {(list) => {
           const lines = list.filter((product) => cart[product.id]).map((product) => ({ product, quantity: cart[product.id] ?? 0 }));
           const total = ticketTotalCents(lines.map(({ product, quantity }) => ({ quantity, unitPriceCents: product.priceCents })));
-          const query = normalize(search.trim());
-          const found = list.filter((product) => normalize(product.name).includes(query));
+          const found = list.filter((product) => matchesSearch(product.name, search));
           return (
             <div className="flex flex-col gap-4">
               <TextField label="Buscar producto" type="search" value={search} onChange={(event) => setSearch(event.target.value)} />
-              {query ? (
+              {search.trim() ? (
                 found.length === 0 ? (
                   <p className="text-sm text-ink-soft">Ningún producto coincide</p>
                 ) : (

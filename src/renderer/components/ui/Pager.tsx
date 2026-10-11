@@ -9,31 +9,42 @@ interface PagedListProps<T> {
   render: (item: T) => ReactNode;
 }
 
-/** A page of thin cards with a ‹ 1 / 3 › bar underneath; the bar hides when everything fits. */
-export function PagedList<T>({ items, label, pageSize = 4, render }: PagedListProps<T>) {
+/** The current page of a list; the page is pulled back when the list shrinks. */
+export function usePage<T>(items: readonly T[], pageSize: number) {
   const [requested, setPage] = useState(0);
   const page = clampPage(requested, items.length, pageSize);
   const pages = pageCount(items.length, pageSize);
   const visible = items.slice(page * pageSize, (page + 1) * pageSize);
+  return { visible, page, pages, setPage };
+}
 
+/** The ‹ 1 / 3 › bar; hidden when everything fits in one page. */
+export function PageBar({ label, page, pages, onChange }: { label: string; page: number; pages: number; onChange: (page: number) => void }) {
+  if (pages <= 1) return null;
+  return (
+    <nav aria-label={`Páginas de ${label.toLowerCase()}`} className="flex items-center justify-center gap-3 text-sm">
+      <PageButton label="Página anterior" disabled={page === 0} onClick={() => onChange(page - 1)}>
+        ‹
+      </PageButton>
+      <span aria-live="polite" className="min-w-14 text-center font-semibold text-ink-soft">
+        {page + 1} / {pages}
+      </span>
+      <PageButton label="Página siguiente" disabled={page === pages - 1} onClick={() => onChange(page + 1)}>
+        ›
+      </PageButton>
+    </nav>
+  );
+}
+
+/** A page of thin cards with a ‹ 1 / 3 › bar underneath; the bar hides when everything fits. */
+export function PagedList<T>({ items, label, pageSize = 4, render }: PagedListProps<T>) {
+  const { visible, page, pages, setPage } = usePage(items, pageSize);
   return (
     <div className="flex flex-col gap-2">
       <ul aria-label={label} className="flex flex-col gap-2">
         {visible.map(render)}
       </ul>
-      {pages > 1 && (
-        <nav aria-label={`Páginas de ${label.toLowerCase()}`} className="flex items-center justify-center gap-3 text-sm">
-          <PageButton label="Página anterior" disabled={page === 0} onClick={() => setPage(page - 1)}>
-            ‹
-          </PageButton>
-          <span aria-live="polite" className="min-w-14 text-center font-semibold text-ink-soft">
-            {page + 1} / {pages}
-          </span>
-          <PageButton label="Página siguiente" disabled={page === pages - 1} onClick={() => setPage(page + 1)}>
-            ›
-          </PageButton>
-        </nav>
-      )}
+      <PageBar label={label} page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }

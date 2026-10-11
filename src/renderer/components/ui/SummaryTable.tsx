@@ -23,6 +23,9 @@ export const SUMMARY_TOP = 'min-w-0 xl:col-start-1 xl:row-start-1';
 // The padding (offset by the negative margin) keeps card shadows, hover lift and focus rings from being clipped.
 export const SUMMARY_LIST = 'min-w-0 xl:col-start-1 xl:row-start-2 xl:-m-2 xl:overflow-y-auto xl:p-2';
 
+/** The summary column beside the list: starts at the list's height and scrolls on its own. */
+export const SUMMARY_SIDE = 'self-start xl:col-start-2 xl:row-start-2 xl:max-h-full xl:overflow-y-auto';
+
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';
 
@@ -30,7 +33,7 @@ const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';
 export function SummaryTable<T>({ state, rows }: { state: AsyncResult<T>; rows: (data: T) => SummaryRow[] }) {
   const id = useId();
   return (
-    <aside aria-labelledby={id} className="self-start rounded-2xl bg-surface p-5 shadow-warm xl:col-start-2 xl:row-start-2 xl:max-h-full xl:overflow-y-auto">
+    <aside aria-labelledby={id} className={`rounded-2xl bg-surface p-5 shadow-warm ${SUMMARY_SIDE}`}>
       <h2 id={id} className="mb-3 font-display text-xl font-semibold">
         Resumen
       </h2>
