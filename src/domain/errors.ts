@@ -22,6 +22,8 @@ export const ERROR_MESSAGES = {
   PRODUCT_INACTIVE: 'El producto está inactivo.',
   PRODUCT_NAME_TAKEN: 'Ya hay un producto con ese nombre.',
   PRICE_NOT_SET: 'Configurá el precio en Planes.',
+  DATE_IN_FUTURE: 'La fecha no puede ser posterior a hoy.',
+  EMPLOYEE_INACTIVE: 'El empleado está inactivo.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
