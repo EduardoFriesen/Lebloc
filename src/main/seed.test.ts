@@ -18,7 +18,7 @@ describe('seedDatabase', () => {
 
   it('loads clients, teachers and plans, including archived and inactive ones', () => {
     const clients = listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
-    expect(clients.length).toBeGreaterThanOrEqual(20);
+    expect(clients).toHaveLength(200);
     expect(clients.some((client) => client.archivedAt !== null)).toBe(true);
     expect(clients.some((client) => client.activeSales === 0)).toBe(true);
     expect(listTeachers(ctx, true).some((teacher) => !teacher.active)).toBe(true);
@@ -41,7 +41,7 @@ describe('seedDatabase', () => {
 
   it('loads kiosk products and today sales that match the summary', () => {
     const products = listProducts(ctx, true);
-    expect(products.length).toBeGreaterThanOrEqual(5);
+    expect(products).toHaveLength(50);
     expect(products.some((product) => !product.active)).toBe(true);
     expect(products.some((product) => product.priceCents !== product.suggestedPriceCents)).toBe(true);
     const today = listKioskSales(ctx, '2026-10-09');
@@ -76,5 +76,13 @@ describe('seedDatabase', () => {
       )
       .get() as { d: string };
     expect(latest.d <= todayIso).toBe(true);
+  });
+
+  it('has two months of kiosk tickets, plan sales and climbs to browse', () => {
+    const count = (sql: string) => (ctx.db.prepare(sql).get() as { n: number }).n;
+    expect(count('SELECT COUNT(*) AS n FROM kiosk_sales')).toBeGreaterThan(400);
+    expect(count('SELECT COUNT(*) AS n FROM sales')).toBeGreaterThan(250);
+    expect(count('SELECT COUNT(*) AS n FROM consumptions')).toBeGreaterThan(1000);
+    expect(count('SELECT COUNT(*) AS n FROM counter_sales')).toBeGreaterThan(100);
   });
 });

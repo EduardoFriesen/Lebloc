@@ -20,6 +20,7 @@ import { sellPlan, voidSale } from './services/sales';
 import { updateSettings } from './services/settings';
 import { createTeacher, updateTeacher } from './services/teachers';
 import { signWaiver, voidWaiver } from './services/waivers';
+import { seedVolume } from './seedVolume';
 
 const pesos = (amount: number) => amount * 100;
 
@@ -50,8 +51,8 @@ export function seedDatabase(db: Db, now: Date): void {
   const ctx: Context = { db, clock: { now: () => current } };
 
   /** Moves the clock to `daysAgo` days before `now` at `hour` and returns that date as ISO. */
-  function at(daysAgo: number, hour = 18): string {
-    current = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, hour, (daysAgo * 7) % 60);
+  function at(daysAgo: number, hour = 18, minute = (daysAgo * 7) % 60): string {
+    current = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, hour, minute);
     return toIsoDate(current);
   }
 
@@ -424,6 +425,19 @@ export function seedDatabase(db: Db, now: Date): void {
     sellCounter(ctx, { kinds: ['day_pass', 'shoe_rental'], method: 'cash' });
     at(0, Math.min(16, now.getHours()));
     sellCounter(ctx, { kinds: ['day_pass'], method: 'transfer' });
+
+    // Volumen: hasta 200 clientes y 50 productos, con dos meses de ventas.
+    seedVolume(ctx, at, now, {
+      plans: [
+        { id: suelto, free: 1, teacher: 0, weight: 2 },
+        { id: pack8, free: 8, teacher: 0, weight: 5 },
+        { id: pack12, free: 12, teacher: 0, weight: 3 },
+        { id: escuelita, free: 0, teacher: 4, weight: 1 },
+        { id: mixto, free: 4, teacher: 4, weight: 2 },
+        { id: dosPorSemana, free: 0, teacher: 8, weight: 1 },
+      ],
+      teachers: [martina, facundo, sol],
+    });
 
     at(70, 12);
     archiveClient(ctx, hernan);
