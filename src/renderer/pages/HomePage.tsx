@@ -1,4 +1,4 @@
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
@@ -27,6 +27,8 @@ export function HomePage() {
   const pasesId = useId();
   const kioskId = useId();
   const [search, setSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const kioskPanel = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -70,7 +72,7 @@ export function HomePage() {
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
       </div>
       {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-20`}>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-40`}>
         <section aria-labelledby={pasesId} className="flex flex-col gap-6">
           <h2 id={pasesId} className={`${STICKY} font-display text-2xl font-semibold`}>
             Pases
@@ -123,8 +125,20 @@ export function HomePage() {
             <h2 id={kioskId} className="font-display text-2xl font-semibold">
               Kiosco
             </h2>
+            <TextField
+              label="Buscar producto"
+              type="search"
+              value={productSearch}
+              onChange={(event) => {
+                setProductSearch(event.target.value);
+                // Typing from down in the movements: bring the matches (right under this sticky header) into view.
+                kioskPanel.current?.scrollIntoView({ block: 'nearest' });
+              }}
+            />
           </div>
-          <KioskSalePanel onSold={refreshIncome} />
+          <div ref={kioskPanel}>
+            <KioskSalePanel search={productSearch} onSearchChange={setProductSearch} onSold={refreshIncome} />
+          </div>
           <DayMovementsTable state={movements} onChanged={refreshIncome} />
         </section>
       </div>

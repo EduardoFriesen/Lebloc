@@ -8,7 +8,7 @@ import { formatMoney, PAYMENT_METHOD_LABELS } from '../lib/format';
 import { matchesSearch } from '../lib/search';
 import { useAsync } from '../lib/useAsync';
 import { Button } from './ui/Button';
-import { SelectField, TextField } from './ui/Field';
+import { SelectField } from './ui/Field';
 import { Notice, type NoticeState } from './ui/Notice';
 import { AsyncView, EmptyState, SkeletonRows } from './ui/States';
 
@@ -21,11 +21,17 @@ function changeQuantity(cart: Cart, productId: number, delta: number): Cart {
   return next > 0 ? { ...rest, [productId]: next } : rest;
 }
 
-/** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. The heading is the caller's. */
-export function KioskSalePanel({ onSold }: { onSold: () => void }) {
+interface KioskSalePanelProps {
+  /** Product search, rendered by the caller (it sits in the sticky kiosk header). */
+  search: string;
+  onSearchChange: (search: string) => void;
+  onSold: () => void;
+}
+
+/** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. Heading and search box are the caller's. */
+export function KioskSalePanel({ search, onSearchChange, onSold }: KioskSalePanelProps) {
   const products = useAsync(() => call('products:list', { includeInactive: false }), []);
   const top = useAsync(() => call('kiosk:top', {}), []);
-  const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Cart>({});
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [busy, setBusy] = useState(false);
@@ -41,7 +47,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
     try {
       const sale = await call('kiosk:sell', { items, method });
       setCart({});
-      setSearch('');
+      onSearchChange('');
       setNotice({ tone: 'success', text: `Venta registrada: ${formatMoney(sale.totalCents)}` });
       top.reload();
       onSold();
@@ -71,7 +77,6 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
           const found = list.filter((product) => matchesSearch(product.name, search));
           return (
             <div className="flex flex-col gap-4">
-              <TextField label="Buscar producto" type="search" value={search} onChange={(event) => setSearch(event.target.value)} />
               {search.trim() ? (
                 found.length === 0 ? (
                   <p className="text-sm text-ink-soft">Ningún producto coincide</p>
