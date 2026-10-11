@@ -46,6 +46,16 @@ export const apiSchemas = {
   'counter:today': schemas.emptyInput,
   'counter:sell': schemas.counterSellInput,
   'counter:void': schemas.idInput,
+  'expenses:month': schemas.monthInput,
+  'expenses:create': schemas.expenseInput,
+  'expenses:void': schemas.idInput,
+  'employees:list': schemas.employeeListInput,
+  'employees:create': schemas.employeeInput,
+  'employees:update': schemas.employeeUpdate,
+  'shifts:month': schemas.shiftListInput,
+  'shifts:create': schemas.shiftInput,
+  'shifts:void': schemas.idInput,
+  'staff:stats': schemas.monthInput,
   'prices:get': schemas.emptyInput,
   'prices:update': schemas.counterPricesInput,
   'dashboard:get': schemas.emptyInput,
@@ -100,6 +110,16 @@ export interface ApiOutputs {
   'counter:today': T.DayMovements;
   'counter:sell': T.CounterSale[];
   'counter:void': T.CounterSale;
+  'expenses:month': T.ExpenseMonth;
+  'expenses:create': T.Expense;
+  'expenses:void': T.Expense;
+  'employees:list': T.EmployeeSummary[];
+  'employees:create': T.Employee;
+  'employees:update': T.Employee;
+  'shifts:month': T.WorkShift[];
+  'shifts:create': T.WorkShift;
+  'shifts:void': T.WorkShift;
+  'staff:stats': T.StaffStats;
   'prices:get': T.CounterPrices;
   'prices:update': T.CounterPrices;
   'dashboard:get': T.Dashboard;

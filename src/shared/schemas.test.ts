@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clientInput, clientListInput, paymentInput, planInput, scheduleInput, settingsInput } from './schemas';
+import { clientInput, clientListInput, expenseInput, monthInput, paymentInput, planInput, scheduleInput, settingsInput, shiftInput } from './schemas';
 
 const client = {
   firstName: '  Ana ',
@@ -42,6 +42,26 @@ describe('schemas', () => {
     expect(paymentInput.safeParse({ ...base, amountCents: 0 }).success).toBe(false);
     expect(paymentInput.safeParse({ ...base, amountCents: 10.5 }).success).toBe(false);
     expect(paymentInput.safeParse({ ...base, amountCents: 100 }).success).toBe(true);
+  });
+
+  it('accepts YYYY-MM months only', () => {
+    expect(monthInput.safeParse({ month: '2026-10' }).success).toBe(true);
+    expect(monthInput.safeParse({ month: '2026-13' }).success).toBe(false);
+    expect(monthInput.safeParse({ month: '10/2026' }).success).toBe(false);
+  });
+
+  it('bounds a shift between one minute and 24 hours', () => {
+    const base = { employeeId: 1, workedOn: '2026-10-05', note: null };
+    expect(shiftInput.safeParse({ ...base, minutes: 0 }).success).toBe(false);
+    expect(shiftInput.safeParse({ ...base, minutes: 1441 }).success).toBe(false);
+    expect(shiftInput.safeParse({ ...base, minutes: 270 }).success).toBe(true);
+  });
+
+  it('rejects unknown expense categories and zero amounts', () => {
+    const base = { category: 'rent', description: null, amountCents: 100, method: 'cash', paidAt: '2026-10-05' };
+    expect(expenseInput.safeParse(base).success).toBe(true);
+    expect(expenseInput.safeParse({ ...base, category: 'groceries' }).success).toBe(false);
+    expect(expenseInput.safeParse({ ...base, amountCents: 0 }).success).toBe(false);
   });
 
   it('applies list defaults', () => {

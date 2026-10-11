@@ -13,6 +13,8 @@ import {
 } from '../services/clients';
 import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
+import { createEmployee, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from '../services/employees';
+import { createExpense, getExpenseMonth, voidExpense } from '../services/expenses';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
@@ -76,6 +78,16 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'counter:today': () => getDayMovements(ctx),
     'counter:sell': (input) => sellCounter(ctx, input),
     'counter:void': ({ id }) => voidCounterSale(ctx, id),
+    'expenses:month': ({ month }) => getExpenseMonth(ctx, month),
+    'expenses:create': (input) => createExpense(ctx, input),
+    'expenses:void': ({ id }) => voidExpense(ctx, id),
+    'employees:list': ({ includeInactive, month }) => listEmployees(ctx, includeInactive, month),
+    'employees:create': (input) => createEmployee(ctx, input),
+    'employees:update': (input) => updateEmployee(ctx, input),
+    'shifts:month': ({ month, employeeId }) => listShifts(ctx, month, employeeId ?? null),
+    'shifts:create': (input) => recordShift(ctx, input),
+    'shifts:void': ({ id }) => voidShift(ctx, id),
+    'staff:stats': ({ month }) => getStaffStats(ctx, month),
     'prices:get': () => getCounterPrices(ctx),
     'prices:update': (input) => updateCounterPrices(ctx, input),
     'dashboard:get': () => getDashboard(ctx),
