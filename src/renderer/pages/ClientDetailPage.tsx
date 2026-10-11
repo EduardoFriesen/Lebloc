@@ -152,6 +152,8 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         </div>
         <div className="flex flex-col gap-6">
           <SalesPanel
+            // A new sale (e.g. a renewal) brings the panel back to the newest plan.
+            key={account.sales.length}
             sales={account.sales}
             payments={account.payments}
             disabled={archived}
@@ -305,18 +307,23 @@ interface SalesPanelProps {
   onVoidSale: (sale: Sale) => void;
 }
 
+/** One plan at a time, newest first; the arrows go back through the older ones. */
 function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
+  const { visible, page, pages, setPage } = usePage(sales, 1);
   return (
     <section aria-labelledby="ventas-title" className="flex flex-col gap-3">
-      <h2 id="ventas-title" className="font-display text-2xl font-semibold">
-        Ventas
-      </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="ventas-title" className="font-display text-2xl font-semibold">
+          Ventas
+        </h2>
+        <PageBar label="Ventas" page={page} pages={pages} onChange={setPage} />
+      </header>
       {sales.length === 0 ? (
         <EmptyState title="Sin ventas todavía">
           <p className="text-sm">Usá “Vender plan” para cargar el primer pack.</p>
         </EmptyState>
       ) : (
-        sales.map((sale) => (
+        visible.map((sale) => (
           <SaleCard key={sale.id} sale={sale} payments={payments.filter((payment) => payment.saleId === sale.id)} {...actions} />
         ))
       )}

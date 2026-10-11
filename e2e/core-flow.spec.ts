@@ -116,6 +116,14 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await expect(page.getByText('Plan renovado.')).toBeVisible();
   await expect(page.getByText('Libres restantes: 1')).toBeVisible();
 
+  // One plan at a time, the renewal first; the arrow goes back to the used-up one.
+  const salesPages = page.getByRole('navigation', { name: 'Páginas de ventas' });
+  await expect(page.getByRole('article', { name: /^Venta / })).toHaveCount(1);
+  await expect(salesPages).toContainText('1 / 2');
+  await expect(page.getByText('Pases: 1 libres · 0 con profesor')).toBeVisible();
+  await salesPages.getByRole('button', { name: 'Página siguiente' }).click();
+  await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
+
   await page.getByRole('button', { name: 'Registrar firma' }).click();
   await dialog.getByRole('button', { name: 'Registrar firma' }).click();
   await expect(page.getByText(/Ficha vigente hasta/)).toBeVisible();
