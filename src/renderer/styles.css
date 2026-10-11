@@ -23,6 +23,12 @@
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-sans: 'Nunito Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
   --shadow-warm: 0 1px 2px rgb(45 42 62 / 0.06), 0 8px 24px -10px rgb(45 42 62 / 0.2);
+  /* Series de los gráficos, en orden fijo y una por entidad (Planes, Kiosco, Pases del día, Pédulas).
+     Validadas con dataviz/validate_palette contra surface en cada tema: banda de luz, croma y CVD entre vecinas. */
+  --color-series-1: #b0531f; /* terracota */
+  --color-series-2: #c8923a; /* mostaza */
+  --color-series-3: #5a63b8; /* índigo */
+  --color-series-4: #4f8a3e; /* salvia */
 }
 
 /* "Cielo de noche": mismo atardecer con el fondo oscuro. Lo activa lib/preferences.ts. */
@@ -39,6 +45,10 @@
   --color-moss: #8fb07f;
   --color-danger: #f08a7a;
   --shadow-warm: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -10px rgb(0 0 0 / 0.55);
+  --color-series-1: #a84a1e;
+  --color-series-2: #b98c30;
+  --color-series-3: #7a83dc;
+  --color-series-4: #5b9849;
 }
 
 /* App shell: the window itself never scrolls; each screen scrolls its own content. */

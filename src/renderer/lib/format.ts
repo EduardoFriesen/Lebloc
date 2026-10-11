@@ -1,6 +1,7 @@
 import { ageFrom } from '../../domain/client';
 import { toIsoDate } from '../../domain/dates';
 import type { PassKind } from '../../domain/passes';
+import type { Granularity } from '../../domain/periods';
 import type { SplitRule } from '../../domain/sale';
 import type { CounterSaleKind, EmployeeKind, ExpenseCategory, PaymentMethod, WaiverStatus } from '../../shared/types';
 
@@ -90,4 +91,28 @@ export function currentMonthLabel(): string {
 /** "YYYY-MM" of an ISO timestamp, in local time (what <input type="month"> uses). */
 export function localMonth(iso: string): string {
   return toIsoDate(new Date(iso)).slice(0, 7);
+}
+
+const MONTH_ABBREVIATIONS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** Axis label of a chart bucket: "05/10", "sem. 05/10" or "oct 2026". */
+export function bucketLabel(bucket: string, granularity: Granularity): string {
+  if (granularity === 'month') return `${MONTH_ABBREVIATIONS[Number(bucket.slice(5, 7)) - 1] ?? ''} ${bucket.slice(0, 4)}`;
+  const dayMonth = `${bucket.slice(8, 10)}/${bucket.slice(5, 7)}`;
+  return granularity === 'week' ? `sem. ${dayMonth}` : dayMonth;
+}
+
+/** Short money for chart axes: "$ 450 mil", "$ 1,2 M" (Intl's compact notation says "k" in Electron's ICU). */
+export function formatCompactMoney(cents: number): string {
+  const pesos = cents / 100;
+  const size = Math.abs(pesos);
+  const [value, unit] = size >= 1_000_000 ? [pesos / 1_000_000, ' M'] : size >= 1_000 ? [pesos / 1_000, ' mil'] : [pesos, ''];
+  return `$ ${value.toLocaleString('es-AR', { maximumFractionDigits: 1 })}${unit}`;
+}
+
+/** "+20 %", "−5 %" (or points: "+3 pts"), or "—" when there is nothing to compare with. */
+export function formatPercentChange(change: number | null, unit: '%' | 'pts' = '%'): string {
+  if (change === null) return '—';
+  if (change > 0) return `+${change} ${unit}`;
+  return change < 0 ? `−${-change} ${unit}` : `0 ${unit}`;
 }

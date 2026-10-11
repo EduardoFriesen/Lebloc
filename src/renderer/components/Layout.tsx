@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/profesores', label: 'Profesores', end: false },
   { to: '/empleados', label: 'Empleados', end: false },
   { to: '/gastos', label: 'Gastos', end: false },
+  { to: '/finanzas', label: 'Finanzas', end: false },
   { to: '/ajustes', label: 'Ajustes', end: false },
 ];
 

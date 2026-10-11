@@ -5,6 +5,8 @@ import { ClientDetailPage } from './pages/ClientDetailPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { ExpensesPage } from './pages/ExpensesPage';
+import { FinancePage } from './pages/FinancePage';
+import { SummaryTab } from './pages/finance/SummaryTab';
 import { HomePage } from './pages/HomePage';
 import { KioskPage } from './pages/KioskPage';
 import { PlansPage } from './pages/PlansPage';
@@ -39,6 +41,13 @@ export function AppRoutes() {
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
         <Route path="empleados" element={<EmployeesPage />} />
         <Route path="gastos" element={<ExpensesPage />} />
+        <Route path="finanzas" element={<FinancePage />}>
+          <Route index element={<SummaryTab />} />
+          <Route path="ventas" element={<EmptyState title="Próximamente" />} />
+          <Route path="afluencia" element={<EmptyState title="Próximamente" />} />
+          <Route path="profesores" element={<EmptyState title="Próximamente" />} />
+          <Route path="clientes" element={<EmptyState title="Próximamente" />} />
+        </Route>
         <Route path="ajustes" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

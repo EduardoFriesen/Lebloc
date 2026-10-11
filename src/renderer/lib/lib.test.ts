@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { removeAt, replaceAt, sum } from './arrays';
-import { debtLabel, formatDate, formatHours, localMonth } from './format';
+import { bucketLabel, debtLabel, formatCompactMoney, formatDate, formatHours, formatPercentChange, localMonth } from './format';
 import { toFieldErrors } from './formErrors';
 
 describe('renderer helpers', () => {
@@ -27,6 +27,22 @@ describe('renderer helpers', () => {
     expect(formatHours(270)).toBe('4,5 h');
     expect(formatHours(60)).toBe('1 h');
     expect(formatHours(20)).toBe('0,33 h');
+  });
+
+  it('labels chart buckets by day, week or month', () => {
+    expect(bucketLabel('2026-10-05', 'day')).toBe('05/10');
+    expect(bucketLabel('2026-10-05', 'week')).toBe('sem. 05/10');
+    expect(bucketLabel('2026-10', 'month')).toBe('oct 2026');
+  });
+
+  it('formats axis money compactly and changes with sign', () => {
+    expect(formatCompactMoney(45_000_000)).toBe('$ 450 mil');
+    expect(formatCompactMoney(120_000_000)).toBe('$ 1,2 M');
+    expect(formatCompactMoney(0)).toBe('$ 0');
+    expect(formatPercentChange(20)).toBe('+20 %');
+    expect(formatPercentChange(-5)).toBe('−5 %');
+    expect(formatPercentChange(0)).toBe('0 %');
+    expect(formatPercentChange(null)).toBe('—');
   });
 
   it('formats ISO dates as dd/mm/yyyy', () => {
