@@ -29,6 +29,7 @@
   --color-series-2: #c8923a; /* mostaza */
   --color-series-3: #5a63b8; /* índigo */
   --color-series-4: #4f8a3e; /* salvia */
+  --color-heat-ink: #fbf4ea; /* texto sobre las celdas intensas del mapa de calor (oscuras en este tema) */
 }
 
 /* "Cielo de noche": mismo atardecer con el fondo oscuro. Lo activa lib/preferences.ts. */
@@ -49,6 +50,7 @@
   --color-series-2: #b98c30;
   --color-series-3: #7a83dc;
   --color-series-4: #5b9849;
+  --color-heat-ink: #2d2a3e; /* en el tema oscuro las celdas intensas son las más claras */
 }
 
 /* App shell: the window itself never scrolls; each screen scrolls its own content. */

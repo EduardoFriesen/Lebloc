@@ -8,6 +8,7 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { FinancePage } from './pages/FinancePage';
 import { SalesTab } from './pages/finance/SalesTab';
 import { SummaryTab } from './pages/finance/SummaryTab';
+import { TrafficTab } from './pages/finance/TrafficTab';
 import { HomePage } from './pages/HomePage';
 import { KioskPage } from './pages/KioskPage';
 import { PlansPage } from './pages/PlansPage';
@@ -45,7 +46,7 @@ export function AppRoutes() {
         <Route path="finanzas" element={<FinancePage />}>
           <Route index element={<SummaryTab />} />
           <Route path="ventas" element={<SalesTab />} />
-          <Route path="afluencia" element={<EmptyState title="Próximamente" />} />
+          <Route path="afluencia" element={<TrafficTab />} />
           <Route path="profesores" element={<EmptyState title="Próximamente" />} />
           <Route path="clientes" element={<EmptyState title="Próximamente" />} />
         </Route>
