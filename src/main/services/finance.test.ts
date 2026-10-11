@@ -5,7 +5,7 @@ import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
 import { createEmployee, recordShift } from './employees';
 import { createExpense, voidExpense } from './expenses';
-import { getFinanceSummary } from './finance';
+import { getFinanceSales, getFinanceSummary } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
@@ -130,6 +130,37 @@ describe('finance', () => {
     it('includes both ends of the range and nothing outside', () => {
       expect(getFinanceSummary(ctx, { from: '2026-10-02', to: '2026-10-02' }).totals.plans).toBe(1_000_000);
       expect(getFinanceSummary(ctx, { from: '2026-10-06', to: '2026-10-31' }).current).toEqual({ incomeCents: 0, expensesCents: 0, resultCents: 0 });
+    });
+  });
+
+  describe('sales', () => {
+    it('ranks plans sold in the range by count, with their local price', () => {
+      expect(getFinanceSales(ctx, OCTOBER).plans).toEqual([
+        { planId: expect.any(Number), planName: 'Pack 4+4', withTeacher: true, count: 1, localCents: 2_000_000 },
+      ]);
+      expect(getFinanceSales(ctx, { from: '2026-09-01', to: '2026-10-05' }).plans.map(({ planName, count }) => [planName, count])).toEqual([
+        ['Pack 8 libres', 2],
+        ['Pack 4+4', 1],
+      ]);
+    });
+
+    it('ranks products by units with revenue, cost and profit, and lists active products that did not sell', () => {
+      const sales = getFinanceSales(ctx, OCTOBER);
+      expect(sales.products).toEqual([
+        { productId: expect.any(Number), name: 'Agua', active: true, units: 1, revenueCents: 300_000, costCents: 200_000, profitCents: 100_000 },
+      ]);
+      expect(sales.unsold.map((product) => product.name)).toEqual(['Barrita']);
+      expect(sales.tickets).toBe(1);
+      expect(sales.averageTicketCents).toBe(300_000);
+    });
+
+    it('counts walk-in day passes and shoe rentals', () => {
+      expect(getFinanceSales(ctx, OCTOBER).walkIns).toEqual({ day_pass: { count: 1, cents: 800_000 }, shoe_rental: { count: 1, cents: 300_000 } });
+      expect(getFinanceSales(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject({
+        walkIns: { day_pass: { count: 0, cents: 0 }, shoe_rental: { count: 0, cents: 0 } },
+        tickets: 0,
+        averageTicketCents: 0,
+      });
     });
   });
 });

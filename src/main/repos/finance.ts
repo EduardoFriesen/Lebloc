@@ -1,6 +1,6 @@
 import type { MoneySource } from '../../domain/finance';
 import type { DateRange } from '../../domain/periods';
-import type { ExpenseCategory } from '../../shared/types';
+import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregations for the finance screen. Dates are inclusive ISO days; voided rows never count.
@@ -44,6 +44,56 @@ export function expensesByCategory(db: Db, range: DateRange): { category: Expens
     .prepare<[DateRange], { category: ExpenseCategory; cents: number }>(
       `SELECT category, SUM(amount_cents) AS cents FROM expenses
        WHERE voided_at IS NULL AND paid_at BETWEEN @from AND @to GROUP BY category ORDER BY cents DESC`,
+    )
+    .all(range);
+}
+
+export function planRanking(db: Db, range: DateRange): PlanRanking[] {
+  return db
+    .prepare<[DateRange], Omit<PlanRanking, 'withTeacher'> & { withTeacher: number }>(
+      `SELECT s.plan_id AS planId, p.name AS planName, p.teacher_passes > 0 AS withTeacher,
+         COUNT(*) AS count, SUM(s.local_price_cents) AS localCents
+       FROM sales s JOIN plans p ON p.id = s.plan_id
+       WHERE s.voided_at IS NULL AND s.sold_at BETWEEN @from AND @to
+       GROUP BY s.plan_id ORDER BY count DESC, localCents DESC, planName`,
+    )
+    .all(range)
+    .map((row) => ({ ...row, withTeacher: row.withTeacher === 1 }));
+}
+
+type ProductSalesRow = Omit<ProductRanking, 'profitCents'>;
+
+/** Every product with what it sold in the range (zero when nothing), most units first. */
+export function productSales(db: Db, range: DateRange): ProductSalesRow[] {
+  return db
+    .prepare<[DateRange], Omit<ProductSalesRow, 'active'> & { active: number }>(
+      `SELECT p.id AS productId, p.name, p.active, COALESCE(u.units, 0) AS units,
+         COALESCE(u.revenue, 0) AS revenueCents, COALESCE(u.cost, 0) AS costCents
+       FROM products p
+       LEFT JOIN (
+         SELECT i.product_id, SUM(i.quantity) AS units, SUM(i.quantity * i.unit_price_cents) AS revenue,
+           SUM(i.quantity * i.unit_cost_cents) AS cost
+         FROM kiosk_sale_items i JOIN kiosk_sales k ON k.id = i.sale_id
+         WHERE k.voided_at IS NULL AND k.sold_at BETWEEN @from AND @to GROUP BY i.product_id
+       ) u ON u.product_id = p.id
+       ORDER BY units DESC, revenueCents DESC, p.name COLLATE NOCASE`,
+    )
+    .all(range)
+    .map((row) => ({ ...row, active: row.active === 1 }));
+}
+
+export function ticketCount(db: Db, range: DateRange): number {
+  const row = db
+    .prepare<[DateRange], { count: number }>('SELECT COUNT(*) AS count FROM kiosk_sales WHERE voided_at IS NULL AND sold_at BETWEEN @from AND @to')
+    .get(range) as { count: number };
+  return row.count;
+}
+
+export function walkInCounts(db: Db, range: DateRange): { kind: CounterSaleKind; count: number; cents: number }[] {
+  return db
+    .prepare<[DateRange], { kind: CounterSaleKind; count: number; cents: number }>(
+      `SELECT kind, COUNT(*) AS count, SUM(price_cents) AS cents FROM counter_sales
+       WHERE voided_at IS NULL AND sold_at BETWEEN @from AND @to GROUP BY kind`,
     )
     .all(range);
 }

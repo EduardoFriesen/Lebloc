@@ -442,3 +442,34 @@ export interface FinanceSummary {
   expensesByCategory: { category: ExpenseCategory; cents: number }[];
   series: FinanceSeriesPoint[];
 }
+
+export interface PlanRanking {
+  planId: number;
+  planName: string;
+  withTeacher: boolean;
+  count: number;
+  /** Plan price without the teacher surcharge. */
+  localCents: number;
+}
+
+export interface ProductRanking {
+  productId: number;
+  name: string;
+  active: boolean;
+  units: number;
+  revenueCents: number;
+  costCents: number;
+  profitCents: number;
+}
+
+export interface FinanceSales {
+  /** Plans sold in the range (by sale date), most sold first. */
+  plans: PlanRanking[];
+  walkIns: Record<CounterSaleKind, { count: number; cents: number }>;
+  /** Products sold in the range, most units first. */
+  products: ProductRanking[];
+  /** Active products that sold nothing in the range. */
+  unsold: { productId: number; name: string }[];
+  tickets: number;
+  averageTicketCents: number;
+}

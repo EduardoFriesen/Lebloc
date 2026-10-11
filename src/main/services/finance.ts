@@ -1,6 +1,6 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
-import type { FinanceSummary } from '../../shared/types';
+import type { FinanceSales, FinanceSummary } from '../../shared/types';
 import type { Context } from '../context';
 import * as repo from '../repos/finance';
 
@@ -29,5 +29,21 @@ export function getFinanceSummary(ctx: Context, range: DateRange): FinanceSummar
     totals,
     expensesByCategory: repo.expensesByCategory(ctx.db, range),
     series: bucketize(range, granularity, daily, SERIES_FIELDS),
+  };
+}
+
+export function getFinanceSales(ctx: Context, range: DateRange): FinanceSales {
+  const products = repo.productSales(ctx.db, range).map((row) => ({ ...row, profitCents: row.revenueCents - row.costCents }));
+  const walkIns: FinanceSales['walkIns'] = { day_pass: { count: 0, cents: 0 }, shoe_rental: { count: 0, cents: 0 } };
+  for (const row of repo.walkInCounts(ctx.db, range)) walkIns[row.kind] = { count: row.count, cents: row.cents };
+  const tickets = repo.ticketCount(ctx.db, range);
+  const revenueCents = products.reduce((total, product) => total + product.revenueCents, 0);
+  return {
+    plans: repo.planRanking(ctx.db, range),
+    walkIns,
+    products: products.filter((product) => product.units > 0),
+    unsold: products.filter((product) => product.active && product.units === 0).map(({ productId, name }) => ({ productId, name })),
+    tickets,
+    averageTicketCents: tickets === 0 ? 0 : Math.round(revenueCents / tickets),
   };
 }
