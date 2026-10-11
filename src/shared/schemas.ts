@@ -148,6 +148,16 @@ export const counterSellInput = z.object({
   method: paymentMethodSchema,
 });
 export const monthInput = z.object({ month });
+
+const MAX_RANGE_DAYS = 1096;
+const DAY_MS = 86_400_000;
+export const financeRangeInput = z
+  .object({ from: isoDate, to: isoDate })
+  .refine((range) => range.from <= range.to, { message: 'El inicio tiene que ser anterior al fin', path: ['to'] })
+  .refine((range) => (Date.parse(range.to) - Date.parse(range.from)) / DAY_MS < MAX_RANGE_DAYS, {
+    message: 'El período no puede pasar de 3 años',
+    path: ['from'],
+  });
 export const expenseInput = z.object({
   category: expenseCategorySchema,
   description: optionalText(200),

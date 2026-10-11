@@ -1,8 +1,10 @@
+import type { Balance, MoneySource, SourceTotals } from '../domain/finance';
 import type { PassKind, PassStatus } from '../domain/passes';
+import type { DateRange, Granularity } from '../domain/periods';
 import type { SplitRule } from '../domain/sale';
 import type { WaiverState, WaiverStatus } from '../domain/waiver';
 
-export type { PassStatus, WaiverState, WaiverStatus };
+export type { Balance, DateRange, Granularity, MoneySource, PassStatus, SourceTotals, WaiverState, WaiverStatus };
 
 export type PaymentMethod = 'cash' | 'transfer';
 
@@ -417,4 +419,26 @@ export interface StaffStats {
   /** Non-voided shifts of the month, any employee. */
   monthMinutes: number;
   monthCostCents: number;
+}
+
+export interface FinanceSeriesPoint {
+  bucket: string;
+  plans: number;
+  kiosk: number;
+  day_pass: number;
+  shoe_rental: number;
+  /** Expenses, staff and kiosk stock sold, together. */
+  outflow: number;
+}
+
+export interface FinanceSummary {
+  range: DateRange;
+  previous: DateRange;
+  granularity: Granularity;
+  current: Balance;
+  before: Balance;
+  /** Current range, by source; `teacher` is collected for teachers and is not income. */
+  totals: SourceTotals;
+  expensesByCategory: { category: ExpenseCategory; cents: number }[];
+  series: FinanceSeriesPoint[];
 }

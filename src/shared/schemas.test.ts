@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clientInput, clientListInput, expenseInput, monthInput, paymentInput, planInput, scheduleInput, settingsInput, shiftInput } from './schemas';
+import { clientInput, clientListInput, expenseInput, financeRangeInput, monthInput, paymentInput, planInput, scheduleInput, settingsInput, shiftInput } from './schemas';
 
 const client = {
   firstName: '  Ana ',
@@ -62,6 +62,13 @@ describe('schemas', () => {
     expect(expenseInput.safeParse(base).success).toBe(true);
     expect(expenseInput.safeParse({ ...base, category: 'groceries' }).success).toBe(false);
     expect(expenseInput.safeParse({ ...base, amountCents: 0 }).success).toBe(false);
+  });
+
+  it('accepts finance ranges in order and up to three years', () => {
+    expect(financeRangeInput.safeParse({ from: '2026-10-01', to: '2026-10-11' }).success).toBe(true);
+    expect(financeRangeInput.safeParse({ from: '2026-10-11', to: '2026-10-01' }).success).toBe(false);
+    expect(financeRangeInput.safeParse({ from: '2023-01-01', to: '2026-10-11' }).success).toBe(false);
+    expect(financeRangeInput.safeParse({ from: 'ayer', to: '2026-10-11' }).success).toBe(false);
   });
 
   it('applies list defaults', () => {
