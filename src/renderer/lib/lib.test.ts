@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { removeAt, replaceAt, sum } from './arrays';
-import { debtLabel, formatDate, localMonth } from './format';
+import { debtLabel, formatDate, formatHours, localMonth } from './format';
 import { toFieldErrors } from './formErrors';
 
 describe('renderer helpers', () => {
@@ -21,6 +21,12 @@ describe('renderer helpers', () => {
     expect(removeAt(items, 0)).toEqual(['b', 'c']);
     expect(items).toEqual(['a', 'b', 'c']);
     expect(sum([100, 250, 50])).toBe(400);
+  });
+
+  it('formats minutes as hours with comma decimals', () => {
+    expect(formatHours(270)).toBe('4,5 h');
+    expect(formatHours(60)).toBe('1 h');
+    expect(formatHours(20)).toBe('0,33 h');
   });
 
   it('formats ISO dates as dd/mm/yyyy', () => {

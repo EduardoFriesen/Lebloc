@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { EmptyState } from './components/ui/States';
 import { ClientDetailPage } from './pages/ClientDetailPage';
 import { ClientsPage } from './pages/ClientsPage';
+import { ExpensesPage } from './pages/ExpensesPage';
 import { HomePage } from './pages/HomePage';
 import { KioskPage } from './pages/KioskPage';
 import { PlansPage } from './pages/PlansPage';
@@ -35,6 +36,7 @@ export function AppRoutes() {
         <Route path="kiosco" element={<KioskPage />} />
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
+        <Route path="gastos" element={<ExpensesPage />} />
         <Route path="ajustes" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

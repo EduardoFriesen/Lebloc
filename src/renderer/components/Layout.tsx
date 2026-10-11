@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { to: '/planes', label: 'Planes', end: false },
   { to: '/kiosco', label: 'Kiosco', end: false },
   { to: '/profesores', label: 'Profesores', end: false },
+  { to: '/empleados', label: 'Empleados', end: false },
+  { to: '/gastos', label: 'Gastos', end: false },
   { to: '/ajustes', label: 'Ajustes', end: false },
 ];
 

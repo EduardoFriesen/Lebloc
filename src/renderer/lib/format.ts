@@ -2,7 +2,7 @@ import { ageFrom } from '../../domain/client';
 import { toIsoDate } from '../../domain/dates';
 import type { PassKind } from '../../domain/passes';
 import type { SplitRule } from '../../domain/sale';
-import type { CounterSaleKind, PaymentMethod, WaiverStatus } from '../../shared/types';
+import type { CounterSaleKind, EmployeeKind, ExpenseCategory, PaymentMethod, WaiverStatus } from '../../shared/types';
 
 import { formatMoney } from '../../shared/money';
 
@@ -10,6 +10,22 @@ export { formatMoney, formatMoneyInput } from '../../shared/money';
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = { cash: 'Efectivo', transfer: 'Transferencia' };
 export const COUNTER_SALE_LABELS: Record<CounterSaleKind, string> = { day_pass: 'Pase del día', shoe_rental: 'Pédulas' };
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  rent: 'Alquiler',
+  electricity: 'Luz',
+  gas: 'Gas',
+  water: 'Agua',
+  internet: 'Internet',
+  taxes: 'Impuestos',
+  maintenance: 'Mantenimiento',
+  other: 'Otros',
+};
+export const EMPLOYEE_KIND_LABELS: Record<EmployeeKind, string> = { staff: 'Estable', casual: 'Ocasional' };
+
+/** Worked minutes as hours: 270 → "4,5 h". */
+export function formatHours(minutes: number): string {
+  return `${(minutes / 60).toLocaleString('es-AR', { maximumFractionDigits: 2 })} h`;
+}
 
 /** Local HH:MM of an ISO timestamp, e.g. the time a ticket was recorded. */
 export function formatTime(iso: string): string {
@@ -40,6 +56,11 @@ export function formatDateTime(iso: string): string {
 
 export function todayIso(): string {
   return toIsoDate(new Date());
+}
+
+/** Current local month as "YYYY-MM" (what <input type="month"> uses). */
+export function currentMonthIso(): string {
+  return todayIso().slice(0, 7);
 }
 
 export function fullName(person: { firstName: string; lastName: string }): string {
