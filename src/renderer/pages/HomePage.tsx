@@ -2,6 +2,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
+import { KioskSalePanel } from '../components/KioskSalePanel';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, FOCUS_WITHIN, PassBadge, STRETCHED } from '../components/ui/Card';
 import { TextField } from '../components/ui/Field';
@@ -90,6 +91,7 @@ export function HomePage() {
             </AsyncView>
           </ListSection>
         )}
+        <KioskSalePanel onSold={dashboard.reload} />
       </div>
       <aside aria-label="Alertas" className="flex flex-col gap-6">
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
@@ -198,6 +200,12 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
           <span>
             {summary.debtorCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.debtTotalCents)} · </span>}
             <span className={value}>{summary.debtorCount}</span>
+          </span>
+        </AlertRow>
+        <AlertRow to="/kiosco" name="Kiosco hoy">
+          <span>
+            {summary.kioskTodayCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.kioskTodayCents)} · </span>}
+            <span className={value}>{summary.kioskTodayCount}</span>
           </span>
         </AlertRow>
         <AlertRow to="/clientes?fichas=1" name="Fichas por actualizar">
