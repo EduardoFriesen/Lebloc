@@ -49,9 +49,8 @@ test('read the finance summary and walk through every tab', async () => {
 });
 
 test('falls back to this month on an invalid URL range and shows the empty state for a quiet period', async () => {
-  await page.evaluate(() => {
-    window.location.hash = '#/finanzas?desde=2026-10-11&hasta=2026-10-01';
-  });
+  // A string runs in the page as is; the e2e tsconfig has no DOM types.
+  await page.evaluate("window.location.hash = '#/finanzas?desde=2026-10-11&hasta=2026-10-01'");
   await expect(page.getByRole('button', { name: 'Este mes' })).toHaveAttribute('aria-pressed', 'true');
 
   await page.getByLabel('Desde', { exact: true }).fill('2020-01-01');
