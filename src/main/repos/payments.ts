@@ -62,13 +62,12 @@ export function voidPayment(db: Db, id: number, now: string): void {
   db.prepare('UPDATE payments SET voided_at = ? WHERE id = ?').run(now, id);
 }
 
+type PlanMovement = Extract<DayMovement, { kind: 'plan' }>;
+
 /** Non-voided payments made on `date`, newest first, with the sale's current debt. */
-export function listPaymentsOn(db: Db, date: string): Extract<DayMovement, { kind: 'plan' }>[] {
+export function listPaymentsOn(db: Db, date: string): PlanMovement[] {
   return db
-    .prepare<
-      [string],
-      Omit<Extract<DayMovement, { kind: 'plan' }>, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }
-    >(
+    .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }>(
       `SELECT p.id AS paymentId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
          s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
          s.voided_at AS saleVoidedAt,

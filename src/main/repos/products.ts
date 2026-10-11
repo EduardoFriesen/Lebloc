@@ -56,10 +56,9 @@ export function findProductIdByName(db: Db, name: string): number | undefined {
 
 /** Active products ordered by units sold in non-voided tickets since `since`, then by name. */
 export function topProducts(db: Db, since: string, limit: number): ProductRow[] {
-  const cols = COLUMNS.split(',').map((c) => `p.${c.trim()}`).join(', ');
   return db
     .prepare<[string, number], Parameters<typeof toRow>[0]>(
-      `SELECT ${cols} FROM products p
+      `SELECT ${COLUMNS} FROM products p
        LEFT JOIN (
          SELECT i.product_id, SUM(i.quantity) AS units FROM kiosk_sale_items i
          JOIN kiosk_sales k ON k.id = i.sale_id

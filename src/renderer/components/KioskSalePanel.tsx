@@ -43,6 +43,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
     try {
       const sale = await call('kiosk:sell', { items, method });
       setCart({});
+      setSearch('');
       setNotice({ tone: 'success', text: `Venta registrada: ${formatMoney(sale.totalCents)}` });
       top.reload();
       onSold();
@@ -86,12 +87,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
               ) : (
                 <div className="flex flex-col gap-2">
                   <h3 className="text-sm font-bold text-ink-soft">Más vendidos</h3>
-                  <AsyncView
-                    state={top}
-                    isEmpty={(data) => data.length === 0}
-                    empty={<p className="text-sm text-ink-soft">Todavía no hay ventas para destacar. Buscá un producto.</p>}
-                    skeleton={<SkeletonRows rows={1} />}
-                  >
+                  <AsyncView state={top} skeleton={<SkeletonRows rows={1} />}>
                     {(best) => <ProductButtons products={best} busy={busy} onAdd={(id) => updateCart(id, 1)} />}
                   </AsyncView>
                 </div>
