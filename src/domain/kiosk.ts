@@ -10,3 +10,8 @@ export function suggestedPriceCents(packCostCents: number, packSize: number, mar
 export function ticketTotalCents(items: readonly { quantity: number; unitPriceCents: number }[]): number {
   return items.reduce((total, item) => total + item.quantity * item.unitPriceCents, 0);
 }
+
+/** What the local keeps: price minus the unit cost snapshot, for every unit sold. */
+export function ticketProfitCents(items: readonly { quantity: number; unitPriceCents: number; unitCostCents: number }[]): number {
+  return items.reduce((total, item) => total + item.quantity * (item.unitPriceCents - item.unitCostCents), 0);
+}

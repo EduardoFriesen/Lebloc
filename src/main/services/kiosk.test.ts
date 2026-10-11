@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
 import { getDashboard } from './dashboard';
-import { listKioskSales, sellKiosk, voidKioskSale } from './kiosk';
+import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from './kiosk';
 import { createProduct, updateProduct } from './products';
 import type { ProductInput } from '../../shared/schemas';
 
@@ -85,5 +85,16 @@ describe('kiosk sales', () => {
     sell();
     ctx.clock.set(new Date(2026, 9, 5, 12));
     expect(getDashboard(ctx).summary).toMatchObject({ kioskTodayCount: 1, kioskTodayCents: 250_000 });
+  });
+
+  it('summarizes products and today\'s non-voided tickets with their profit', () => {
+    createProduct(ctx, { ...alfajor, name: 'Chicle', active: false });
+    sell();
+    voidKioskSale(ctx, sell().id);
+    ctx.clock.set(new Date(2026, 9, 4, 12));
+    sell();
+    ctx.clock.set(new Date(2026, 9, 5, 12));
+    // Profit: Alfajor 2 × ($750 − $500) + Agua 1 × ($1.000 − $500) = $1.000.
+    expect(getKioskStats(ctx)).toEqual({ activeProducts: 2, inactiveProducts: 1, todayCount: 1, todayCents: 250_000, todayProfitCents: 100_000 });
   });
 });

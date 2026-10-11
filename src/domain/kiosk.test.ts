@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { suggestedPriceCents, ticketTotalCents, unitCostCents } from './kiosk';
+import { suggestedPriceCents, ticketProfitCents, ticketTotalCents, unitCostCents } from './kiosk';
 
 describe('unitCostCents', () => {
   it('divides the pack cost by the units in the pack', () => {
@@ -39,5 +39,16 @@ describe('ticketTotalCents', () => {
 
   it('is zero for no items', () => {
     expect(ticketTotalCents([])).toBe(0);
+  });
+});
+
+describe('ticketProfitCents', () => {
+  it('adds price minus unit cost for every unit sold', () => {
+    expect(
+      ticketProfitCents([
+        { quantity: 2, unitPriceCents: 75_000, unitCostCents: 50_000 },
+        { quantity: 1, unitPriceCents: 100_000, unitCostCents: 110_000 },
+      ]),
+    ).toBe(40_000);
   });
 });

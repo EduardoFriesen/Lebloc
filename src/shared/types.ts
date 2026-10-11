@@ -305,6 +305,14 @@ export interface CounterSale {
   voidedAt: string | null;
 }
 
+export interface KioskStats {
+  activeProducts: number;
+  inactiveProducts: number;
+  todayCount: number;
+  todayCents: number;
+  todayProfitCents: number;
+}
+
 export interface CounterPrices {
   dayPassCents: number;
   shoeRentalCents: number;

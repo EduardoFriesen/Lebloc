@@ -13,7 +13,7 @@ import {
 } from '../services/clients';
 import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
-import { listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
+import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
 import { getDayMovements } from '../services/counter';
@@ -72,6 +72,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'kiosk:void': ({ id }) => voidKioskSale(ctx, id),
     'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
     'kiosk:top': () => listTopProducts(ctx),
+    'kiosk:stats': () => getKioskStats(ctx),
     'counter:today': () => getDayMovements(ctx),
     'counter:sell': (input) => sellCounter(ctx, input),
     'counter:void': ({ id }) => voidCounterSale(ctx, id),

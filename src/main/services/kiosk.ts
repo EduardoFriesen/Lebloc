@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
-import { ticketTotalCents, unitCostCents } from '../../domain/kiosk';
+import { ticketProfitCents, ticketTotalCents, unitCostCents } from '../../domain/kiosk';
 import type { KioskSellInput } from '../../shared/schemas';
-import type { KioskSale } from '../../shared/types';
+import type { KioskSale, KioskStats } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
 import * as repo from '../repos/kioskSales';
 import * as products from '../repos/products';
@@ -45,4 +45,17 @@ export function voidKioskSale(ctx: Context, id: number): KioskSale {
 
 export function listKioskSales(ctx: Context, date: string): KioskSale[] {
   return repo.listKioskSalesOn(ctx.db, date).map((row) => toSale(ctx, row));
+}
+
+export function getKioskStats(ctx: Context): KioskStats {
+  const all = products.listProducts(ctx.db, true);
+  const tickets = listKioskSales(ctx, today(ctx)).filter((sale) => !sale.voidedAt);
+  const active = all.filter((product) => product.active).length;
+  return {
+    activeProducts: active,
+    inactiveProducts: all.length - active,
+    todayCount: tickets.length,
+    todayCents: tickets.reduce((total, sale) => total + sale.totalCents, 0),
+    todayProfitCents: tickets.reduce((total, sale) => total + ticketProfitCents(sale.items), 0),
+  };
 }
