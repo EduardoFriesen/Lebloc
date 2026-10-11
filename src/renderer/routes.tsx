@@ -4,6 +4,7 @@ import { EmptyState } from './components/ui/States';
 import { ClientDetailPage } from './pages/ClientDetailPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { HomePage } from './pages/HomePage';
+import { KioskPage } from './pages/KioskPage';
 import { PlansPage } from './pages/PlansPage';
 import { PlanDetailPage } from './pages/PlanDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -31,6 +32,7 @@ export function AppRoutes() {
         <Route path="clientes/:id" element={<ClientDetailPage />} />
         <Route path="planes" element={<PlansPage />} />
         <Route path="planes/:id" element={<PlanDetailPage />} />
+        <Route path="kiosco" element={<KioskPage />} />
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
         <Route path="ajustes" element={<SettingsPage />} />

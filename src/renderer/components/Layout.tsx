@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Mostrador', end: true },
   { to: '/clientes', label: 'Clientes', end: false },
   { to: '/planes', label: 'Planes', end: false },
+  { to: '/kiosco', label: 'Kiosco', end: false },
   { to: '/profesores', label: 'Profesores', end: false },
   { to: '/ajustes', label: 'Ajustes', end: false },
 ];
