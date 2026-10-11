@@ -25,7 +25,7 @@ export function PlanDetailPage() {
               title={data.name}
               subtitle={`${passesSummary(data)} · ${formatMoney(data.priceCents)} precio del local${data.active ? '' : ' · Inactivo'}`}
               actions={
-                <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Button variant="edit" onClick={() => setEditing(true)}>
                   Editar
                 </Button>
               }

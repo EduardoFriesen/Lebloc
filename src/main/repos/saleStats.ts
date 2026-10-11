@@ -64,3 +64,27 @@ export function summaryCounts(db: Db): SummaryCounts {
     )
     .get() as SummaryCounts;
 }
+
+/** Teacher passes sold to active (not archived) clients and not yet consumed. */
+export function pendingTeacherClasses(db: Db): number {
+  const row = db
+    .prepare<[], { pending: number }>(
+      `WITH ${SALE_STATS_CTE}
+       SELECT COALESCE(SUM(ss.teacher_passes - ss.used_teacher), 0) AS pending
+       FROM sale_stats ss
+       JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
+       WHERE ss.teacher_id IS NOT NULL`,
+    )
+    .get() as { pending: number };
+  return row.pending;
+}
+
+/** Non-voided sales sold on or after `from` (ISO date), and their local price (no teacher surcharge). */
+export function monthSales(db: Db, from: string): { monthSales: number; monthLocalCents: number } {
+  return db
+    .prepare<[{ from: string }], { monthSales: number; monthLocalCents: number }>(
+      `SELECT COUNT(*) AS monthSales, COALESCE(SUM(local_price_cents), 0) AS monthLocalCents
+       FROM sales WHERE voided_at IS NULL AND sold_at >= @from`,
+    )
+    .get({ from }) as { monthSales: number; monthLocalCents: number };
+}

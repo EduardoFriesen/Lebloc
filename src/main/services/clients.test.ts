@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { ClientListInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { adultClient, createTestContext, freePlan, minorClient, TEST_NOW, type TestContext } from '../test-context';
 import {
@@ -140,6 +141,22 @@ describe('clients service', () => {
       ['Carla', 'expired'],
       ['Ana', 'missing'],
     ]);
+  });
+
+  it('lists only clients without passes, minors, this month enrollments or archived on request', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const ana = createClient(ctx, adultClient).id;
+    sellPlan(ctx, { clientId: ana, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null });
+    createClient(ctx, { ...minorClient, enrolledAt: '2026-09-15' });
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra', enrolledAt: '2026-08-01' });
+    archiveClient(ctx, createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id);
+
+    const base = { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false };
+    const names = (filter: Partial<ClientListInput>) => listClients(ctx, { ...base, ...filter }).map((client) => client.firstName);
+    expect(names({ onlyWithoutPasses: true })).toEqual(['Tomi', 'Bruno']);
+    expect(names({ onlyMinors: true })).toEqual(['Tomi']);
+    expect(names({ onlyNewThisMonth: true })).toEqual(['Ana']);
+    expect(names({ onlyArchived: true })).toEqual(['Carla']);
   });
 
   it('blocks edits on archived clients and allows unarchiving', () => {

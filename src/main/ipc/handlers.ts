@@ -18,6 +18,7 @@ import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } fr
 import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
+import { getClientStats, getPlanStats, getTeacherStats } from '../services/stats';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
 import { signWaiver, voidWaiver } from '../services/waivers';
 import type { Handlers } from './execute';
@@ -38,17 +39,20 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'clients:unarchive': ({ id }) => unarchiveClient(ctx, id),
     'clients:anonymize': ({ id }) => anonymizeClient(ctx, id),
     'clients:account': ({ id }) => getClientAccount(ctx, id),
+    'clients:stats': () => getClientStats(ctx),
     'teachers:list': ({ includeInactive }) => listTeachers(ctx, includeInactive),
     'teachers:balances': () => listTeacherBalances(ctx),
     'teachers:get': ({ id }) => getTeacher(ctx, id),
     'teachers:create': (input) => createTeacher(ctx, input),
     'teachers:update': (input) => updateTeacher(ctx, input),
     'teachers:account': ({ id }) => getTeacherAccount(ctx, id),
+    'teachers:stats': () => getTeacherStats(ctx),
     'plans:list': ({ includeInactive }) => listPlans(ctx, includeInactive),
     'plans:get': ({ id }) => getPlan(ctx, id),
     'plans:enrollments': ({ id }) => getPlanEnrollments(ctx, id),
     'plans:create': (input) => createPlan(ctx, input),
     'plans:update': (input) => updatePlan(ctx, input),
+    'plans:stats': () => getPlanStats(ctx),
     'sales:create': (input) => sellPlan(ctx, input),
     'sales:void': ({ id }) => voidSale(ctx, id),
     'payments:create': (input) => registerPayment(ctx, input),

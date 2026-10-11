@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'edit';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50';
@@ -10,6 +10,7 @@ const VARIANTS: Record<Variant, string> = {
   secondary: 'bg-dusk text-cream hover:bg-dusk-soft',
   danger: 'bg-danger text-canvas hover:brightness-110',
   ghost: 'bg-transparent text-ink hover:bg-sunken/70',
+  edit: 'bg-ochre text-night hover:brightness-110',
 };
 
 export function buttonClass(variant: Variant = 'primary'): string {

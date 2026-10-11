@@ -1,18 +1,16 @@
 import { type ChangeEvent, type FormEvent, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { isMinor } from '../../domain/client';
 import { clientInput } from '../../shared/schemas';
 import type { Client } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
+import { Dialog } from '../components/ui/Dialog';
 import { Notice } from '../components/ui/Notice';
-import { PageHeader } from '../components/ui/PageHeader';
-import { AsyncView } from '../components/ui/States';
 import { call } from '../lib/api';
 import { removeAt, replaceAt } from '../lib/arrays';
 import { ageLabel, todayIso } from '../lib/format';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
-import { useAsync } from '../lib/useAsync';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const EMPTY_GUARDIAN = { firstName: '', lastName: '', dni: '', phone: '', relation: '' };
@@ -26,20 +24,17 @@ const GUARDIAN_FIELDS: { key: keyof GuardianDraft; label: string }[] = [
   { key: 'relation', label: 'Vínculo del tutor' },
 ];
 
-export function ClientFormPage() {
-  const { id } = useParams();
-  const clientId = id ? Number(id) : null;
-  const client = useAsync(() => (clientId ? call('clients:get', { id: clientId }) : Promise.resolve(null)), [clientId]);
+/** "Nuevo cliente" from the list or the counter: on save, go straight to the new client's account. */
+export function NewClientDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate();
   return (
-    <section className="max-w-4xl p-8">
-      <PageHeader title={clientId ? 'Editar cliente' : 'Nuevo cliente'} />
-      <AsyncView state={client}>{(data) => <ClientForm client={data} />}</AsyncView>
-    </section>
+    <Dialog wide open={open} title="Nuevo cliente" onClose={onClose}>
+      <ClientForm client={null} onSaved={(saved) => navigate(`/clientes/${saved.id}`)} onCancel={onClose} />
+    </Dialog>
   );
 }
 
-function ClientForm({ client }: { client: Client | null }) {
-  const navigate = useNavigate();
+export function ClientForm({ client, onSaved, onCancel }: { client: Client | null; onSaved: (saved: Client) => void; onCancel: () => void }) {
   const [fields, setFields] = useState({
     firstName: client?.firstName ?? '',
     lastName: client?.lastName ?? '',
@@ -89,7 +84,7 @@ function ClientForm({ client }: { client: Client | null }) {
       const saved = client
         ? await call('clients:update', { ...parsed.data, id: client.id })
         : await call('clients:create', parsed.data);
-      navigate(`/clientes/${saved.id}`, { replace: true });
+      onSaved(saved);
     } catch (caught) {
       setServerError(errorMessage(caught));
       setBusy(false);
@@ -156,12 +151,12 @@ function ClientForm({ client }: { client: Client | null }) {
       </fieldset>
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
-      <div className="flex gap-2">
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
         <Button type="submit" disabled={busy}>
           Guardar cliente
-        </Button>
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          Cancelar
         </Button>
       </div>
     </form>

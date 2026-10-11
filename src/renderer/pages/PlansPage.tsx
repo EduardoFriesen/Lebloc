@@ -8,6 +8,7 @@ import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, MoneyField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, EmptyState } from '../components/ui/States';
 import { call } from '../lib/api';
 import { formatMoney, formatMoneyInput } from '../lib/format';
@@ -20,53 +21,81 @@ export function passesSummary(plan: Plan): string {
 }
 
 export function PlansPage() {
-  const plans = useAsync(() => call('plans:list', { includeInactive: true }), []);
+  // Picked from the summary: only active (true), only inactive (false) or all (null).
+  const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
+  const plans = useAsync(
+    async () => (await call('plans:list', { includeInactive: true })).filter((plan) => onlyActive === null || plan.active === onlyActive),
+    [onlyActive],
+    { keepPreviousData: true },
+  );
+  const stats = useAsync(() => call('plans:stats', {}), []);
   const [editing, setEditing] = useState<Plan | 'new' | null>(null);
 
   function saved() {
     setEditing(null);
     plans.reload();
+    stats.reload();
   }
 
   return (
-    <section className="p-8">
-      <PageHeader
-        title="Planes"
-        subtitle="Packs de pases sin vencimiento. El recargo del profesor se suma al vender, según el profesor elegido."
-        actions={<Button onClick={() => setEditing('new')}>Nuevo plan</Button>}
+    <section className={WITH_SUMMARY}>
+      <div className={SUMMARY_TOP}>
+        <PageHeader
+          title="Planes"
+          subtitle="Packs de pases sin vencimiento. El recargo del profesor se suma al vender, según el profesor elegido."
+          actions={<Button onClick={() => setEditing('new')}>Nuevo plan</Button>}
+        />
+        {onlyActive !== null && <ClearFilter label={onlyActive ? 'Activos' : 'Inactivos'} onClear={() => setOnlyActive(null)} />}
+      </div>
+      <div className={SUMMARY_LIST}>
+        <AsyncView
+          state={plans}
+          isEmpty={(data) => data.length === 0}
+          empty={
+            onlyActive === null ? (
+              <EmptyState title="Todavía no hay planes">
+                <p className="text-sm">Creá el primero con “Nuevo plan”.</p>
+              </EmptyState>
+            ) : (
+              <EmptyState title={onlyActive ? 'No hay planes activos' : 'No hay planes inactivos'} />
+            )
+          }
+        >
+          {(data) => (
+            <CardGrid label="Planes">
+              {data.map((plan) => (
+                <Card
+                  key={plan.id}
+                  to={`/planes/${plan.id}`}
+                  title={plan.name}
+                  subtitle={passesSummary(plan)}
+                  muted={!plan.active}
+                  badges={!plan.active && <Badge>Inactivo</Badge>}
+                  actions={
+                    <Button variant="edit" aria-label={`Editar ${plan.name}`} onClick={() => setEditing(plan)}>
+                      Editar
+                    </Button>
+                  }
+                >
+                  <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
+                  <p className="-mt-2 text-xs text-ink-soft">Precio del local</p>
+                </Card>
+              ))}
+            </CardGrid>
+          )}
+        </AsyncView>
+      </div>
+      <SummaryTable
+        state={stats}
+        rows={(data) => [
+          { label: 'Activos', value: <SummaryValue count={data.active} />, onSelect: () => setOnlyActive(true), selected: onlyActive === true },
+          { label: 'Inactivos', value: <SummaryValue count={data.inactive} />, onSelect: () => setOnlyActive(false), selected: onlyActive === false },
+          {
+            label: 'Vendidos este mes',
+            value: <SummaryValue count={data.monthSales} amount={data.monthSales > 0 ? formatMoney(data.monthLocalCents) : undefined} />,
+          },
+        ]}
       />
-      <AsyncView
-        state={plans}
-        isEmpty={(data) => data.length === 0}
-        empty={
-          <EmptyState title="Todavía no hay planes">
-            <p className="text-sm">Creá el primero con “Nuevo plan”.</p>
-          </EmptyState>
-        }
-      >
-        {(data) => (
-          <CardGrid label="Planes">
-            {data.map((plan) => (
-              <Card
-                key={plan.id}
-                to={`/planes/${plan.id}`}
-                title={plan.name}
-                subtitle={passesSummary(plan)}
-                muted={!plan.active}
-                badges={!plan.active && <Badge>Inactivo</Badge>}
-                actions={
-                  <Button variant="ghost" aria-label={`Editar ${plan.name}`} onClick={() => setEditing(plan)}>
-                    Editar
-                  </Button>
-                }
-              >
-                <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
-                <p className="-mt-2 text-xs text-ink-soft">Precio del local</p>
-              </Card>
-            ))}
-          </CardGrid>
-        )}
-      </AsyncView>
       <Dialog open={editing !== null} title={editing === 'new' ? 'Nuevo plan' : 'Editar plan'} onClose={() => setEditing(null)}>
         {editing !== null && <PlanForm plan={editing === 'new' ? null : editing} onSaved={saved} onCancel={() => setEditing(null)} />}
       </Dialog>

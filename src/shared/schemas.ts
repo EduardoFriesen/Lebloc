@@ -56,6 +56,12 @@ export const clientListInput = z.object({
   onlyDebtors: z.boolean().default(false),
   onlyWithPasses: z.boolean().default(false),
   onlyPendingWaiver: z.boolean().default(false),
+  // Filters picked from the summary beside the client list; optional so other callers can leave them out.
+  onlyWithoutPasses: z.boolean().optional(),
+  onlyMinors: z.boolean().optional(),
+  onlyNewThisMonth: z.boolean().optional(),
+  /** Only archived clients; wins over includeArchived. */
+  onlyArchived: z.boolean().optional(),
 });
 
 export const socialInput = z.object({

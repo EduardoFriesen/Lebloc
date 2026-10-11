@@ -57,7 +57,7 @@ export function Layout() {
           <path d="M0 120 L0 108 L50 90 L110 112 L170 92 L224 106 L224 120 Z" className="fill-sunken" />
         </svg>
       </nav>
-      <main id="contenido" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
+      <main id="contenido" tabIndex={-1} className="flex flex-1 flex-col overflow-y-auto focus:outline-none">
         {location.key !== 'default' && (
           <div className="px-8 pt-6">
             <button type="button" className={buttonClass('ghost')} onClick={() => void navigate(-1)}>

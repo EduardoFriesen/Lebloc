@@ -13,11 +13,13 @@ import { call } from '../lib/api';
 import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+import { NewClientDialog } from './ClientForm';
 
 export function HomePage() {
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
   const query = search.trim();
   const dashboard = useAsync(() => call('dashboard:get', {}), []);
   const usual = useAsync(() => call('counter:usual', {}), []);
@@ -68,9 +70,9 @@ export function HomePage() {
               isEmpty={(data) => data.length === 0}
               empty={
                 <EmptyState title="Sin resultados">
-                  <Link className="underline" to="/clientes/nuevo">
+                  <button type="button" className="underline" onClick={() => setCreating(true)}>
                     Crear cliente
-                  </Link>
+                  </button>
                 </EmptyState>
               }
             >
@@ -94,6 +96,7 @@ export function HomePage() {
           {(data) => <DashboardPanels dashboard={data} />}
         </AsyncView>
       </aside>
+      <NewClientDialog open={creating} onClose={() => setCreating(false)} />
     </section>
   );
 }
@@ -193,8 +196,8 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
         </AlertRow>
         <AlertRow to="/clientes?deuda=1" name="Deudores">
           <span>
+            {summary.debtorCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.debtTotalCents)} · </span>}
             <span className={value}>{summary.debtorCount}</span>
-            {summary.debtorCount > 0 && <span className="text-sm text-accent-ink"> · {formatMoney(summary.debtTotalCents)}</span>}
           </span>
         </AlertRow>
         <AlertRow to="/clientes?fichas=1" name="Fichas por actualizar">

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { parseMoneyInput } from '../../shared/money';
 import { payoutInput } from '../../shared/schemas';
 import type { PaymentMethod, TeacherAccount } from '../../shared/types';
-import { Button, ButtonLink } from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
 import { EnrollmentsSection } from '../components/ui/Enrollments';
@@ -16,6 +16,7 @@ import { call } from '../lib/api';
 import { currentMonthLabel, formatDate, formatMoney, formatMoneyInput, fullName, PAYMENT_METHOD_LABELS, todayIso, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+import { TeacherForm } from './TeacherForm';
 
 export function TeacherAccountPage() {
   const teacherId = Number(useParams().id);
@@ -44,6 +45,7 @@ function Stat({ label, value, hint, testId }: { label: string; value: string; hi
 function TeacherAccountView({ account, reload }: { account: TeacherAccount; reload: () => void }) {
   const { teacher } = account;
   const [paying, setPaying] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
@@ -54,9 +56,9 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         subtitle={`${formatMoney(teacher.classRateCents)} por clase${teacher.active ? '' : ' · Inactivo'}`}
         actions={
           <>
-            <ButtonLink variant="secondary" to={`/profesores/${teacher.id}/editar`}>
+            <Button variant="edit" onClick={() => setEditing(true)}>
               Editar
-            </ButtonLink>
+            </Button>
             <Button disabled={account.balanceCents <= 0} onClick={() => setPaying(true)}>
               Registrar liquidación
             </Button>
@@ -202,6 +204,17 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         </div>
       </section>
 
+      <Dialog wide open={editing} title="Editar profesor" onClose={() => setEditing(false)}>
+        <TeacherForm
+          teacher={teacher}
+          onSaved={() => {
+            setEditing(false);
+            setNotice({ tone: 'success', text: 'Profesor actualizado.' });
+            reload();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </Dialog>
       <Dialog open={paying} title="Registrar liquidación" onClose={() => setPaying(false)}>
         <PayoutForm
           account={account}

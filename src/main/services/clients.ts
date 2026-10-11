@@ -1,5 +1,5 @@
-import { assertGuardianRule } from '../../domain/client';
-import { attendanceWindows } from '../../domain/attendance';
+import { assertGuardianRule, minorBirthCutoff } from '../../domain/client';
+import { attendanceWindows, monthStart } from '../../domain/attendance';
 import { daysBetween } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import { passStatus } from '../../domain/passes';
@@ -35,7 +35,12 @@ function summaries(ctx: Context, filters: repo.ClientSummaryFilters): ClientSumm
 }
 
 export function listClients(ctx: Context, input: ClientListInput): ClientSummary[] {
-  const clients = summaries(ctx, input);
+  const { onlyMinors, onlyNewThisMonth, ...filters } = input;
+  const clients = summaries(ctx, {
+    ...filters,
+    bornAfter: onlyMinors ? minorBirthCutoff(today(ctx)) : undefined,
+    enrolledFrom: onlyNewThisMonth ? monthStart(ctx.clock.now()) : undefined,
+  });
   // ponytail: filters after the query's LIMIT 200; move the waiver rule to SQL if there are ever more clients than that.
   return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state !== 'valid') : clients;
 }

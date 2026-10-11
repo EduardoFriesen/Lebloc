@@ -211,6 +211,44 @@ export interface DashboardSummary {
   teacherBalanceCents: number;
 }
 
+/** Headline numbers beside the client list. "Active" means not archived. */
+export interface ClientStats {
+  active: number;
+  archived: number;
+  /** Active clients with at least one pass left. */
+  withPasses: number;
+  withoutPasses: number;
+  debtorCount: number;
+  debtTotalCents: number;
+  /** Active clients whose waiver is missing or expired. */
+  pendingWaivers: number;
+  /** Active clients under 18. */
+  minors: number;
+  /** Active clients enrolled this calendar month. */
+  newThisMonth: number;
+}
+
+/** Headline numbers beside the teacher list. */
+export interface TeacherStats {
+  active: number;
+  inactive: number;
+  /** What the local owes its teachers: positive balances only. */
+  owedCents: number;
+  owedTeachers: number;
+  /** Teacher passes sold to active clients and not yet given. */
+  pendingClasses: number;
+}
+
+/** Headline numbers beside the plan list. */
+export interface PlanStats {
+  active: number;
+  inactive: number;
+  /** Non-voided sales this calendar month. */
+  monthSales: number;
+  /** Local price of those sales; the teacher surcharge is not the local's income. */
+  monthLocalCents: number;
+}
+
 export interface Dashboard {
   summary: DashboardSummary;
   /** Low or no passes and came in the last 30 days. */

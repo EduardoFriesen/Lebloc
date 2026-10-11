@@ -31,15 +31,20 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await expect(page.getByRole('link', { name: 'Pack 2+2', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
-  await page.getByRole('link', { name: 'Nuevo profesor' }).click();
+  await page.getByRole('button', { name: 'Nuevo profesor' }).click();
   await label('Nombre').fill('Juan');
   await label('Apellido').fill('Pared');
   await label('Importe por clase').fill('5.000');
   await page.getByRole('button', { name: 'Guardar profesor' }).click();
   await expect(page.getByRole('heading', { name: 'Juan Pared' })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar' }).click();
+  await label('Dirección').fill('Av. Siempreviva 742');
+  await page.getByRole('button', { name: 'Guardar profesor' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByText('Av. Siempreviva 742')).toBeVisible();
 
   await page.getByRole('link', { name: 'Clientes' }).click();
-  await page.getByRole('link', { name: 'Nuevo cliente' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
   await label('Nombre').fill('Ana');
   await label('Apellido').fill('Roca');
   await label('Fecha de nacimiento').fill('1990-05-10');
@@ -88,7 +93,7 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await expect(page.getByRole('link', { name: 'Pase suelto', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Clientes' }).click();
-  await page.getByRole('link', { name: 'Nuevo cliente' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
   await label('Nombre').fill('Bruno');
   await label('Apellido').fill('Sierra');
   await label('Fecha de nacimiento').fill('1988-02-20');
@@ -149,8 +154,10 @@ test('cards open from anywhere, not only from the name', async () => {
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
-  await page.getByRole('link', { name: 'Editar Juan Pared' }).click();
-  await expect(page.getByLabel('Importe por clase', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar Juan Pared' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Importe por clase', { exact: true })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
 });
 
 test('debtors live in Clientes behind "Solo con deuda", linked from the counter summary', async () => {
@@ -167,11 +174,27 @@ test('debtors live in Clientes behind "Solo con deuda", linked from the counter 
   await page.getByLabel('Solo con deuda').click();
   await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
   await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+
+  // The summary beside the list counts the same debtors, and its row turns the filter back on.
+  const summary = page.getByRole('complementary', { name: 'Resumen' });
+  await expect(summary.getByRole('row', { name: /Deudores/ })).toContainText(/\$\s15\.000,00 · 1/);
+  await summary.getByRole('button', { name: 'Deudores' }).click();
+  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+
+  // Another summary row replaces that filter instead of adding to it.
+  await summary.getByRole('button', { name: 'Nuevos del mes' }).click();
+  await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
+  await expect(summary.getByRole('button', { name: 'Nuevos del mes' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+  await summary.getByRole('button', { name: 'Archivados' }).click();
+  await expect(page.getByText('No hay archivados')).toBeVisible();
+  await page.getByRole('button', { name: 'Quitar filtro: Archivados' }).click();
+  await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
 });
 
 test('the counter tints clients by passes left, lists who has to renew, and Clientes follows the same colors', async () => {
   await page.getByRole('link', { name: 'Clientes', exact: true }).click();
-  await page.getByRole('link', { name: 'Nuevo cliente' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
   await label('Nombre').fill('Clara');
   await label('Apellido').fill('Nube');
   await label('Fecha de nacimiento').fill('1995-01-01');

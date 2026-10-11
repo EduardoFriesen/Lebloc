@@ -6,10 +6,12 @@ interface DialogProps {
   onClose: () => void;
   /** When false, Escape does nothing (e.g. while an action is running). */
   dismissible?: boolean;
+  /** Room for multi-column forms (client, teacher). */
+  wide?: boolean;
   children: ReactNode;
 }
 
-export function Dialog({ open, title, onClose, dismissible = true, children }: DialogProps) {
+export function Dialog({ open, title, onClose, dismissible = true, wide = false, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -28,7 +30,7 @@ export function Dialog({ open, title, onClose, dismissible = true, children }: D
       onCancel={(event) => {
         if (!dismissible) event.preventDefault();
       }}
-      className="m-auto w-full max-w-xl rounded-3xl border-t-4 border-accent bg-canvas p-0 text-ink shadow-2xl backdrop:bg-dusk/60"
+      className={`m-auto w-full ${wide ? 'max-w-4xl' : 'max-w-xl'} rounded-3xl border-t-4 border-accent bg-canvas p-0 text-ink shadow-2xl backdrop:bg-dusk/60`}
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">

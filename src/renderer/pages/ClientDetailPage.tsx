@@ -2,7 +2,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { Client, ClientAccount, Consumption, Payment, Sale, WaiverSignature } from '../../shared/types';
-import { Button, ButtonLink } from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
 import { TextField } from '../components/ui/Field';
@@ -27,6 +27,7 @@ import {
 import { waiverInput } from '../../shared/schemas';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+import { ClientForm } from './ClientForm';
 import { PaymentForm } from './PaymentForm';
 import { SellPlanForm } from './SellPlanForm';
 
@@ -49,6 +50,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
   const [signing, setSigning] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -96,9 +98,9 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
     )
   ) : (
     <>
-      <ButtonLink variant="secondary" to={`/clientes/${client.id}/editar`}>
+      <Button variant="edit" onClick={() => setEditing(true)}>
         Editar
-      </ButtonLink>
+      </Button>
       <Button
         variant="ghost"
         onClick={() =>
@@ -199,6 +201,17 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
             onCancel={() => setSelling(null)}
           />
         )}
+      </Dialog>
+      <Dialog wide open={editing} title="Editar cliente" onClose={() => setEditing(false)}>
+        <ClientForm
+          client={client}
+          onSaved={() => {
+            setEditing(false);
+            setNotice({ tone: 'success', text: 'Cliente actualizado.' });
+            reload();
+          }}
+          onCancel={() => setEditing(false)}
+        />
       </Dialog>
       <Dialog open={signing} title="Registrar firma de la ficha" onClose={() => setSigning(false)}>
         {signing && (

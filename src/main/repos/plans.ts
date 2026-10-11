@@ -53,3 +53,11 @@ export function listPlans(db: Db, includeInactive: boolean): Plan[] {
     .all(includeInactive ? 1 : 0)
     .map(toPlan);
 }
+
+export function planCounts(db: Db): { active: number; inactive: number } {
+  return db
+    .prepare<[], { active: number; inactive: number }>(
+      'SELECT COUNT(CASE WHEN active = 1 THEN 1 END) AS active, COUNT(CASE WHEN active = 0 THEN 1 END) AS inactive FROM plans',
+    )
+    .get() as { active: number; inactive: number };
+}

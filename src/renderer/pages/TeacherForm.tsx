@@ -1,18 +1,14 @@
 import { type ChangeEvent, type FormEvent, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { parseMoneyInput } from '../../shared/money';
 import { teacherInput } from '../../shared/schemas';
 import type { Social, Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { CheckboxField, MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
-import { PageHeader } from '../components/ui/PageHeader';
-import { AsyncView } from '../components/ui/States';
 import { call } from '../lib/api';
 import { removeAt, replaceAt } from '../lib/arrays';
 import { formatMoneyInput, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
-import { useAsync } from '../lib/useAsync';
 
 interface ScheduleDraft {
   weekday: string;
@@ -20,20 +16,7 @@ interface ScheduleDraft {
   endTime: string;
 }
 
-export function TeacherFormPage() {
-  const { id } = useParams();
-  const teacherId = id ? Number(id) : null;
-  const teacher = useAsync(() => (teacherId ? call('teachers:get', { id: teacherId }) : Promise.resolve(null)), [teacherId]);
-  return (
-    <section className="max-w-4xl p-8">
-      <PageHeader title={teacherId ? 'Editar profesor' : 'Nuevo profesor'} />
-      <AsyncView state={teacher}>{(data) => <TeacherForm teacher={data} />}</AsyncView>
-    </section>
-  );
-}
-
-function TeacherForm({ teacher }: { teacher: Teacher | null }) {
-  const navigate = useNavigate();
+export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher | null; onSaved: (saved: Teacher) => void; onCancel: () => void }) {
   const [fields, setFields] = useState({
     firstName: teacher?.firstName ?? '',
     lastName: teacher?.lastName ?? '',
@@ -84,7 +67,7 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
       const saved = teacher
         ? await call('teachers:update', { ...parsed.data, id: teacher.id })
         : await call('teachers:create', parsed.data);
-      navigate(`/profesores/${saved.id}`, { replace: true });
+      onSaved(saved);
     } catch (caught) {
       setServerError(errorMessage(caught));
       setBusy(false);
@@ -185,12 +168,12 @@ function TeacherForm({ teacher }: { teacher: Teacher | null }) {
       </fieldset>
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
-      <div className="flex gap-2">
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
         <Button type="submit" disabled={busy}>
           Guardar profesor
-        </Button>
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          Cancelar
         </Button>
       </div>
     </form>

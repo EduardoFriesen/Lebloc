@@ -96,11 +96,37 @@ export function anonymizeClient(db: Db, id: number, now: string): void {
   db.prepare('DELETE FROM guardians WHERE client_id = ?').run(id);
 }
 
+export interface ClientCounts {
+  active: number;
+  archived: number;
+  minors: number;
+  newThisMonth: number;
+}
+
+/** Active vs archived clients; active ones born after `bornAfter` and enrolled on or after `from` (ISO dates). */
+export function clientCounts(db: Db, filters: { from: string; bornAfter: string }): ClientCounts {
+  return db
+    .prepare<[{ from: string; bornAfter: string }], ClientCounts>(
+      `SELECT COUNT(CASE WHEN archived_at IS NULL THEN 1 END) AS active,
+         COUNT(archived_at) AS archived,
+         COUNT(CASE WHEN archived_at IS NULL AND birth_date > @bornAfter THEN 1 END) AS minors,
+         COUNT(CASE WHEN archived_at IS NULL AND enrolled_at >= @from THEN 1 END) AS newThisMonth
+       FROM clients`,
+    )
+    .get(filters) as ClientCounts;
+}
+
 export interface ClientSummaryFilters {
   search: string;
   includeArchived: boolean;
   onlyDebtors: boolean;
   onlyWithPasses?: boolean;
+  onlyWithoutPasses?: boolean;
+  onlyArchived?: boolean;
+  /** ISO date: only clients born after it (see `minorBirthCutoff`). */
+  bornAfter?: string;
+  /** ISO date: only clients enrolled on or after it. */
+  enrolledFrom?: string;
   /** ISO timestamps: only clients with an active consumption in [attendedFrom, attendedTo). */
   attendedFrom?: string;
   attendedTo?: string;
@@ -128,7 +154,9 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          ${LAST_SIGNED_AT_SQL} AS waiverSignedAt
        FROM clients c
        LEFT JOIN sale_stats ss ON ss.client_id = c.id
-       WHERE (@includeArchived = 1 OR c.archived_at IS NULL)
+       WHERE (CASE WHEN @onlyArchived = 1 THEN c.archived_at IS NOT NULL ELSE @includeArchived = 1 OR c.archived_at IS NULL END)
+         AND (@bornAfter IS NULL OR c.birth_date > @bornAfter)
+         AND (@enrolledFrom IS NULL OR c.enrolled_at >= @enrolledFrom)
          AND (@search = ''
            OR (c.first_name || ' ' || c.last_name) LIKE '%' || @search || '%' ESCAPE '\\'
            OR (c.last_name || ' ' || c.first_name) LIKE '%' || @search || '%' ESCAPE '\\')
@@ -136,6 +164,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          AND (@notAttendedSince IS NULL OR NOT ${ATTENDED_SQL('@notAttendedSince', 'NULL')})
        GROUP BY c.id
        HAVING (@onlyDebtors = 0 OR debtCents > 0) AND (@onlyWithPasses = 0 OR remainingFree + remainingTeacher > 0)
+         AND (@onlyWithoutPasses = 0 OR remainingFree + remainingTeacher = 0)
        ORDER BY CASE WHEN @onlyDebtors = 1 THEN oldestDebtSoldAt END, c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE
        LIMIT 200`,
     )
@@ -144,6 +173,10 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
       includeArchived: filters.includeArchived ? 1 : 0,
       onlyDebtors: filters.onlyDebtors ? 1 : 0,
       onlyWithPasses: filters.onlyWithPasses ? 1 : 0,
+      onlyWithoutPasses: filters.onlyWithoutPasses ? 1 : 0,
+      onlyArchived: filters.onlyArchived ? 1 : 0,
+      bornAfter: filters.bornAfter ?? null,
+      enrolledFrom: filters.enrolledFrom ?? null,
       attendedFrom: filters.attendedFrom ?? null,
       attendedTo: filters.attendedTo ?? null,
       notAttendedSince: filters.notAttendedSince ?? null,

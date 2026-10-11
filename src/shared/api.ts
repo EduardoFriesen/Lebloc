@@ -13,17 +13,20 @@ export const apiSchemas = {
   'clients:unarchive': schemas.idInput,
   'clients:anonymize': schemas.idInput,
   'clients:account': schemas.idInput,
+  'clients:stats': schemas.emptyInput,
   'teachers:list': schemas.activeListInput,
   'teachers:balances': schemas.emptyInput,
   'teachers:get': schemas.idInput,
   'teachers:create': schemas.teacherInput,
   'teachers:update': schemas.teacherUpdate,
   'teachers:account': schemas.idInput,
+  'teachers:stats': schemas.emptyInput,
   'plans:list': schemas.activeListInput,
   'plans:get': schemas.idInput,
   'plans:enrollments': schemas.idInput,
   'plans:create': schemas.planInput,
   'plans:update': schemas.planUpdate,
+  'plans:stats': schemas.emptyInput,
   'sales:create': schemas.saleInput,
   'sales:void': schemas.idInput,
   'payments:create': schemas.paymentInput,
@@ -51,17 +54,20 @@ export interface ApiOutputs {
   'clients:unarchive': T.Client;
   'clients:anonymize': T.Client;
   'clients:account': T.ClientAccount;
+  'clients:stats': T.ClientStats;
   'teachers:list': T.Teacher[];
   'teachers:balances': T.TeacherBalance[];
   'teachers:get': T.Teacher;
   'teachers:create': T.Teacher;
   'teachers:update': T.Teacher;
   'teachers:account': T.TeacherAccount;
+  'teachers:stats': T.TeacherStats;
   'plans:list': T.Plan[];
   'plans:get': T.Plan;
   'plans:enrollments': T.Enrollment[];
   'plans:create': T.Plan;
   'plans:update': T.Plan;
+  'plans:stats': T.PlanStats;
   'sales:create': T.Sale;
   'sales:void': T.Sale;
   'payments:create': T.Payment;
