@@ -78,3 +78,11 @@ test('create a product, sell it at the counter and void the ticket', async () =>
   await expect(page.getByText(/Venta registrada: \$\s2\.400,00/)).toBeVisible();
   await expect(movements.getByRole('row', { name: /Kiosco.*1 × Magnesio/ })).toBeVisible();
 });
+
+test('the main menu collapses and expands', async () => {
+  const menu = page.getByRole('navigation', { name: 'Principal' });
+  await menu.getByRole('button', { name: 'Ocultar menú' }).click();
+  await expect(menu.getByRole('link', { name: 'Kiosco', exact: true })).toBeHidden();
+  await menu.getByRole('button', { name: 'Mostrar menú' }).click();
+  await expect(menu.getByRole('link', { name: 'Kiosco', exact: true })).toBeVisible();
+});
