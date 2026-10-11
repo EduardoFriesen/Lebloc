@@ -14,17 +14,17 @@ export interface SummaryRow {
 }
 
 /**
- * Page layout, from xl on: header and filters fixed on top, the list below them scrolling on its own, and the
+ * Page layout, from lg on (1024px): header and filters fixed on top, the list below them scrolling on its own, and the
  * summary beside the list, starting at its height. On narrow windows everything stacks and the page scrolls.
  */
 export const WITH_SUMMARY =
-  'grid gap-8 p-8 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_20rem] xl:grid-rows-[auto_minmax(0,1fr)] xl:gap-y-0';
-export const SUMMARY_TOP = 'min-w-0 xl:col-start-1 xl:row-start-1';
+  'grid gap-8 p-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-y-0';
+export const SUMMARY_TOP = 'min-w-0 lg:col-start-1 lg:row-start-1';
 // The padding (offset by the negative margin) keeps card shadows, hover lift and focus rings from being clipped.
-export const SUMMARY_LIST = 'min-w-0 xl:col-start-1 xl:row-start-2 xl:-m-2 xl:overflow-y-auto xl:p-2';
+export const SUMMARY_LIST = 'min-w-0 lg:col-start-1 lg:row-start-2 lg:-m-2 lg:overflow-y-auto lg:p-2';
 
 /** The summary column beside the list: starts at the list's height and scrolls on its own. */
-export const SUMMARY_SIDE = 'self-start xl:col-start-2 xl:row-start-2 xl:max-h-full xl:overflow-y-auto';
+export const SUMMARY_SIDE = 'self-start lg:col-start-2 lg:row-start-2 lg:max-h-full lg:overflow-y-auto';
 
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';
