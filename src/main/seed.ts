@@ -413,6 +413,10 @@ export function seedDatabase(db: Db, now: Date): void {
     ticket(0, 15, 'transfer', [[isotonica, 1], [barrita, 2]]);
     ticket(0, 18, 'cash', [[alfajor, 3], [cinta, 1]]);
 
+    // Carla paga hoy otra cuota (debía $24.000, queda en $20.000): fila de plan en "Movimientos de hoy".
+    at(0, Math.min(17, now.getHours()));
+    registerPayment(ctx, { saleId: carlaSale.id, amountCents: pesos(4_000), method: 'cash', paidAt: toIsoDate(now) });
+
     at(70, 12);
     archiveClient(ctx, hernan);
   })();

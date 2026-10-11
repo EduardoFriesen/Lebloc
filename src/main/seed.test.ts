@@ -3,6 +3,7 @@ import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { seedDatabase } from './seed';
 import { listClients, listUsualAttendees } from './services/clients';
+import { getDayMovements } from './services/counter';
 import { getDashboard } from './services/dashboard';
 import { listKioskSales } from './services/kiosk';
 import { listPlans } from './services/plans';
@@ -53,6 +54,14 @@ describe('seedDatabase', () => {
     expect(
       ['2026-10-03', '2026-10-07'].flatMap((date) => listKioskSales(ctx, date)).some((sale) => sale.voidedAt !== null),
     ).toBe(true);
+  });
+
+  it('shows a plan payment and a kiosk ticket in the counter movements of today', () => {
+    const { rows, plansCents, kioskCents, totalCents } = getDayMovements(ctx);
+    const plan = rows.find((row) => row.kind === 'plan' && row.clientName.startsWith('Carla'));
+    expect(plan).toMatchObject({ amountCents: 400_000, debtCents: 2_000_000 });
+    expect(rows.some((row) => row.kind === 'kiosk')).toBe(true);
+    expect(totalCents).toBe(plansCents + kioskCents);
   });
 
   it('never writes movements in the future', () => {

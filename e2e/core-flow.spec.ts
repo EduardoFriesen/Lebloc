@@ -162,6 +162,7 @@ test('cards open from anywhere, not only from the name', async () => {
 
 test('debtors live in Clientes behind "Solo con deuda", linked from the counter summary', async () => {
   await page.getByRole('link', { name: 'Mostrador' }).click();
+  await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Plan.*Ana Roca · Pack 2\+2.*debe \$\s15\.000,00.*\$\s15\.000,00/ })).toBeVisible();
   await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: 'Deudores' }).click();
   await expect(page.getByLabel('Solo con deuda')).toBeChecked();
   const cards = page.getByRole('list', { name: 'Clientes' });
