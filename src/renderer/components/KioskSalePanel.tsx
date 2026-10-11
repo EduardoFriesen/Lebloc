@@ -7,9 +7,9 @@ import { errorMessage } from '../lib/formErrors';
 import { formatMoney, PAYMENT_METHOD_LABELS } from '../lib/format';
 import { useAsync } from '../lib/useAsync';
 import { Button } from './ui/Button';
-import { SelectField } from './ui/Field';
+import { SelectField, TextField } from './ui/Field';
 import { Notice, type NoticeState } from './ui/Notice';
-import { AsyncView, EmptyState } from './ui/States';
+import { AsyncView, EmptyState, SkeletonRows } from './ui/States';
 
 /** productId -> quantity; a line at 0 is removed. */
 type Cart = Record<number, number>;
@@ -20,10 +20,14 @@ function changeQuantity(cart: Cart, productId: number, delta: number): Cart {
   return next > 0 ? { ...rest, [productId]: next } : rest;
 }
 
+const normalize = (text: string) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase();
+
 /** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. */
 export function KioskSalePanel({ onSold }: { onSold: () => void }) {
   const headingId = useId();
   const products = useAsync(() => call('products:list', { includeInactive: false }), []);
+  const top = useAsync(() => call('kiosk:top', {}), []);
+  const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Cart>({});
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [busy, setBusy] = useState(false);
@@ -40,6 +44,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
       const sale = await call('kiosk:sell', { items, method });
       setCart({});
       setNotice({ tone: 'success', text: `Venta registrada: ${formatMoney(sale.totalCents)}` });
+      top.reload();
       onSold();
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
@@ -67,17 +72,30 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
         {(list) => {
           const lines = list.filter((product) => cart[product.id]).map((product) => ({ product, quantity: cart[product.id] ?? 0 }));
           const total = ticketTotalCents(lines.map(({ product, quantity }) => ({ quantity, unitPriceCents: product.priceCents })));
+          const query = normalize(search.trim());
+          const found = list.filter((product) => normalize(product.name).includes(query));
           return (
             <div className="flex flex-col gap-4">
-              <ul className="flex flex-wrap gap-2" aria-label="Productos">
-                {list.map((product: Product) => (
-                  <li key={product.id}>
-                    <Button variant="secondary" disabled={busy} onClick={() => updateCart(product.id, 1)}>
-                      {product.name} · {formatMoney(product.priceCents)}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <TextField label="Buscar producto" type="search" value={search} onChange={(event) => setSearch(event.target.value)} />
+              {query ? (
+                found.length === 0 ? (
+                  <p className="text-sm text-ink-soft">Ningún producto coincide</p>
+                ) : (
+                  <ProductButtons products={found} busy={busy} onAdd={(id) => updateCart(id, 1)} />
+                )
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm font-bold text-ink-soft">Más vendidos</h3>
+                  <AsyncView
+                    state={top}
+                    isEmpty={(data) => data.length === 0}
+                    empty={<p className="text-sm text-ink-soft">Todavía no hay ventas para destacar. Buscá un producto.</p>}
+                    skeleton={<SkeletonRows rows={1} />}
+                  >
+                    {(best) => <ProductButtons products={best} busy={busy} onAdd={(id) => updateCart(id, 1)} />}
+                  </AsyncView>
+                </div>
+              )}
               {lines.length === 0 ? (
                 <p className="text-sm text-ink-soft">Tocá un producto para sumarlo al ticket.</p>
               ) : (
@@ -120,5 +138,19 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
       </AsyncView>
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     </section>
+  );
+}
+
+function ProductButtons({ products, busy, onAdd }: { products: Product[]; busy: boolean; onAdd: (productId: number) => void }) {
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label="Productos">
+      {products.map((product) => (
+        <li key={product.id}>
+          <Button variant="secondary" disabled={busy} onClick={() => onAdd(product.id)}>
+            {product.name} · {formatMoney(product.priceCents)}
+          </Button>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -2,6 +2,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
+import { DayMovementsTable } from '../components/DayMovementsTable';
 import { KioskSalePanel } from '../components/KioskSalePanel';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, FOCUS_WITHIN, PassBadge, STRETCHED } from '../components/ui/Card';
@@ -9,6 +10,7 @@ import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
+import { Stripe } from '../components/ui/Stripe';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
 import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel, WEEKDAY_LABELS } from '../lib/format';
@@ -23,6 +25,7 @@ export function HomePage() {
   const [creating, setCreating] = useState(false);
   const query = search.trim();
   const dashboard = useAsync(() => call('dashboard:get', {}), []);
+  const movements = useAsync(() => call('counter:today', {}), []);
   const usual = useAsync(() => call('counter:usual', {}), []);
   const results = useAsync(
     () => (query ? call('clients:list', { search: query, includeArchived: false }) : Promise.resolve([])),
@@ -91,7 +94,14 @@ export function HomePage() {
             </AsyncView>
           </ListSection>
         )}
-        <KioskSalePanel onSold={dashboard.reload} />
+        <Stripe className="my-2" />
+        <KioskSalePanel
+          onSold={() => {
+            dashboard.reload();
+            movements.reload();
+          }}
+        />
+        <DayMovementsTable state={movements} />
       </div>
       <aside aria-label="Alertas" className="flex flex-col gap-6">
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
