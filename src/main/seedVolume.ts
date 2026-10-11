@@ -1,7 +1,10 @@
-import type { PaymentMethod } from '../shared/types';
+import { daysBetween, toIsoDate } from '../domain/dates';
+import type { ExpenseCategory, PaymentMethod } from '../shared/types';
 import type { Context } from './context';
 import { createClient, listClients } from './services/clients';
 import { consume } from './services/consumptions';
+import { createEmployee, recordShift } from './services/employees';
+import { createExpense } from './services/expenses';
 import { sellCounter } from './services/counterSales';
 import { sellKiosk, voidKioskSale } from './services/kiosk';
 import { registerPayment } from './services/payments';
@@ -176,6 +179,41 @@ export function seedVolume(ctx: Context, at: SeedClock, now: Date, refs: { plans
     if (rng.next() < 0.3) {
       at(daysAgo, rng.int(10, 21), rng.int(0, 59));
       sellCounter(ctx, { kinds: ['shoe_rental'], method: method() });
+    }
+  }
+
+  // Empleados por hora: dos estables de lunes a sábado y uno ocasional algunos sábados; turnos hasta ayer.
+  at(75, 10);
+  const person = { dni: null, address: null, active: true };
+  const lucia = createEmployee(ctx, { ...person, firstName: 'Lucía', lastName: 'Paz', phone: '11 4567-8901', kind: 'staff', hourlyRateCents: pesos(5_000) }).id;
+  const bruno = createEmployee(ctx, { ...person, firstName: 'Bruno', lastName: 'Díaz', phone: '11 5678-1234', kind: 'staff', hourlyRateCents: pesos(5_000) }).id;
+  const nico = createEmployee(ctx, { ...person, firstName: 'Nico', lastName: 'Ferro', phone: null, kind: 'casual', hourlyRateCents: pesos(4_000) }).id;
+  const halfHours = (min: number, max: number) => rng.int(min * 2, max * 2) * 30;
+  for (let daysAgo = 60; daysAgo >= 1; daysAgo -= 1) {
+    const workedOn = at(daysAgo, 22);
+    const weekday = new Date(`${workedOn}T12:00:00`).getDay();
+    if (weekday === 0) continue; // Los domingos está cerrado.
+    recordShift(ctx, { employeeId: lucia, workedOn, minutes: halfHours(4, 6), note: null });
+    recordShift(ctx, { employeeId: bruno, workedOn, minutes: halfHours(3, 5), note: null });
+    if (weekday === 6 && rng.next() < 0.5) recordShift(ctx, { employeeId: nico, workedOn, minutes: halfHours(4, 6), note: 'Refuerzo del sábado' });
+  }
+
+  // Gastos fijos del mes pasado y de este, sin pasarse de hoy.
+  const today = toIsoDate(now);
+  for (const monthsAgo of [1, 0]) {
+    const pay = (day: number, category: ExpenseCategory, amount: number, paidWith: PaymentMethod, description: string | null) => {
+      const paidAt = toIsoDate(new Date(now.getFullYear(), now.getMonth() - monthsAgo, day));
+      if (paidAt > today) return;
+      at(daysBetween(paidAt, today), 8);
+      createExpense(ctx, { category, description, amountCents: pesos(amount), method: paidWith, paidAt });
+    };
+    pay(1, 'rent', 450_000, 'transfer', 'Alquiler del mes');
+    pay(5, 'internet', 18_000, 'transfer', null);
+    pay(8, 'electricity', rng.int(60, 90) * 1_000, 'transfer', 'Factura de luz');
+    pay(9, 'gas', rng.int(25, 50) * 1_000, 'cash', null);
+    if (monthsAgo === 1) {
+      pay(12, 'taxes', 22_000, 'transfer', 'Tasa municipal');
+      pay(15, 'maintenance', 35_000, 'cash', 'Cambio de presas');
     }
   }
 }

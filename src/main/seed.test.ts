@@ -5,6 +5,8 @@ import { seedDatabase } from './seed';
 import { listClients, listUsualAttendees } from './services/clients';
 import { getDayMovements } from './services/counter';
 import { getDashboard } from './services/dashboard';
+import { getStaffStats } from './services/employees';
+import { getExpenseMonth } from './services/expenses';
 import { listKioskSales } from './services/kiosk';
 import { listPlans } from './services/plans';
 import { listProducts } from './services/products';
@@ -33,6 +35,14 @@ describe('seedDatabase', () => {
     expect(summary.teacherBalanceCents).toBeGreaterThan(0);
     expect(renewals.length).toBeGreaterThan(0);
     expect(new Set(listWaiverAlerts(ctx).map((alert) => alert.state))).toEqual(new Set(['missing', 'expired']));
+  });
+
+  it('loads two months of expenses and employee shifts', () => {
+    for (const month of ['2026-09', '2026-10']) {
+      expect(getExpenseMonth(ctx, month).byCategory.map((row) => row.category)).toContain('rent');
+      expect(getStaffStats(ctx, month).monthCostCents).toBeGreaterThan(0);
+    }
+    expect(getStaffStats(ctx, '2026-10')).toMatchObject({ active: 3, staff: 2, casual: 1 });
   });
 
   it('preloads the counter with people who came last week at this time', () => {
