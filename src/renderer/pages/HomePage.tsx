@@ -119,9 +119,9 @@ export function HomePage() {
             </ListSection>
           )}
         </section>
+        <Stripe />
         <section aria-labelledby={kioskId} className="flex flex-col gap-6">
           <div className={`${STICKY} flex flex-col gap-3`}>
-            <Stripe />
             <h2 id={kioskId} className="font-display text-2xl font-semibold">
               Kiosco
             </h2>
