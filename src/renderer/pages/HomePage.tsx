@@ -14,7 +14,7 @@ import { SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../compon
 import { Stripe } from '../components/ui/Stripe';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel, WEEKDAY_LABELS } from '../lib/format';
+import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
@@ -33,7 +33,6 @@ export function HomePage() {
     [query],
     { keepPreviousData: true },
   );
-  const weekday = (WEEKDAY_LABELS[new Date().getDay()] ?? '').toLowerCase();
 
   async function consume(client: ClientSummary, kind: PassKind) {
     setBusy(true);
@@ -55,8 +54,11 @@ export function HomePage() {
 
   return (
     <section className={WITH_SUMMARY}>
-      <div className={`${SUMMARY_TOP} flex flex-col gap-4`}>
+      <div className={SUMMARY_TOP}>
         <PageHeader title="Mostrador" subtitle="Buscá al cliente y marcá el pase que usa." />
+        <NewClientDialog open={creating} onClose={() => setCreating(false)} />
+      </div>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
         <TextField
           label="Buscar cliente"
           type="search"
@@ -66,9 +68,6 @@ export function HomePage() {
           onChange={(event) => setSearch(event.target.value)}
         />
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-        <NewClientDialog open={creating} onClose={() => setCreating(false)} />
-      </div>
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
         {query ? (
           <ListSection title="Resultados">
             <AsyncView
@@ -86,13 +85,13 @@ export function HomePage() {
             </AsyncView>
           </ListSection>
         ) : (
-          <ListSection title={`Vinieron el ${weekday} pasado a esta hora`}>
+          <ListSection title="Recomendados">
             <AsyncView
               state={usual}
               isEmpty={(data) => data.length === 0}
               empty={<p className="text-sm text-ink-soft">Nadie más de la semana pasada a esta hora. Buscá al cliente por nombre.</p>}
             >
-              {(clients) => <PagedList items={clients} label="Vinieron la semana pasada" render={strip} />}
+              {(clients) => <PagedList items={clients} label="Recomendados" render={strip} />}
             </AsyncView>
           </ListSection>
         )}
