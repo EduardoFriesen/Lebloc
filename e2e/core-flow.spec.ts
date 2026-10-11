@@ -238,6 +238,19 @@ test("a plan and a teacher list this month's enrollments", async () => {
   await expect(enrolled.getByText(/Pack 2\+2 · vendido el/)).toBeVisible();
 });
 
+test('the plans page lists who bought which plan and when', async () => {
+  await page.getByRole('link', { name: 'Planes' }).click();
+  const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
+  await expect(sales.getByRole('row', { name: /Ana Roca\s+Pack 2\+2\s+Juan Pared/ })).toBeVisible();
+  await expect(sales.getByRole('link', { name: 'Bruno Sierra' }).first()).toBeVisible();
+
+  await label('Plan').selectOption({ label: 'Pack 2+2' });
+  await expect(sales.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+  await expect(sales.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await label('Mes').fill('2020-01');
+  await expect(sales.getByText('No hay ventas de este plan en este mes')).toBeVisible();
+});
+
 test('the counter summary opens the detail behind each number', async () => {
   await page.getByRole('link', { name: 'Mostrador' }).click();
   const summary = page.getByRole('region', { name: 'Resumen' });

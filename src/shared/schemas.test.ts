@@ -8,6 +8,7 @@ import {
   paymentInput,
   payslipInput,
   planInput,
+  planSalesInput,
   scheduleInput,
   settingsInput,
   shiftInput,
@@ -90,6 +91,12 @@ describe('schemas', () => {
     expect(reversed.success).toBe(false);
     expect(reversed.error?.issues[0]?.path).toEqual(['to']);
     expect(payslipInput.safeParse({ employeeId: 0, from: '2026-10-01', to: '2026-10-15' }).success).toBe(false);
+  });
+
+  it('filters plan sales by month and an optional plan', () => {
+    expect(planSalesInput.safeParse({ month: '2026-10' }).success).toBe(true);
+    expect(planSalesInput.safeParse({ month: '2026-10', planId: 3 }).success).toBe(true);
+    expect(planSalesInput.safeParse({ month: '2026-10', planId: -1 }).success).toBe(false);
   });
 
   it('applies list defaults', () => {

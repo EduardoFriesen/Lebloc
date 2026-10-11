@@ -1,17 +1,29 @@
 import { type FormEvent, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { parseMoneyInput } from '../../shared/money';
 import { planInput } from '../../shared/schemas';
-import type { CounterPrices, Plan } from '../../shared/types';
+import type { CounterPrices, Plan, PlanSale } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
-import { CheckboxField, MoneyField, TextField } from '../components/ui/Field';
+import { CheckboxField, MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
+import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
-import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, EmptyState } from '../components/ui/States';
+import { Stripe } from '../components/ui/Stripe';
+import {
+  ClearFilter,
+  STICKY_HEADING,
+  SUMMARY_LIST,
+  SUMMARY_TOP,
+  SummaryTable,
+  SummaryValue,
+  WITH_SUMMARY,
+} from '../components/ui/SummaryTable';
+import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import { formatMoney, formatMoneyInput } from '../lib/format';
+import { currentMonthIso, formatDate, formatMoney, formatMoneyInput } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 
@@ -23,11 +35,8 @@ export function passesSummary(plan: Plan): string {
 export function PlansPage() {
   // Picked from the summary: only active (true), only inactive (false) or all (null).
   const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
-  const plans = useAsync(
-    async () => (await call('plans:list', { includeInactive: true })).filter((plan) => onlyActive === null || plan.active === onlyActive),
-    [onlyActive],
-    { keepPreviousData: true },
-  );
+  const plans = useAsync(() => call('plans:list', { includeInactive: true }), []);
+  const shown = (data: Plan[]) => data.filter((plan) => onlyActive === null || plan.active === onlyActive);
   const stats = useAsync(() => call('plans:stats', {}), []);
   const [editing, setEditing] = useState<Plan | 'new' | null>(null);
 
@@ -51,7 +60,7 @@ export function PlansPage() {
         <CounterPricesSection />
         <AsyncView
           state={plans}
-          isEmpty={(data) => data.length === 0}
+          isEmpty={(data) => shown(data).length === 0}
           empty={
             onlyActive === null ? (
               <EmptyState title="Todavía no hay planes">
@@ -64,7 +73,7 @@ export function PlansPage() {
         >
           {(data) => (
             <CardGrid label="Planes">
-              {data.map((plan) => (
+              {shown(data).map((plan) => (
                 <Card
                   key={plan.id}
                   to={`/planes/${plan.id}`}
@@ -85,6 +94,8 @@ export function PlansPage() {
             </CardGrid>
           )}
         </AsyncView>
+        <Stripe />
+        <PlanSalesSection plans={plans.status === 'success' ? plans.data : []} />
       </div>
       <SummaryTable
         state={stats}
@@ -183,6 +194,82 @@ export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSav
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Who bought which plan and when, one month at a time. */
+function PlanSalesSection({ plans }: { plans: Plan[] }) {
+  const headingId = useId();
+  const [month, setMonth] = useState(currentMonthIso());
+  const [planId, setPlanId] = useState<number | null>(null);
+  const sales = useAsync(() => call('plans:sales', { month, planId: planId ?? undefined }), [month, planId], { keepPreviousData: true });
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <h2 id={headingId} className={`font-display text-2xl font-semibold ${STICKY_HEADING}`}>
+        Ventas
+      </h2>
+      <div className="flex flex-wrap items-end gap-4">
+        <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
+        <SelectField label="Plan" value={planId ?? ''} onChange={(event) => setPlanId(event.target.value ? Number(event.target.value) : null)}>
+          <option value="">Todos los planes</option>
+          {plans.map((plan) => (
+            <option key={plan.id} value={plan.id}>
+              {plan.active ? plan.name : `${plan.name} (inactivo)`}
+            </option>
+          ))}
+        </SelectField>
+      </div>
+      <AsyncView state={sales}>
+        {(data) => (
+          <PlanSalesTable
+            key={`${month}|${planId ?? ''}`}
+            sales={data}
+            empty={planId === null ? 'No hay ventas de planes en este mes' : 'No hay ventas de este plan en este mes'}
+          />
+        )}
+      </AsyncView>
+    </section>
+  );
+}
+
+function PlanSalesTable({ sales, empty }: { sales: PlanSale[]; empty: string }) {
+  const { visible, page, pages, setPage } = usePage(sales, TABLE_PAGE_SIZE);
+  return (
+    <div className="flex flex-col gap-3">
+      <table className={tableClass}>
+        <caption className="sr-only">Ventas de planes del mes</caption>
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Plan</th>
+            <th scope="col">Profesor</th>
+            <th scope="col">Total</th>
+            <th scope="col">Debe</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((sale) => (
+            <tr key={sale.saleId}>
+              <td className="tabular-nums">{formatDate(sale.soldAt)}</td>
+              <td className="font-semibold">
+                <Link to={`/clientes/${sale.clientId}`} className="underline decoration-ochre underline-offset-4 hover:text-accent-ink">
+                  {sale.clientName}
+                </Link>
+              </td>
+              <td>{sale.planName}</td>
+              <td>{sale.teacherName ?? '—'}</td>
+              <td className="tabular-nums">{formatMoney(sale.totalCents)}</td>
+              <td className={`tabular-nums ${sale.debtCents > 0 ? 'font-semibold text-danger' : 'text-ink-soft'}`}>
+                {sale.debtCents > 0 ? formatMoney(sale.debtCents) : 'Pagado'}
+              </td>
+            </tr>
+          ))}
+          <FillerRows filled={visible.length} columns={6} empty={empty} />
+        </tbody>
+      </table>
+      <PageBar keep label="Ventas" page={page} pages={pages} onChange={setPage} />
+    </div>
   );
 }
 

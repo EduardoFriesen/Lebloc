@@ -1,4 +1,4 @@
-import type { Enrollment } from '../../shared/types';
+import type { Enrollment, PlanSale } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregates per non-voided sale. Use as `WITH ${SALE_STATS_CTE} SELECT ... FROM sale_stats`.
@@ -36,6 +36,23 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
        ORDER BY ss.sold_at DESC, ss.id DESC`,
     )
     .all({ planId: filter.planId ?? null, teacherId: filter.teacherId ?? null, from: filter.from });
+}
+
+/** Non-voided sales between two dates (inclusive), of one plan or all, archived clients included, newest first. */
+export function listPlanSales(db: Db, filter: { from: string; to: string; planId: number | null }): PlanSale[] {
+  return db
+    .prepare<[{ from: string; to: string; planId: number | null }], PlanSale>(
+      `WITH ${SALE_STATS_CTE}
+       SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
+         ss.plan_name AS planName, t.first_name || ' ' || t.last_name AS teacherName, ss.total_cents AS totalCents,
+         ss.total_cents - ss.paid_cents AS debtCents
+       FROM sale_stats ss
+       JOIN clients c ON c.id = ss.client_id
+       LEFT JOIN teachers t ON t.id = ss.teacher_id
+       WHERE ss.sold_at BETWEEN @from AND @to AND (@planId IS NULL OR ss.plan_id = @planId)
+       ORDER BY ss.sold_at DESC, ss.id DESC`,
+    )
+    .all(filter);
 }
 
 export interface SummaryCounts {

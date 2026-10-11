@@ -24,6 +24,7 @@ export const apiSchemas = {
   'plans:list': schemas.activeListInput,
   'plans:get': schemas.idInput,
   'plans:enrollments': schemas.idInput,
+  'plans:sales': schemas.planSalesInput,
   'plans:create': schemas.planInput,
   'plans:update': schemas.planUpdate,
   'plans:stats': schemas.emptyInput,
@@ -94,6 +95,7 @@ export interface ApiOutputs {
   'plans:list': T.Plan[];
   'plans:get': T.Plan;
   'plans:enrollments': T.Enrollment[];
+  'plans:sales': T.PlanSale[];
   'plans:create': T.Plan;
   'plans:update': T.Plan;
   'plans:stats': T.PlanStats;

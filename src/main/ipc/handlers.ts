@@ -22,7 +22,7 @@ import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } fr
 import { getDayMovements } from '../services/counter';
 import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
-import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
+import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { getClientStats, getPlanStats, getTeacherStats } from '../services/stats';
@@ -57,6 +57,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'plans:list': ({ includeInactive }) => listPlans(ctx, includeInactive),
     'plans:get': ({ id }) => getPlan(ctx, id),
     'plans:enrollments': ({ id }) => getPlanEnrollments(ctx, id),
+    'plans:sales': (input) => listPlanSales(ctx, input),
     'plans:create': (input) => createPlan(ctx, input),
     'plans:update': (input) => updatePlan(ctx, input),
     'plans:stats': () => getPlanStats(ctx),

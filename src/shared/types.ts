@@ -202,6 +202,19 @@ export interface Enrollment {
   passStatus: PassStatus;
 }
 
+/** A non-voided plan sale: when, to whom, and what is still owed on it. */
+export interface PlanSale {
+  saleId: number;
+  soldAt: string;
+  clientId: number;
+  clientName: string;
+  /** As the plan was named when it was sold. */
+  planName: string;
+  teacherName: string | null;
+  totalCents: number;
+  debtCents: number;
+}
+
 export interface DashboardSummary {
   /** Active clients with at least one pass left. */
   activeClients: number;

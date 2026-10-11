@@ -19,6 +19,7 @@ export const CHANNELS = [
   'plans:list',
   'plans:get',
   'plans:enrollments',
+  'plans:sales',
   'plans:create',
   'plans:update',
   'plans:stats',
