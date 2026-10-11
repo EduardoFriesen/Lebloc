@@ -13,8 +13,10 @@ import {
 } from '../services/clients';
 import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
+import { listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
+import { createProduct, listProducts, updateProduct } from '../services/products';
 import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
@@ -26,10 +28,6 @@ import type { Handlers } from './execute';
 export interface BackupOps {
   exportBackup(): Promise<BackupOutcome>;
   restoreBackup(): Promise<BackupOutcome>;
-}
-
-function notImplemented(): never {
-  throw new Error('not implemented');
 }
 
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
@@ -65,13 +63,12 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'consumptions:void': ({ id }) => voidConsumption(ctx, id),
     'payouts:create': (input) => registerPayout(ctx, input),
     'payouts:void': ({ id }) => voidPayout(ctx, id),
-    // Kiosk handlers are wired by the backend task.
-    'products:list': () => notImplemented(),
-    'products:create': () => notImplemented(),
-    'products:update': () => notImplemented(),
-    'kiosk:sell': () => notImplemented(),
-    'kiosk:void': () => notImplemented(),
-    'kiosk:sales': () => notImplemented(),
+    'products:list': ({ includeInactive }) => listProducts(ctx, includeInactive),
+    'products:create': (input) => createProduct(ctx, input),
+    'products:update': (input) => updateProduct(ctx, input),
+    'kiosk:sell': (input) => sellKiosk(ctx, input),
+    'kiosk:void': ({ id }) => voidKioskSale(ctx, id),
+    'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),
