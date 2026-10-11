@@ -5,7 +5,7 @@ import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
 import { createEmployee, recordShift } from './employees';
 import { createExpense, voidExpense } from './expenses';
-import { getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from './finance';
+import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
@@ -201,6 +201,25 @@ describe('finance', () => {
       expect(getFinanceTeachers(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject([
         { name: 'Juan Pared', classes: 0, earnedCents: 0, paidOutCents: 0, balanceCents: 600_000 },
       ]);
+    });
+  });
+
+  describe('clients', () => {
+    it('splits purchases into first ones and renewals and counts new clients and visitors', () => {
+      const clients = getFinanceClients(ctx, OCTOBER);
+      expect(clients).toMatchObject({ newClients: 1, visitors: 1, firstPurchases: 0, renewals: 1 });
+      expect(clients.series.find((point) => point.bucket === '2026-10-03')).toEqual({ bucket: '2026-10-03', first: 0, renewal: 1 });
+      expect(getFinanceClients(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject({ firstPurchases: 2, renewals: 0 });
+    });
+
+    it('lists who came in the period before but not in this one', () => {
+      const clients = getFinanceClients(ctx, OCTOBER);
+      expect(clients.previous).toEqual({ from: '2026-09-01', to: '2026-09-05' });
+      expect(clients.lapsed).toEqual([{ clientId: expect.any(Number), name: 'Beto Roca', lastVisit: '2026-09-03' }]);
+    });
+
+    it('reports the debtors of today', () => {
+      expect(getFinanceClients(ctx, OCTOBER)).toMatchObject({ debtorCount: 1, debtTotalCents: 2_000_000 });
     });
   });
 });

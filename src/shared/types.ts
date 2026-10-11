@@ -500,3 +500,27 @@ export interface TeacherActivity {
   /** What the local owes the teacher today, whatever the range. */
   balanceCents: number;
 }
+
+export interface LapsedClient {
+  clientId: number;
+  name: string;
+  /** Last visit within the period before. */
+  lastVisit: string;
+}
+
+export interface FinanceClients {
+  granularity: Granularity;
+  previous: DateRange;
+  /** Enrolled in the range. */
+  newClients: number;
+  /** Different clients who used a pass in the range. */
+  visitors: number;
+  firstPurchases: number;
+  renewals: number;
+  series: { bucket: string; first: number; renewal: number }[];
+  /** Came in the period before and not in this one. */
+  lapsed: LapsedClient[];
+  /** Today, whatever the range. */
+  debtorCount: number;
+  debtTotalCents: number;
+}

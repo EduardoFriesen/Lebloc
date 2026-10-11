@@ -1,8 +1,9 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
-import type { FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
+import type { FinanceClients, FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
 import type { Context } from '../context';
 import * as repo from '../repos/finance';
+import { summaryCounts } from '../repos/saleStats';
 import { listTeacherBalances } from './payouts';
 
 const OUTFLOW = new Set<MoneySource>(['expenses', 'staff', 'kiosk_cost']);
@@ -76,4 +77,23 @@ export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActiv
     .teacherActivity(ctx.db, range)
     .map((row) => ({ ...row, active: row.active === 1, balanceCents: balances.get(row.teacherId) ?? 0 }))
     .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0);
+}
+
+export function getFinanceClients(ctx: Context, range: DateRange): FinanceClients {
+  const previous = previousRange(range);
+  const granularity = granularityFor(range);
+  const sales = repo.purchases(ctx.db, range).map((sale) => ({ date: sale.date, first: sale.renewal ? 0 : 1, renewal: sale.renewal ? 1 : 0 }));
+  const { debtorCount, debtTotalCents } = summaryCounts(ctx.db);
+  return {
+    granularity,
+    previous,
+    newClients: repo.newClientCount(ctx.db, range),
+    visitors: repo.visitorCount(ctx.db, range),
+    firstPurchases: sales.reduce((total, sale) => total + sale.first, 0),
+    renewals: sales.reduce((total, sale) => total + sale.renewal, 0),
+    series: bucketize(range, granularity, sales, ['first', 'renewal']),
+    lapsed: repo.lapsedClients(ctx.db, range, previous),
+    debtorCount,
+    debtTotalCents,
+  };
 }

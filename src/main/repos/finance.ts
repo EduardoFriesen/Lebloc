@@ -1,6 +1,6 @@
 import type { MoneySource } from '../../domain/finance';
 import type { DateRange } from '../../domain/periods';
-import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking, TeacherActivity, VisitKind } from '../../shared/types';
+import type { CounterSaleKind, ExpenseCategory, LapsedClient, PlanRanking, ProductRanking, TeacherActivity, VisitKind } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregations for the finance screen. Dates are inclusive ISO days; voided rows never count.
@@ -142,4 +142,51 @@ export function teacherActivity(db: Db, range: DateRange): TeacherActivityRow[] 
        FROM teachers t ORDER BY classes DESC, name`,
     )
     .all(range);
+}
+
+export function newClientCount(db: Db, range: DateRange): number {
+  const row = db
+    .prepare<[DateRange], { count: number }>('SELECT COUNT(*) AS count FROM clients WHERE enrolled_at BETWEEN @from AND @to')
+    .get(range) as { count: number };
+  return row.count;
+}
+
+export function visitorCount(db: Db, range: DateRange): number {
+  const row = db
+    .prepare<[DateRange], { count: number }>(
+      `SELECT COUNT(DISTINCT s.client_id) AS count FROM consumptions c JOIN sales s ON s.id = c.sale_id
+       WHERE c.voided_at IS NULL AND date(c.consumed_at, 'localtime') BETWEEN @from AND @to`,
+    )
+    .get(range) as { count: number };
+  return row.count;
+}
+
+/** Sales of the range; a renewal is a sale whose client already had an earlier non-voided one. */
+export function purchases(db: Db, range: DateRange): { date: string; renewal: number }[] {
+  return db
+    .prepare<[DateRange], { date: string; renewal: number }>(
+      `SELECT s.sold_at AS date, EXISTS (
+         SELECT 1 FROM sales e WHERE e.client_id = s.client_id AND e.voided_at IS NULL
+           AND (e.sold_at < s.sold_at OR (e.sold_at = s.sold_at AND e.id < s.id))
+       ) AS renewal
+       FROM sales s WHERE s.voided_at IS NULL AND s.sold_at BETWEEN @from AND @to`,
+    )
+    .all(range);
+}
+
+/** Active clients who came in `before` and not in `range`, with their last visit of `before`, latest first. */
+export function lapsedClients(db: Db, range: DateRange, before: DateRange): LapsedClient[] {
+  return db
+    .prepare<[{ from: string; to: string; beforeFrom: string; beforeTo: string }], LapsedClient>(
+      `WITH visits AS (
+         SELECT s.client_id, date(c.consumed_at, 'localtime') AS day FROM consumptions c JOIN sales s ON s.id = c.sale_id
+         WHERE c.voided_at IS NULL
+       )
+       SELECT cl.id AS clientId, cl.first_name || ' ' || cl.last_name AS name, MAX(v.day) AS lastVisit
+       FROM visits v JOIN clients cl ON cl.id = v.client_id
+       WHERE cl.archived_at IS NULL AND v.day BETWEEN @beforeFrom AND @beforeTo
+         AND NOT EXISTS (SELECT 1 FROM visits w WHERE w.client_id = cl.id AND w.day BETWEEN @from AND @to)
+       GROUP BY cl.id ORDER BY lastVisit DESC, name`,
+    )
+    .all({ from: range.from, to: range.to, beforeFrom: before.from, beforeTo: before.to });
 }
