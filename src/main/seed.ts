@@ -10,6 +10,8 @@ import type { Context } from './context';
 import { type Db, openDatabase } from './db/connection';
 import { archiveClient, createClient } from './services/clients';
 import { consume, voidConsumption } from './services/consumptions';
+import { sellKiosk, voidKioskSale } from './services/kiosk';
+import { createProduct, updateProduct } from './services/products';
 import { registerPayment, voidPayment } from './services/payments';
 import { getTeacherAccount, registerPayout, voidPayout } from './services/payouts';
 import { createPlan, updatePlan } from './services/plans';
@@ -382,6 +384,36 @@ export function seedDatabase(db: Db, now: Date): void {
       phone: null,
       guardians: [{ firstName: 'Diego', lastName: 'Suárez', dni: '31555666', phone: '11 4000-0128', relation: 'Padre' }],
     });
+
+    // Kiosco: productos (con precios redondeados distintos del sugerido) y tickets de los últimos días.
+    const product = (name: string, packSize: number, packCost: number, markupPercent: number, price: number) =>
+      createProduct(ctx, { name, packSize, packCostCents: pesos(packCost), markupPercent, priceCents: pesos(price), active: true }).id;
+    const agua = product('Agua 500 ml', 12, 12_000, 40, 1_400);
+    const isotonica = product('Bebida isotónica', 6, 9_000, 50, 2_300);
+    const barrita = product('Barrita de cereal', 24, 14_400, 60, 1_000);
+    const alfajor = product('Alfajor', 12, 9_600, 50, 1_200);
+    const magnesio = product('Magnesio en bolsa', 10, 15_000, 60, 2_400);
+    const cinta = product('Cinta de dedos', 5, 10_000, 50, 3_000);
+    at(100, 12);
+    const energizante = product('Energizante', 12, 24_000, 40, 2_800);
+    at(60, 12);
+    updateProduct(ctx, { id: energizante, name: 'Energizante', packSize: 12, packCostCents: pesos(24_000), markupPercent: 40, priceCents: pesos(2_800), active: false });
+
+    const ticket = (daysAgo: number, hour: number, method: PaymentMethod, items: [number, number][]) => {
+      at(daysAgo, daysAgo === 0 ? Math.min(hour, now.getHours()) : hour);
+      return sellKiosk(ctx, { method, items: items.map(([productId, quantity]) => ({ productId, quantity })) });
+    };
+    ticket(6, 19, 'cash', [[agua, 2], [barrita, 1]]);
+    ticket(5, 20, 'transfer', [[magnesio, 1]]);
+    ticket(4, 18, 'cash', [[isotonica, 1], [alfajor, 1]]);
+    ticket(3, 19, 'cash', [[agua, 1]]);
+    const mistakenTicket = ticket(2, 20, 'cash', [[cinta, 3]]);
+    at(2, 20);
+    voidKioskSale(ctx, mistakenTicket.id);
+    ticket(1, 18, 'transfer', [[magnesio, 2], [agua, 2]]);
+    ticket(0, 0, 'cash', [[agua, 2]]);
+    ticket(0, 0, 'transfer', [[isotonica, 1], [barrita, 2]]);
+    ticket(0, 0, 'cash', [[alfajor, 3], [cinta, 1]]);
 
     at(70, 12);
     archiveClient(ctx, hernan);
