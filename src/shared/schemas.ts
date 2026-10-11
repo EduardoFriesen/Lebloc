@@ -23,6 +23,8 @@ const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:M
 export const paymentMethodSchema = z.enum(['cash', 'transfer']);
 export const splitRuleSchema = z.enum(['proportional', 'teacher_first', 'local_first']);
 export const passKindSchema = z.enum(['free', 'teacher']);
+export const expenseCategorySchema = z.enum(['rent', 'electricity', 'gas', 'water', 'internet', 'taxes', 'maintenance', 'other']);
+const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido');
 
 export const idInput = z.object({ id });
 export const emptyInput = z.object({});
@@ -145,6 +147,14 @@ export const counterSellInput = z.object({
     .refine((kinds) => new Set(kinds).size === kinds.length, 'Sin repetir'),
   method: paymentMethodSchema,
 });
+export const monthInput = z.object({ month });
+export const expenseInput = z.object({
+  category: expenseCategorySchema,
+  description: optionalText(200),
+  amountCents: positiveCents,
+  method: paymentMethodSchema,
+  paidAt: isoDate,
+});
 
 export type GuardianInput = z.infer<typeof guardianInput>;
 export type ClientInput = z.infer<typeof clientInput>;
@@ -165,3 +175,5 @@ export type ProductInput = z.infer<typeof productInput>;
 export type ProductUpdate = z.infer<typeof productUpdate>;
 export type KioskSellInput = z.infer<typeof kioskSellInput>;
 export type CounterSellInput = z.infer<typeof counterSellInput>;
+export type MonthInput = z.infer<typeof monthInput>;
+export type ExpenseInput = z.infer<typeof expenseInput>;

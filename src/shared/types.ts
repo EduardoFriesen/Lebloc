@@ -350,3 +350,26 @@ export interface Settings {
 }
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };
+
+export type ExpenseCategory = 'rent' | 'electricity' | 'gas' | 'water' | 'internet' | 'taxes' | 'maintenance' | 'other';
+
+/** A fixed cost of the local (rent, utilities, ...). Kiosk stock is not an expense: its cost goes with each sale. */
+export interface Expense {
+  id: number;
+  category: ExpenseCategory;
+  description: string | null;
+  amountCents: number;
+  method: PaymentMethod;
+  paidAt: string;
+  recordedAt: string;
+  voidedAt: string | null;
+}
+
+export interface ExpenseMonth {
+  /** Voided ones included, newest first. */
+  expenses: Expense[];
+  /** Non-voided only. */
+  totalCents: number;
+  /** Non-voided only, largest first. */
+  byCategory: { category: ExpenseCategory; cents: number }[];
+}

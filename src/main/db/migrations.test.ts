@@ -71,6 +71,27 @@ describe('migrations', () => {
     expect(() => sale.run('locker', 100)).toThrow(/CHECK/);
   });
 
+  it('rejects invalid expenses and shifts at the database level', () => {
+    const db = openDatabase(':memory:');
+    const expense = db.prepare(
+      "INSERT INTO expenses (category, amount_cents, method, paid_at, recorded_at) VALUES (?, ?, 'cash', '2026-10-05', 'x')",
+    );
+    expense.run('rent', 100);
+    expect(() => expense.run('groceries', 100)).toThrow(/CHECK/);
+    expect(() => expense.run('rent', 0)).toThrow(/CHECK/);
+    db.prepare("INSERT INTO employees (first_name, last_name, kind, hourly_rate_cents) VALUES ('Ana', 'Roca', 'staff', 500)").run();
+    expect(() =>
+      db.prepare("INSERT INTO employees (first_name, last_name, kind, hourly_rate_cents) VALUES ('Ana', 'Roca', 'boss', 500)").run(),
+    ).toThrow(/CHECK/);
+    const shift = db.prepare(
+      "INSERT INTO work_shifts (employee_id, worked_on, minutes, hourly_rate_cents, cost_cents, recorded_at) VALUES (?, '2026-10-05', ?, 500, 0, 'x')",
+    );
+    shift.run(1, 60);
+    expect(() => shift.run(1, 0)).toThrow(/CHECK/);
+    expect(() => shift.run(1, 1441)).toThrow(/CHECK/);
+    expect(() => shift.run(99, 60)).toThrow(/FOREIGN KEY/);
+  });
+
   it('seeds the low passes threshold', () => {
     const db = openDatabase(':memory:');
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });
