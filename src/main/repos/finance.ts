@@ -1,6 +1,6 @@
 import type { MoneySource } from '../../domain/finance';
 import type { DateRange } from '../../domain/periods';
-import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking } from '../../shared/types';
+import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking, VisitKind } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregations for the finance screen. Dates are inclusive ISO days; voided rows never count.
@@ -94,6 +94,31 @@ export function walkInCounts(db: Db, range: DateRange): { kind: CounterSaleKind;
     .prepare<[DateRange], { kind: CounterSaleKind; count: number; cents: number }>(
       `SELECT kind, COUNT(*) AS count, SUM(price_cents) AS cents FROM counter_sales
        WHERE voided_at IS NULL AND sold_at BETWEEN @from AND @to GROUP BY kind`,
+    )
+    .all(range);
+}
+
+export interface VisitRow {
+  date: string;
+  weekday: number;
+  hour: number;
+  kind: VisitKind;
+  visits: number;
+}
+
+/** Pass consumptions and walk-in day passes of the range, counted per local day, weekday, hour and kind. */
+export function visits(db: Db, range: DateRange): VisitRow[] {
+  return db
+    .prepare<[DateRange], VisitRow>(
+      `SELECT date(at, 'localtime') AS date, CAST(strftime('%w', at, 'localtime') AS INTEGER) AS weekday,
+         CAST(strftime('%H', at, 'localtime') AS INTEGER) AS hour, kind, COUNT(*) AS visits
+       FROM (
+         SELECT consumed_at AS at, kind FROM consumptions WHERE voided_at IS NULL
+         UNION ALL
+         SELECT recorded_at, 'day_pass' FROM counter_sales WHERE voided_at IS NULL AND kind = 'day_pass'
+       )
+       WHERE date(at, 'localtime') BETWEEN @from AND @to
+       GROUP BY 1, 2, 3, 4`,
     )
     .all(range);
 }

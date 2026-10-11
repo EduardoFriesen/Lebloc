@@ -5,7 +5,7 @@ import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
 import { createEmployee, recordShift } from './employees';
 import { createExpense, voidExpense } from './expenses';
-import { getFinanceSales, getFinanceSummary } from './finance';
+import { getFinanceSales, getFinanceSummary, getFinanceTraffic } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
@@ -161,6 +161,23 @@ describe('finance', () => {
         tickets: 0,
         averageTicketCents: 0,
       });
+    });
+  });
+
+  describe('traffic', () => {
+    it('counts visits by weekday and local hour, by kind and over time', () => {
+      const traffic = getFinanceTraffic(ctx, OCTOBER);
+      expect(traffic.total).toBe(3);
+      expect(traffic.byKind).toEqual({ free: 1, teacher: 1, day_pass: 1 });
+      expect(traffic.heatmap[6]?.[23]).toBe(1); // Saturday 10-03, 23 h local time (already Sunday in UTC)
+      expect(traffic.heatmap[0]?.[10]).toBe(1); // Sunday 10-04, 10 h
+      expect(traffic.heatmap[1]?.[12]).toBe(1); // Monday 10-05, 12 h (the day pass)
+      expect(traffic.byWeekday).toEqual([1, 1, 0, 0, 0, 0, 1]);
+      expect(traffic.series.map((point) => point.visits)).toEqual([0, 0, 1, 1, 1]);
+    });
+
+    it('leaves the other months out', () => {
+      expect(getFinanceTraffic(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject({ total: 1, byKind: { free: 1, teacher: 0, day_pass: 0 } });
     });
   });
 });

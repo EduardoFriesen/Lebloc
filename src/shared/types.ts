@@ -473,3 +473,16 @@ export interface FinanceSales {
   tickets: number;
   averageTicketCents: number;
 }
+
+export type VisitKind = 'free' | 'teacher' | 'day_pass';
+
+export interface FinanceTraffic {
+  granularity: Granularity;
+  /** Pass consumptions and walk-in day passes. */
+  total: number;
+  byKind: Record<VisitKind, number>;
+  /** Visits by [weekday, 0 = Sunday][local hour 0-23]. */
+  heatmap: number[][];
+  byWeekday: number[];
+  series: { bucket: string; visits: number }[];
+}

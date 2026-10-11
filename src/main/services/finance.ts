@@ -1,6 +1,6 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
-import type { FinanceSales, FinanceSummary } from '../../shared/types';
+import type { FinanceSales, FinanceSummary, FinanceTraffic } from '../../shared/types';
 import type { Context } from '../context';
 import * as repo from '../repos/finance';
 
@@ -45,5 +45,25 @@ export function getFinanceSales(ctx: Context, range: DateRange): FinanceSales {
     unsold: products.filter((product) => product.active && product.units === 0).map(({ productId, name }) => ({ productId, name })),
     tickets,
     averageTicketCents: tickets === 0 ? 0 : Math.round(revenueCents / tickets),
+  };
+}
+
+export function getFinanceTraffic(ctx: Context, range: DateRange): FinanceTraffic {
+  const granularity = granularityFor(range);
+  const rows = repo.visits(ctx.db, range);
+  const heatmap = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+  const byKind: FinanceTraffic['byKind'] = { free: 0, teacher: 0, day_pass: 0 };
+  for (const row of rows) {
+    const day = heatmap[row.weekday];
+    if (day) day[row.hour] = (day[row.hour] ?? 0) + row.visits;
+    byKind[row.kind] += row.visits;
+  }
+  return {
+    granularity,
+    total: rows.reduce((total, row) => total + row.visits, 0),
+    byKind,
+    heatmap,
+    byWeekday: heatmap.map((hours) => hours.reduce((total, count) => total + count, 0)),
+    series: bucketize(range, granularity, rows, ['visits']).map(({ bucket, visits }) => ({ bucket, visits })),
   };
 }
