@@ -45,6 +45,7 @@ describe('counter day movements', () => {
         amountCents: 500_000,
         saleTotalCents: 2_000_000,
         debtCents: 1_500_000,
+        recordedAt: ctx.clock.now().toISOString(),
       },
       { kind: 'kiosk', sale: ticket },
     ]);
@@ -69,9 +70,20 @@ describe('counter day movements', () => {
     const day = getDayMovements(ctx);
     expect(day.rows).toEqual([
       { kind: 'kiosk', sale: ticket },
-      { kind: 'counter', sale: pass },
       { kind: 'counter', sale: shoes },
+      { kind: 'counter', sale: pass },
     ]);
     expect(day).toMatchObject({ kioskCents: 200_000, counterCents: 1_100_000, totalCents: 1_300_000 });
+  });
+
+  it('lists the movements of the day newest first, across kinds', () => {
+    updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
+    ctx.clock.set(new Date(2026, 9, 5, 9));
+    sell();
+    ctx.clock.set(new Date(2026, 9, 5, 11));
+    sellCounter(ctx, { kinds: ['day_pass'], method: 'cash' });
+    ctx.clock.set(new Date(2026, 9, 5, 10));
+    pay(100_000);
+    expect(getDayMovements(ctx).rows.map((row) => row.kind)).toEqual(['counter', 'plan', 'kiosk']);
   });
 });

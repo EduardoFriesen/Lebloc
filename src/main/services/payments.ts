@@ -33,6 +33,7 @@ export function registerPayment(ctx: Context, input: PaymentInput): Payment {
       amountCents: input.amountCents,
       method: input.method,
       ...allocation,
+      recordedAt: nowIso(ctx),
     });
     return getPayment(ctx, id);
   })();

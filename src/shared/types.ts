@@ -323,6 +323,8 @@ export type DayMovement =
       amountCents: number;
       saleTotalCents: number;
       debtCents: number;
+      /** When it was registered; null for payments recorded before times were kept. */
+      recordedAt: string | null;
     };
 
 /** Today's cash in: plan payments first (they carry no time), then kiosk tickets. Totals are derived. */

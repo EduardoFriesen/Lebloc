@@ -4,6 +4,11 @@ import { listPaymentsOn } from '../repos/payments';
 import { listCounterSales } from './counterSales';
 import { listKioskSales } from './kiosk';
 
+/** ISO timestamps sort as text; payments without a time go last. */
+function movementTime(movement: DayMovement): string {
+  return (movement.kind === 'plan' ? movement.recordedAt : movement.sale.recordedAt) ?? '';
+}
+
 export function getDayMovements(ctx: Context): DayMovements {
   const date = today(ctx);
   const plans = listPaymentsOn(ctx.db, date);
@@ -16,6 +21,6 @@ export function getDayMovements(ctx: Context): DayMovements {
     ...plans,
     ...tickets.map((sale) => ({ kind: 'kiosk' as const, sale })),
     ...walkIns.map((sale) => ({ kind: 'counter' as const, sale })),
-  ];
+  ].sort((a, b) => movementTime(b).localeCompare(movementTime(a)));
   return { rows, kioskCents, plansCents, counterCents, totalCents: plansCents + kioskCents + counterCents };
 }

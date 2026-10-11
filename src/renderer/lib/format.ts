@@ -13,7 +13,7 @@ export const COUNTER_SALE_LABELS: Record<CounterSaleKind, string> = { day_pass: 
 
 /** Local HH:MM of an ISO timestamp, e.g. the time a ticket was recorded. */
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 export const SPLIT_RULE_LABELS: Record<SplitRule, string> = {
   proportional: 'Proporcional',

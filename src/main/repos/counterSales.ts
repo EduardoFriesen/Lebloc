@@ -21,7 +21,7 @@ export function findCounterSale(db: Db, id: number): CounterSale | undefined {
 }
 
 export function listCounterSalesOn(db: Db, date: string): CounterSale[] {
-  return db.prepare<[string], CounterSale>(`SELECT ${COLUMNS} FROM counter_sales WHERE sold_at = ? ORDER BY id`).all(date);
+  return db.prepare<[string], CounterSale>(`SELECT ${COLUMNS} FROM counter_sales WHERE sold_at = ? ORDER BY id DESC`).all(date);
 }
 
 export function voidCounterSale(db: Db, id: number, now: string): void {

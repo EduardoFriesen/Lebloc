@@ -9,6 +9,7 @@ export interface NewPayment {
   method: PaymentMethod;
   localCents: number;
   teacherCents: number;
+  recordedAt: string;
 }
 
 const PAYMENT_COLUMNS = `p.id, p.sale_id AS saleId, p.paid_at AS paidAt, p.amount_cents AS amountCents, p.method,
@@ -17,8 +18,8 @@ const PAYMENT_COLUMNS = `p.id, p.sale_id AS saleId, p.paid_at AS paidAt, p.amoun
 export function insertPayment(db: Db, payment: NewPayment): number {
   const result = db
     .prepare(
-      `INSERT INTO payments (sale_id, paid_at, amount_cents, method, local_cents, teacher_cents)
-       VALUES (@saleId, @paidAt, @amountCents, @method, @localCents, @teacherCents)`,
+      `INSERT INTO payments (sale_id, paid_at, amount_cents, method, local_cents, teacher_cents, recorded_at)
+       VALUES (@saleId, @paidAt, @amountCents, @method, @localCents, @teacherCents, @recordedAt)`,
     )
     .run({
       saleId: payment.saleId,
@@ -27,6 +28,7 @@ export function insertPayment(db: Db, payment: NewPayment): number {
       method: payment.method,
       localCents: payment.localCents,
       teacherCents: payment.teacherCents,
+      recordedAt: payment.recordedAt,
     });
   return Number(result.lastInsertRowid);
 }
@@ -70,7 +72,7 @@ export function listPaymentsOn(db: Db, date: string): PlanMovement[] {
     .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }>(
       `SELECT p.id AS paymentId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
          s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
-         s.voided_at AS saleVoidedAt,
+         s.voided_at AS saleVoidedAt, p.recorded_at AS recordedAt,
          COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents
        FROM payments p JOIN sales s ON s.id = p.sale_id JOIN clients c ON c.id = s.client_id
        WHERE p.paid_at = ? AND p.voided_at IS NULL ORDER BY p.id DESC`,
