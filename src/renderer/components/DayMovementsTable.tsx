@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { DayMovement, DayMovements } from '../../shared/types';
 import { formatMoney, PAYMENT_METHOD_LABELS } from '../lib/format';
 import type { AsyncResult } from '../lib/useAsync';
+import { PageBar, usePage } from './ui/Pager';
 import { AsyncView, EmptyState } from './ui/States';
 import { tableClass } from './ui/table';
 
@@ -40,6 +41,34 @@ function MovementRow({ movement }: { movement: DayMovement }) {
   );
 }
 
+function MovementsBody({ data }: { data: DayMovements }) {
+  const { visible, page, pages, setPage } = usePage(data.rows, 10);
+  return (
+    <>
+      <p className="text-sm">
+        Kiosco {formatMoney(data.kioskCents)} · Planes {formatMoney(data.plansCents)} · Total <strong>{formatMoney(data.totalCents)}</strong>
+      </p>
+      <table className={tableClass}>
+        <caption className="sr-only">Movimientos de hoy</caption>
+        <thead>
+          <tr>
+            <th scope="col">Tipo</th>
+            <th scope="col">Detalle</th>
+            <th scope="col">Medio</th>
+            <th scope="col">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((movement) => (
+            <MovementRow key={rowKey(movement)} movement={movement} />
+          ))}
+        </tbody>
+      </table>
+      <PageBar label="Movimientos" page={page} pages={pages} onChange={setPage} />
+    </>
+  );
+}
+
 /** Read-only list of today's cash in (kiosk tickets and plan payments); voiding stays in each screen. */
 export function DayMovementsTable({ state }: { state: AsyncResult<DayMovements> }) {
   const headingId = useId();
@@ -49,29 +78,7 @@ export function DayMovementsTable({ state }: { state: AsyncResult<DayMovements> 
         Movimientos de hoy
       </h2>
       <AsyncView state={state} isEmpty={(data) => data.rows.length === 0} empty={<EmptyState title="Todavía no hay movimientos hoy" />}>
-        {(data) => (
-          <>
-            <p className="text-sm">
-              Kiosco {formatMoney(data.kioskCents)} · Planes {formatMoney(data.plansCents)} · Total <strong>{formatMoney(data.totalCents)}</strong>
-            </p>
-            <table className={tableClass}>
-              <caption className="sr-only">Movimientos de hoy</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Tipo</th>
-                  <th scope="col">Detalle</th>
-                  <th scope="col">Medio</th>
-                  <th scope="col">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((movement) => (
-                  <MovementRow key={rowKey(movement)} movement={movement} />
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
+        {(data) => <MovementsBody data={data} />}
       </AsyncView>
     </section>
   );

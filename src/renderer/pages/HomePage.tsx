@@ -10,6 +10,7 @@ import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
+import { SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { Stripe } from '../components/ui/Stripe';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
@@ -53,20 +54,21 @@ export function HomePage() {
   const strip = (client: ClientSummary) => <ClientStrip key={client.id} client={client} busy={busy} onConsume={consume} />;
 
   return (
-    <section className="grid gap-8 p-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <PageHeader title="Mostrador" subtitle="Buscá al cliente y marcá el pase que usa." />
-          <TextField
-            label="Buscar cliente"
-            type="search"
-            autoFocus
-            placeholder="Nombre o apellido"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-        </div>
+    <section className={WITH_SUMMARY}>
+      <div className={`${SUMMARY_TOP} flex flex-col gap-4`}>
+        <PageHeader title="Mostrador" subtitle="Buscá al cliente y marcá el pase que usa." />
+        <TextField
+          label="Buscar cliente"
+          type="search"
+          autoFocus
+          placeholder="Nombre o apellido"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+        <NewClientDialog open={creating} onClose={() => setCreating(false)} />
+      </div>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
         {query ? (
           <ListSection title="Resultados">
             <AsyncView
@@ -103,12 +105,11 @@ export function HomePage() {
         />
         <DayMovementsTable state={movements} />
       </div>
-      <aside aria-label="Alertas" className="flex flex-col gap-6">
+      <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
           {(data) => <DashboardPanels dashboard={data} />}
         </AsyncView>
       </aside>
-      <NewClientDialog open={creating} onClose={() => setCreating(false)} />
     </section>
   );
 }
