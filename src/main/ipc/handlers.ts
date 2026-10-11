@@ -15,6 +15,7 @@ import { consume, voidConsumption } from '../services/consumptions';
 import { getDashboard } from '../services/dashboard';
 import { createEmployee, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from '../services/employees';
 import { createExpense, getExpenseMonth, voidExpense } from '../services/expenses';
+import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
@@ -88,6 +89,11 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'shifts:create': (input) => recordShift(ctx, input),
     'shifts:void': ({ id }) => voidShift(ctx, id),
     'staff:stats': ({ month }) => getStaffStats(ctx, month),
+    'finance:summary': (range) => getFinanceSummary(ctx, range),
+    'finance:sales': (range) => getFinanceSales(ctx, range),
+    'finance:traffic': (range) => getFinanceTraffic(ctx, range),
+    'finance:teachers': (range) => getFinanceTeachers(ctx, range),
+    'finance:clients': (range) => getFinanceClients(ctx, range),
     'prices:get': () => getCounterPrices(ctx),
     'prices:update': (input) => updateCounterPrices(ctx, input),
     'dashboard:get': () => getDashboard(ctx),

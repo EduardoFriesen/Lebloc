@@ -56,6 +56,11 @@ export const apiSchemas = {
   'shifts:create': schemas.shiftInput,
   'shifts:void': schemas.idInput,
   'staff:stats': schemas.monthInput,
+  'finance:summary': schemas.financeRangeInput,
+  'finance:sales': schemas.financeRangeInput,
+  'finance:traffic': schemas.financeRangeInput,
+  'finance:teachers': schemas.financeRangeInput,
+  'finance:clients': schemas.financeRangeInput,
   'prices:get': schemas.emptyInput,
   'prices:update': schemas.counterPricesInput,
   'dashboard:get': schemas.emptyInput,
@@ -120,6 +125,11 @@ export interface ApiOutputs {
   'shifts:create': T.WorkShift;
   'shifts:void': T.WorkShift;
   'staff:stats': T.StaffStats;
+  'finance:summary': T.FinanceSummary;
+  'finance:sales': T.FinanceSales;
+  'finance:traffic': T.FinanceTraffic;
+  'finance:teachers': T.TeacherActivity[];
+  'finance:clients': T.FinanceClients;
   'prices:get': T.CounterPrices;
   'prices:update': T.CounterPrices;
   'dashboard:get': T.Dashboard;
