@@ -21,10 +21,11 @@ export const WITH_SUMMARY =
   'grid gap-8 p-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-y-0';
 export const SUMMARY_TOP = 'min-w-0 lg:col-start-1 lg:row-start-1';
 // The padding (offset by the negative margin) keeps card shadows, hover lift and focus rings from being clipped.
-export const SUMMARY_LIST = 'min-w-0 lg:col-start-1 lg:row-start-2 lg:-m-2 lg:overflow-y-auto lg:p-2';
+// `relative` keeps absolutely positioned descendants (e.g. sr-only captions) inside the scroller instead of growing the page.
+export const SUMMARY_LIST = 'relative min-w-0 lg:col-start-1 lg:row-start-2 lg:-m-2 lg:overflow-y-auto lg:p-2';
 
 /** The summary column beside the list: starts at the list's height and scrolls on its own. */
-export const SUMMARY_SIDE = 'self-start lg:col-start-2 lg:row-start-2 lg:max-h-full lg:overflow-y-auto';
+export const SUMMARY_SIDE = 'relative self-start lg:col-start-2 lg:row-start-2 lg:max-h-full lg:overflow-y-auto';
 
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';

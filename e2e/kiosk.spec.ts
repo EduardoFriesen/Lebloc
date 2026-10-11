@@ -114,4 +114,8 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
   await page.getByRole('dialog').getByRole('button', { name: 'Anular', exact: true }).click();
   await expect(movements.getByRole('row', { name: /Pédulas/ })).toHaveCount(0);
   await expect(page.getByText(/Pases sueltos \$\s8\.000,00/)).toBeVisible();
+
+  // The window never scrolls: with the movements filled in, only the counter's own column does.
+  await page.mouse.wheel(0, 5000);
+  expect(await page.evaluate(() => [document.scrollingElement?.scrollTop, document.documentElement.scrollHeight <= innerHeight])).toEqual([0, true]);
 });

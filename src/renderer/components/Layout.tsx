@@ -73,7 +73,7 @@ export function Layout() {
           </svg>
         </div>
       </nav>
-      <main id="contenido" tabIndex={-1} className="flex flex-1 flex-col overflow-y-auto focus:outline-none">
+      <main id="contenido" tabIndex={-1} className="relative flex flex-1 flex-col overflow-y-auto focus:outline-none">
         {location.key !== 'default' && (
           <div className="px-8 pt-6">
             <button type="button" className={buttonClass('ghost')} onClick={() => void navigate(-1)}>
