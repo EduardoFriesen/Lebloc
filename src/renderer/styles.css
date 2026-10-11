@@ -42,7 +42,14 @@
 }
 
 body {
-  @apply bg-canvas text-ink font-sans antialiased;
+  @apply text-ink font-sans antialiased;
+}
+
+/* Fondo de la página; también lo usan los encabezados fijos para tapar lo que pasa por debajo sin que se note el corte. */
+body,
+.paper {
+  @apply bg-canvas;
+  background-attachment: fixed;
   /* Grano de papel: ruido SVG muy tenue sobre el crema. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

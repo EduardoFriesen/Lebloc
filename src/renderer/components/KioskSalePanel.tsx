@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ticketTotalCents } from '../../domain/kiosk';
 import type { PaymentMethod, Product } from '../../shared/types';
@@ -21,9 +21,8 @@ function changeQuantity(cart: Cart, productId: number, delta: number): Cart {
   return next > 0 ? { ...rest, [productId]: next } : rest;
 }
 
-/** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. */
+/** Counter-side kiosk checkout: tap products into a ticket, pick the method, charge. The heading is the caller's. */
 export function KioskSalePanel({ onSold }: { onSold: () => void }) {
-  const headingId = useId();
   const products = useAsync(() => call('products:list', { includeInactive: false }), []);
   const top = useAsync(() => call('kiosk:top', {}), []);
   const [search, setSearch] = useState('');
@@ -54,10 +53,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className="font-display text-2xl font-semibold">
-        Kiosco
-      </h2>
+    <div className="flex flex-col gap-3">
       <AsyncView
         state={products}
         isEmpty={(data) => data.length === 0}
@@ -131,7 +127,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
         }}
       </AsyncView>
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-    </section>
+    </div>
   );
 }
 

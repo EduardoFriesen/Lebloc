@@ -20,7 +20,12 @@ import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
 
+// Section heading that stays at the top of the scrolling column while its section scrolls under it.
+const STICKY = 'paper sticky -top-2 z-20 py-2';
+
 export function HomePage() {
+  const pasesId = useId();
+  const kioskId = useId();
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,52 +69,64 @@ export function HomePage() {
         <PageHeader title="Mostrador" subtitle="Buscá al cliente y marcá el pase que usa." />
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
       </div>
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
-        <h2 className="font-display text-2xl font-semibold">Pases</h2>
-        <div className="-mt-3 flex flex-wrap items-end gap-3">
-          <div className="w-full max-w-sm">
-            <TextField
-              label="Buscar cliente"
-              type="search"
-              autoFocus
-              placeholder="Nombre o apellido"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+      {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-20`}>
+        <section aria-labelledby={pasesId} className="flex flex-col gap-6">
+          <h2 id={pasesId} className={`${STICKY} font-display text-2xl font-semibold`}>
+            Pases
+          </h2>
+          <div className="-mt-5 flex flex-wrap items-end gap-3">
+            <div className="w-full max-w-sm">
+              <TextField
+                label="Buscar cliente"
+                type="search"
+                autoFocus
+                placeholder="Nombre o apellido"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            <WalkInButtons onSold={refreshIncome} />
           </div>
-          <WalkInButtons onSold={refreshIncome} />
-        </div>
-        {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-        {query ? (
-          <ListSection title="Resultados">
-            <AsyncView
-              state={results}
-              isEmpty={(data) => data.length === 0}
-              empty={
-                <EmptyState title="Sin resultados">
-                  <button type="button" className="underline" onClick={() => setCreating(true)}>
-                    Crear cliente
-                  </button>
-                </EmptyState>
-              }
-            >
-              {(clients) => <PagedList key={query} items={clients} label="Resultados" render={strip} />}
-            </AsyncView>
-          </ListSection>
-        ) : (
-          <ListSection title="Recomendados">
-            <AsyncView
-              state={usual}
-              isEmpty={(data) => data.length === 0}
-              empty={<p className="text-sm text-ink-soft">Nadie más de la semana pasada a esta hora. Buscá al cliente por nombre.</p>}
-            >
-              {(clients) => <PagedList items={clients} label="Recomendados" render={strip} />}
-            </AsyncView>
-          </ListSection>
-        )}
-        <Stripe className="my-2" />
-        <KioskSalePanel onSold={refreshIncome} />
-        <DayMovementsTable state={movements} onChanged={refreshIncome} />
+          {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+          {query ? (
+            <ListSection title="Resultados">
+              <AsyncView
+                state={results}
+                isEmpty={(data) => data.length === 0}
+                empty={
+                  <EmptyState title="Sin resultados">
+                    <button type="button" className="underline" onClick={() => setCreating(true)}>
+                      Crear cliente
+                    </button>
+                  </EmptyState>
+                }
+              >
+                {(clients) => <PagedList key={query} items={clients} label="Resultados" render={strip} />}
+              </AsyncView>
+            </ListSection>
+          ) : (
+            <ListSection title="Recomendados">
+              <AsyncView
+                state={usual}
+                isEmpty={(data) => data.length === 0}
+                empty={<p className="text-sm text-ink-soft">Nadie más de la semana pasada a esta hora. Buscá al cliente por nombre.</p>}
+              >
+                {(clients) => <PagedList items={clients} label="Recomendados" render={strip} />}
+              </AsyncView>
+            </ListSection>
+          )}
+        </section>
+        <section aria-labelledby={kioskId} className="flex flex-col gap-6">
+          <div className={`${STICKY} flex flex-col gap-3`}>
+            <Stripe />
+            <h2 id={kioskId} className="font-display text-2xl font-semibold">
+              Kiosco
+            </h2>
+          </div>
+          <KioskSalePanel onSold={refreshIncome} />
+          <DayMovementsTable state={movements} onChanged={refreshIncome} />
+        </section>
       </div>
       <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
