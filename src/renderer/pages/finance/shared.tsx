@@ -55,6 +55,36 @@ export function KpiTile({ label, value, change, changeUnit = '%', higherIsBetter
   );
 }
 
+interface SegmentedControlProps<T extends string> {
+  label: string;
+  options: readonly T[];
+  labels: Record<T, string>;
+  /** None selected when the value matches no option (e.g. a custom range). */
+  value: T | undefined;
+  onChange: (value: T) => void;
+}
+
+/** A row of toggle buttons where one is on (aria-pressed), e.g. the period presets or a sort order. */
+export function SegmentedControl<T extends string>({ label, options, labels, value, onChange }: SegmentedControlProps<T>) {
+  return (
+    <div role="group" aria-label={label} className="flex flex-wrap gap-1 rounded-full bg-sunken p-1">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+          className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+            value === option ? 'bg-accent text-cream shadow-warm' : 'text-ink hover:bg-surface'
+          }`}
+        >
+          {labels[option]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function FinanceSkeleton() {
   return <SkeletonRows rows={6} />;
 }

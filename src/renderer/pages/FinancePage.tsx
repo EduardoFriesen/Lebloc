@@ -7,6 +7,7 @@ import { TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { formatDate, todayIso } from '../lib/format';
 import { toFieldErrors } from '../lib/formErrors';
+import { SegmentedControl } from './finance/shared';
 
 const PRESET_LABELS: Record<PeriodPreset, string> = {
   this_month: 'Este mes',
@@ -53,21 +54,13 @@ export function FinancePage() {
       />
       <div className="paper sticky top-0 z-20 -mx-8 -mt-6 flex flex-col gap-4 px-8 pt-3">
         <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <div role="group" aria-label="Períodos" className="flex flex-wrap gap-1 rounded-full bg-sunken p-1">
-            {PERIOD_PRESETS.map((candidate) => (
-              <button
-                key={candidate}
-                type="button"
-                aria-pressed={preset === candidate}
-                onClick={() => pick(presetRange(candidate, today))}
-                className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-                  preset === candidate ? 'bg-accent text-cream shadow-warm' : 'text-ink hover:bg-surface'
-                }`}
-              >
-                {PRESET_LABELS[candidate]}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Períodos"
+            options={PERIOD_PRESETS}
+            labels={PRESET_LABELS}
+            value={preset}
+            onChange={(candidate) => pick(presetRange(candidate, today))}
+          />
           <CustomRange range={range} onChange={pick} />
         </div>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink/10">
