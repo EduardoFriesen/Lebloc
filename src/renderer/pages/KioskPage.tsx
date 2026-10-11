@@ -23,10 +23,10 @@ const HEADING = 'font-display text-2xl font-semibold';
 
 export function KioskPage() {
   return (
-    <section className='flex flex-col gap-10 p-8'>
+    <section className="flex flex-col gap-10 p-8">
       <PageHeader
-        title='Kiosco'
-        subtitle='Productos con su precio y los tickets vendidos por día.'
+        title="Kiosco"
+        subtitle="Productos con su precio y los tickets vendidos por día."
       />
       <ProductsBlock />
       <SalesBlock />
@@ -45,17 +45,17 @@ function ProductsTable({
   return (
     <>
       <table className={tableClass}>
-        <caption className='sr-only'>Productos</caption>
+        <caption className="sr-only">Productos</caption>
         <thead>
           <tr>
-            <th scope='col'>Producto</th>
-            <th scope='col'>Paquete</th>
-            <th scope='col'>Costo unitario</th>
-            <th scope='col'>Ganancia</th>
-            <th scope='col'>Sugerido</th>
-            <th scope='col'>Precio de venta</th>
-            <th scope='col'>
-              <span className='sr-only'>Acciones</span>
+            <th scope="col">Producto</th>
+            <th scope="col">Paquete</th>
+            <th scope="col">Costo unitario</th>
+            <th scope="col">Ganancia</th>
+            <th scope="col">Sugerido</th>
+            <th scope="col">Precio de venta</th>
+            <th scope="col">
+              <span className="sr-only">Acciones</span>
             </th>
           </tr>
         </thead>
@@ -65,19 +65,19 @@ function ProductsTable({
               key={product.id}
               className={product.active ? '' : 'text-ink-soft'}
             >
-              <td className='font-semibold'>
+              <td className="font-semibold">
                 {product.name} {!product.active && <Badge>Inactivo</Badge>}
               </td>
               <td>{product.packSize} u.</td>
               <td>{formatMoney(product.unitCostCents)}</td>
               <td>{product.markupPercent}%</td>
               <td>{formatMoney(product.suggestedPriceCents)}</td>
-              <td className='font-semibold'>
+              <td className="font-semibold">
                 {formatMoney(product.priceCents)}
               </td>
-              <td className='text-right'>
+              <td className="text-right">
                 <Button
-                  variant='edit'
+                  variant="edit"
                   aria-label={`Editar ${product.name}`}
                   onClick={() => onEdit(product)}
                 >
@@ -88,7 +88,7 @@ function ProductsTable({
           ))}
         </tbody>
       </table>
-      <PageBar label='Productos' page={page} pages={pages} onChange={setPage} />
+      <PageBar label="Productos" page={page} pages={pages} onChange={setPage} />
     </>
   );
 }
@@ -104,18 +104,18 @@ function ProductsBlock() {
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
 
   return (
-    <div className='flex flex-col gap-3'>
-      <div className='flex flex-wrap items-center justify-between gap-3'>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className={HEADING}>Productos</h2>
-        <div className='flex flex-wrap items-end gap-4'>
+        <div className="flex flex-wrap items-end gap-4">
           <TextField
-            label='Buscar producto'
-            type='search'
+            label="Buscar producto"
+            type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
           <CheckboxField
-            label='Mostrar inactivos'
+            label="Mostrar inactivos"
             checked={showInactive}
             onChange={(event) => setShowInactive(event.target.checked)}
           />
@@ -126,8 +126,8 @@ function ProductsBlock() {
         state={products}
         isEmpty={(data) => data.length === 0}
         empty={
-          <EmptyState title='Todavía no hay productos'>
-            <p className='text-sm'>Creá el primero con “Nuevo producto”.</p>
+          <EmptyState title="Todavía no hay productos">
+            <p className="text-sm">Creá el primero con “Nuevo producto”.</p>
           </EmptyState>
         }
       >
@@ -136,7 +136,7 @@ function ProductsBlock() {
             matchesSearch(product.name, search),
           );
           return found.length === 0 ? (
-            <p className='text-sm text-ink-soft'>Ningún producto coincide</p>
+            <p className="text-sm text-ink-soft">Ningún producto coincide</p>
           ) : (
             <ProductsTable
               key={`${search}|${showInactive}`}
@@ -184,15 +184,15 @@ function SalesTable({
   return (
     <>
       <table className={tableClass}>
-        <caption className='sr-only'>Ventas del día</caption>
+        <caption className="sr-only">Ventas del día</caption>
         <thead>
           <tr>
-            <th scope='col'>Hora</th>
-            <th scope='col'>Detalle</th>
-            <th scope='col'>Medio</th>
-            <th scope='col'>Total</th>
-            <th scope='col'>
-              <span className='sr-only'>Acciones</span>
+            <th scope="col">Hora</th>
+            <th scope="col">Detalle</th>
+            <th scope="col">Medio</th>
+            <th scope="col">Total</th>
+            <th scope="col">
+              <span className="sr-only">Acciones</span>
             </th>
           </tr>
         </thead>
@@ -209,15 +209,15 @@ function SalesTable({
                   .join(', ')}
               </td>
               <td>{PAYMENT_METHOD_LABELS[sale.method]}</td>
-              <td className='font-semibold'>{formatMoney(sale.totalCents)}</td>
-              <td className='text-right'>
+              <td className="font-semibold">{formatMoney(sale.totalCents)}</td>
+              <td className="text-right">
                 {sale.voidedAt ? (
-                  <span className='inline-block no-underline'>
+                  <span className="inline-block no-underline">
                     <Badge>Anulado</Badge>
                   </span>
                 ) : (
                   <Button
-                    variant='ghost'
+                    variant="ghost"
                     aria-label={`Anular ticket de las ${ticketTime(sale.recordedAt)}`}
                     onClick={() => onVoid(sale)}
                   >
@@ -229,7 +229,7 @@ function SalesTable({
           ))}
         </tbody>
       </table>
-      <PageBar label='Ventas' page={page} pages={pages} onChange={setPage} />
+      <PageBar label="Ventas" page={page} pages={pages} onChange={setPage} />
     </>
   );
 }
@@ -253,12 +253,12 @@ function SalesBlock() {
   }
 
   return (
-    <div className='flex flex-col gap-3'>
-      <div className='flex flex-wrap items-end justify-between gap-3'>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className={HEADING}>Ventas</h2>
         <TextField
-          label='Día'
-          type='date'
+          label="Día"
+          type="date"
           value={date}
           onChange={(event) =>
             event.target.value && setDate(event.target.value)
@@ -268,11 +268,11 @@ function SalesBlock() {
       <AsyncView
         state={sales}
         isEmpty={(data) => data.length === 0}
-        empty={<EmptyState title='No hay ventas ese día' />}
+        empty={<EmptyState title="No hay ventas ese día" />}
       >
         {(data) => (
           <>
-            <p className='text-sm'>
+            <p className="text-sm">
               Total del día:{' '}
               <strong>
                 {formatMoney(
