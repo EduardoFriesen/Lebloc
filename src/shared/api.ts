@@ -35,6 +35,12 @@ export const apiSchemas = {
   'consumptions:void': schemas.idInput,
   'payouts:create': schemas.payoutInput,
   'payouts:void': schemas.idInput,
+  'products:list': schemas.activeListInput,
+  'products:create': schemas.productInput,
+  'products:update': schemas.productUpdate,
+  'kiosk:sell': schemas.kioskSellInput,
+  'kiosk:void': schemas.idInput,
+  'kiosk:sales': schemas.kioskSalesInput,
   'dashboard:get': schemas.emptyInput,
   'waivers:create': schemas.waiverInput,
   'waivers:void': schemas.idInput,
@@ -76,6 +82,12 @@ export interface ApiOutputs {
   'consumptions:void': T.Consumption;
   'payouts:create': T.TeacherPayout;
   'payouts:void': T.TeacherPayout;
+  'products:list': T.Product[];
+  'products:create': T.Product;
+  'products:update': T.Product;
+  'kiosk:sell': T.KioskSale;
+  'kiosk:void': T.KioskSale;
+  'kiosk:sales': T.KioskSale[];
   'dashboard:get': T.Dashboard;
   'waivers:create': T.WaiverSignature;
   'waivers:void': T.WaiverSignature;

@@ -38,6 +38,29 @@ describe('migrations', () => {
     ).toThrow(/CHECK/);
   });
 
+  it('rejects invalid kiosk rows at the database level', () => {
+    const db = openDatabase(':memory:');
+    const product = db.prepare(
+      'INSERT INTO products (name, pack_size, pack_cost_cents, markup_percent, price_cents) VALUES (?, ?, ?, ?, ?)',
+    );
+    expect(() => product.run('Agua', 0, 1000, 40, 100)).toThrow(/CHECK/);
+    expect(() => product.run('Agua', 12, 1000, 1001, 100)).toThrow(/CHECK/);
+    product.run('Agua', 12, 1000, 40, 100);
+    expect(() => product.run('AGUA', 6, 500, 40, 100)).toThrow(/UNIQUE/);
+    db.prepare("INSERT INTO kiosk_sales (sold_at, recorded_at, method) VALUES ('2026-10-11', 'x', 'cash')").run();
+    expect(() =>
+      db.prepare("INSERT INTO kiosk_sales (sold_at, recorded_at, method) VALUES ('2026-10-11', 'x', 'card')").run(),
+    ).toThrow(/CHECK/);
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO kiosk_sale_items (sale_id, product_id, product_name, quantity, unit_price_cents, unit_cost_cents)
+           VALUES (1, 1, 'Agua', 0, 100, 80)`,
+        )
+        .run(),
+    ).toThrow(/CHECK/);
+  });
+
   it('seeds the low passes threshold', () => {
     const db = openDatabase(':memory:');
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });

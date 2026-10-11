@@ -11,6 +11,9 @@ export function getDashboard(ctx: Context): Dashboard {
       ...summaryCounts(ctx.db),
       pendingWaivers: listWaiverAlerts(ctx).length,
       teacherBalanceCents: listTeacherBalances(ctx).reduce((total, balance) => total + balance.balanceCents, 0),
+      // Filled in by the kiosk backend task.
+      kioskTodayCount: 0,
+      kioskTodayCents: 0,
     },
     renewals: listRenewals(ctx),
   };

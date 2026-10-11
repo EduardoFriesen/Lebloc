@@ -84,6 +84,8 @@ describe('debtors and dashboard', () => {
       debtTotalCents: 4_000_000 + 1_500_000,
       pendingWaivers: 2,
       teacherBalanceCents: getTeacherAccount(ctx, juanId).balanceCents,
+      kioskTodayCount: 0,
+      kioskTodayCents: 0,
     });
   });
 });

@@ -28,6 +28,10 @@ export interface BackupOps {
   restoreBackup(): Promise<BackupOutcome>;
 }
 
+function notImplemented(): never {
+  throw new Error('not implemented');
+}
+
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
   return {
     'clients:list': (input) => listClients(ctx, input),
@@ -61,6 +65,13 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'consumptions:void': ({ id }) => voidConsumption(ctx, id),
     'payouts:create': (input) => registerPayout(ctx, input),
     'payouts:void': ({ id }) => voidPayout(ctx, id),
+    // Kiosk handlers are wired by the backend task.
+    'products:list': () => notImplemented(),
+    'products:create': () => notImplemented(),
+    'products:update': () => notImplemented(),
+    'kiosk:sell': () => notImplemented(),
+    'kiosk:void': () => notImplemented(),
+    'kiosk:sales': () => notImplemented(),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),

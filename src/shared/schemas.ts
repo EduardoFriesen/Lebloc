@@ -118,6 +118,25 @@ export const settingsInput = z.object({
 });
 export const waiverInput = z.object({ clientId: id, signedAt: isoDate });
 
+const productFields = {
+  name: z.string().trim().min(1, REQUIRED).max(80),
+  packSize: z.number().int().min(1).max(1000),
+  packCostCents: cents,
+  markupPercent: z.number().int().min(0).max(1000),
+  priceCents: cents,
+  active: z.boolean(),
+};
+export const productInput = z.object(productFields);
+export const productUpdate = z.object({ id, ...productFields });
+export const kioskSellInput = z.object({
+  items: z
+    .array(z.object({ productId: id, quantity: z.number().int().min(1).max(100) }))
+    .min(1, 'Agregá al menos un producto')
+    .max(50),
+  method: paymentMethodSchema,
+});
+export const kioskSalesInput = z.object({ date: isoDate });
+
 export type GuardianInput = z.infer<typeof guardianInput>;
 export type ClientInput = z.infer<typeof clientInput>;
 export type ClientUpdate = z.infer<typeof clientUpdate>;
@@ -133,3 +152,6 @@ export type ConsumptionInput = z.infer<typeof consumptionInput>;
 export type PayoutInput = z.infer<typeof payoutInput>;
 export type SettingsInput = z.infer<typeof settingsInput>;
 export type WaiverInput = z.infer<typeof waiverInput>;
+export type ProductInput = z.infer<typeof productInput>;
+export type ProductUpdate = z.infer<typeof productUpdate>;
+export type KioskSellInput = z.infer<typeof kioskSellInput>;

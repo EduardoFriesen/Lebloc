@@ -209,6 +209,9 @@ export interface DashboardSummary {
   pendingWaivers: number;
   /** Sum of every teacher's balance (negative when the local is owed). */
   teacherBalanceCents: number;
+  /** Kiosk tickets sold today that are not voided. */
+  kioskTodayCount: number;
+  kioskTodayCents: number;
 }
 
 /** Headline numbers beside the client list. "Active" means not archived. */
@@ -253,6 +256,40 @@ export interface Dashboard {
   summary: DashboardSummary;
   /** Low or no passes and came in the last 30 days. */
   renewals: ClientSummary[];
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  packSize: number;
+  packCostCents: number;
+  markupPercent: number;
+  priceCents: number;
+  active: boolean;
+  /** Derived from the pack: never stored. */
+  unitCostCents: number;
+  suggestedPriceCents: number;
+}
+
+export interface KioskSaleItem {
+  id: number;
+  productId: number;
+  /** Snapshots taken when the ticket was sold. */
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+  unitCostCents: number;
+}
+
+export interface KioskSale {
+  id: number;
+  soldAt: string;
+  recordedAt: string;
+  method: PaymentMethod;
+  voidedAt: string | null;
+  items: KioskSaleItem[];
+  /** Derived from the items: never stored. */
+  totalCents: number;
 }
 
 export interface Settings {
