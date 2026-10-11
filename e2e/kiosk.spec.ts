@@ -61,9 +61,14 @@ test('create a product, sell it at the counter and void the ticket', async () =>
 
   await page.getByRole('navigation').getByRole('link', { name: 'Kiosco', exact: true }).click();
   await expect(page.getByRole('row', { name: /2 × Agua/ })).toBeVisible();
+  // Agua costs $1.000 a unit and sells at $1.400: 2 units leave $800.
+  const summary = page.getByRole('complementary', { name: 'Resumen' });
+  await expect(summary.getByRole('row', { name: /Ventas de hoy/ })).toContainText(/\$\s2\.800,00/);
+  await expect(summary.getByRole('row', { name: /Ganancia de hoy/ })).toContainText(/\$\s800,00/);
   await page.getByRole('button', { name: /Anular ticket/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Anular venta' }).click();
   await expect(page.getByText('Anulado')).toBeVisible();
+  await expect(summary.getByRole('row', { name: /Ventas de hoy/ })).not.toContainText('$');
 
   await page.getByRole('navigation').getByRole('link', { name: 'Mostrador' }).click();
   await expect(kioskToday()).toHaveText(/0/);

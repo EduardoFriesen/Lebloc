@@ -11,7 +11,7 @@ import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
-import { SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
+import { STICKY_HEADING, SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { Stripe } from '../components/ui/Stripe';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
@@ -19,9 +19,6 @@ import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from 
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
-
-// Section heading that stays at the top of the scrolling column while its section scrolls under it.
-const STICKY = 'paper sticky -top-2 z-20 py-2';
 
 export function HomePage() {
   const pasesId = useId();
@@ -74,7 +71,7 @@ export function HomePage() {
       {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
       <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-40`}>
         <section aria-labelledby={pasesId} className="flex flex-col gap-6">
-          <h2 id={pasesId} className={`${STICKY} font-display text-2xl font-semibold`}>
+          <h2 id={pasesId} className={`${STICKY_HEADING} font-display text-2xl font-semibold`}>
             Pases
           </h2>
           <div className="-mt-5 flex flex-wrap items-end gap-3">
@@ -121,7 +118,7 @@ export function HomePage() {
         </section>
         <Stripe />
         <section aria-labelledby={kioskId} className="flex flex-col gap-6">
-          <div className={`${STICKY} flex flex-col gap-3`}>
+          <div className={`${STICKY_HEADING} flex flex-col gap-3`}>
             <h2 id={kioskId} className="font-display text-2xl font-semibold">
               Kiosco
             </h2>

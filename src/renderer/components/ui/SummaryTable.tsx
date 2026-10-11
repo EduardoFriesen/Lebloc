@@ -24,6 +24,9 @@ export const SUMMARY_TOP = 'min-w-0 lg:col-start-1 lg:row-start-1';
 // `relative` keeps absolutely positioned descendants (e.g. sr-only captions) inside the scroller instead of growing the page.
 export const SUMMARY_LIST = 'relative min-w-0 lg:col-start-1 lg:row-start-2 lg:-m-2 lg:overflow-y-auto lg:p-2';
 
+/** Section heading that stays at the top of SUMMARY_LIST while its section scrolls under it. */
+export const STICKY_HEADING = 'paper sticky -top-2 z-20 py-2';
+
 /** The summary column beside the list: starts at the list's height and scrolls on its own. */
 export const SUMMARY_SIDE = 'relative self-start lg:col-start-2 lg:row-start-2 lg:max-h-full lg:overflow-y-auto';
 

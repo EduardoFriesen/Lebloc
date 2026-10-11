@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Card';
 import {
@@ -6,10 +6,20 @@ import {
   type ConfirmRequest,
 } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
-import { CheckboxField, TextField } from '../components/ui/Field';
+import { TextField } from '../components/ui/Field';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView } from '../components/ui/States';
+import { Stripe } from '../components/ui/Stripe';
+import {
+  ClearFilter,
+  STICKY_HEADING,
+  SUMMARY_LIST,
+  SUMMARY_TOP,
+  SummaryTable,
+  SummaryValue,
+  WITH_SUMMARY,
+} from '../components/ui/SummaryTable';
 import {
   FillerRows,
   TABLE_PAGE_SIZE,
@@ -26,14 +36,62 @@ import { ProductForm } from './ProductForm';
 const HEADING = 'font-display text-2xl font-semibold';
 
 export function KioskPage() {
+  // Picked from the summary: only active (true), only inactive (false) or all (null).
+  const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
+  const stats = useAsync(() => call('kiosk:stats', {}), []);
+
   return (
-    <section className="flex flex-col gap-10 p-8">
-      <PageHeader
-        title="Kiosco"
-        subtitle="Productos con su precio y los tickets vendidos por día."
+    <section className={WITH_SUMMARY}>
+      <div className={SUMMARY_TOP}>
+        <PageHeader
+          title="Kiosco"
+          subtitle="Productos con su precio y los tickets vendidos por día."
+        />
+        {onlyActive !== null && (
+          <ClearFilter
+            label={onlyActive ? 'Activos' : 'Inactivos'}
+            onClear={() => setOnlyActive(null)}
+          />
+        )}
+      </div>
+      {/* The scroll padding keeps focused rows out from under the sticky headings. */}
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-40`}>
+        <ProductsBlock onlyActive={onlyActive} onChanged={stats.reload} />
+        <Stripe />
+        <SalesBlock onChanged={stats.reload} />
+      </div>
+      <SummaryTable
+        state={stats}
+        rows={(data) => [
+          {
+            label: 'Ventas de hoy',
+            value: (
+              <SummaryValue
+                count={data.todayCount}
+                amount={
+                  data.todayCount > 0 ? formatMoney(data.todayCents) : undefined
+                }
+              />
+            ),
+          },
+          {
+            label: 'Ganancia de hoy',
+            value: <SummaryValue count={formatMoney(data.todayProfitCents)} />,
+          },
+          {
+            label: 'Activos',
+            value: <SummaryValue count={data.activeProducts} />,
+            onSelect: () => setOnlyActive(true),
+            selected: onlyActive === true,
+          },
+          {
+            label: 'Inactivos',
+            value: <SummaryValue count={data.inactiveProducts} />,
+            onSelect: () => setOnlyActive(false),
+            selected: onlyActive === false,
+          },
+        ]}
       />
-      <ProductsBlock />
-      <SalesBlock />
     </section>
   );
 }
@@ -106,20 +164,30 @@ function ProductsTable({
   );
 }
 
-function ProductsBlock() {
-  const [showInactive, setShowInactive] = useState(false);
+function ProductsBlock({
+  onlyActive,
+  onChanged,
+}: {
+  onlyActive: boolean | null;
+  onChanged: () => void;
+}) {
+  const headingId = useId();
   const products = useAsync(
-    () => call('products:list', { includeInactive: showInactive }),
-    [showInactive],
+    () => call('products:list', { includeInactive: true }),
+    [],
     { keepPreviousData: true },
   );
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className={HEADING}>Productos</h2>
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <div
+        className={`${STICKY_HEADING} flex flex-wrap items-end justify-between gap-3`}
+      >
+        <h2 id={headingId} className={HEADING}>
+          Productos
+        </h2>
         <div className="flex flex-wrap items-end gap-4">
           <TextField
             label="Buscar producto"
@@ -127,20 +195,17 @@ function ProductsBlock() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <CheckboxField
-            label="Mostrar inactivos"
-            checked={showInactive}
-            onChange={(event) => setShowInactive(event.target.checked)}
-          />
           <Button onClick={() => setEditing('new')}>Nuevo producto</Button>
         </div>
       </div>
       <AsyncView state={products}>
         {(data) => (
           <ProductsTable
-            key={`${search}|${showInactive}`}
-            products={data.filter((product) =>
-              matchesSearch(product.name, search),
+            key={`${search}|${String(onlyActive)}`}
+            products={data.filter(
+              (product) =>
+                (onlyActive === null || product.active === onlyActive) &&
+                matchesSearch(product.name, search),
             )}
             empty={
               data.length === 0
@@ -162,12 +227,13 @@ function ProductsBlock() {
             onSaved={() => {
               setEditing(null);
               products.reload();
+              onChanged();
             }}
             onCancel={() => setEditing(null)}
           />
         )}
       </Dialog>
-    </div>
+    </section>
   );
 }
 
@@ -243,7 +309,8 @@ function SalesTable({
   );
 }
 
-function SalesBlock() {
+function SalesBlock({ onChanged }: { onChanged: () => void }) {
+  const headingId = useId();
   const [date, setDate] = useState(todayIso());
   const sales = useAsync(
     () => call('kiosk:sales', { date }),
@@ -262,9 +329,13 @@ function SalesBlock() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className={HEADING}>Ventas</h2>
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <div
+        className={`${STICKY_HEADING} flex flex-wrap items-end justify-between gap-3`}
+      >
+        <h2 id={headingId} className={HEADING}>
+          Ventas
+        </h2>
         <TextField
           label="Día"
           type="date"
@@ -298,9 +369,10 @@ function SalesBlock() {
         onDone={() => {
           setPending(null);
           sales.reload();
+          onChanged();
         }}
         onClose={() => setPending(null)}
       />
-    </div>
+    </section>
   );
 }
