@@ -30,6 +30,10 @@ export interface BackupOps {
   restoreBackup(): Promise<BackupOutcome>;
 }
 
+function notImplemented(): never {
+  throw new Error('not implemented');
+}
+
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
   return {
     'clients:list': (input) => listClients(ctx, input),
@@ -69,6 +73,9 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'kiosk:sell': (input) => sellKiosk(ctx, input),
     'kiosk:void': ({ id }) => voidKioskSale(ctx, id),
     'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
+    // Wired by the counter backend task.
+    'kiosk:top': () => notImplemented(),
+    'counter:today': () => notImplemented(),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),

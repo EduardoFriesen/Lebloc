@@ -292,6 +292,28 @@ export interface KioskSale {
   totalCents: number;
 }
 
+export type DayMovement =
+  | { kind: 'kiosk'; sale: KioskSale }
+  | {
+      kind: 'plan';
+      paymentId: number;
+      clientId: number;
+      clientName: string;
+      planName: string;
+      method: PaymentMethod;
+      amountCents: number;
+      saleTotalCents: number;
+      debtCents: number;
+    };
+
+/** Today's cash in: plan payments first (they carry no time), then kiosk tickets. Totals are derived. */
+export interface DayMovements {
+  rows: DayMovement[];
+  kioskCents: number;
+  plansCents: number;
+  totalCents: number;
+}
+
 export interface Settings {
   lowPassesThreshold: number;
   waiverValidityMonths: number;

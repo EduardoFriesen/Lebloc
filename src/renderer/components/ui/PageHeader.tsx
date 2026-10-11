@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Stripe } from './Stripe';
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
@@ -10,11 +11,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
-      <div aria-hidden="true" className="flex flex-col gap-0.5">
-        <span className="h-1 rounded-full bg-accent" />
-        <span className="h-1 rounded-full bg-ochre" />
-        <span className="h-1 rounded-full bg-dusk-soft" />
-      </div>
+      <Stripe />
     </header>
   );
 }

@@ -98,6 +98,15 @@ CREATE INDEX idx_kiosk_sale_items_product ON kiosk_sale_items(product_id);
 - **Reutilización:** `useAsync`, `AsyncView`, `Dialog`, `ConfirmDialog`, `MoneyField`, `SelectField`, `TextField`, `Notice`, `PageHeader`, `parseMoneyInput`, `formatMoney`, `toFieldErrors`, `PAYMENT_METHOD_LABELS` y `tableClass`.
 - Los 4 estados vienen de `AsyncView`.
 
+### Mostrador como caja (agregado el 2026-10-11)
+- **Movimientos de hoy** (`counter:today`): tabla de consulta en el Mostrador que junta los tickets de kiosco no anulados y los pagos de planes cobrados hoy, incluidas las cuotas de planes anteriores. Arriba muestra los totales de Kiosco, Planes y Total.
+  - Los planes van primero y los tickets después, porque los pagos no guardan hora.
+  - El monto de un plan es lo cobrado, incluida la parte del profesor: es una vista de caja.
+  - No se anula desde acá.
+- **Más vendidos** (`kiosk:top`): los 5 productos activos con más unidades vendidas en tickets no anulados desde hace un mes; si faltan, se completa por nombre.
+- **Buscador de productos** en el panel de kiosco: filtra en memoria los productos activos, sin distinguir mayúsculas ni acentos. Sin texto, muestra los más vendidos.
+- **Separador:** la franja de tres líneas del encabezado (`ui/Stripe.tsx`) separa los pases del kiosco.
+
 ### Fuera de alcance
 - Stock y compras.
 - Fiado a clientes.

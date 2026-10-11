@@ -41,6 +41,8 @@ export const apiSchemas = {
   'kiosk:sell': schemas.kioskSellInput,
   'kiosk:void': schemas.idInput,
   'kiosk:sales': schemas.kioskSalesInput,
+  'kiosk:top': schemas.emptyInput,
+  'counter:today': schemas.emptyInput,
   'dashboard:get': schemas.emptyInput,
   'waivers:create': schemas.waiverInput,
   'waivers:void': schemas.idInput,
@@ -88,6 +90,8 @@ export interface ApiOutputs {
   'kiosk:sell': T.KioskSale;
   'kiosk:void': T.KioskSale;
   'kiosk:sales': T.KioskSale[];
+  'kiosk:top': T.Product[];
+  'counter:today': T.DayMovements;
   'dashboard:get': T.Dashboard;
   'waivers:create': T.WaiverSignature;
   'waivers:void': T.WaiverSignature;

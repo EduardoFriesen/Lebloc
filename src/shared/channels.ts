@@ -36,6 +36,8 @@ export const CHANNELS = [
   'kiosk:sell',
   'kiosk:void',
   'kiosk:sales',
+  'kiosk:top',
+  'counter:today',
   'dashboard:get',
   'waivers:create',
   'waivers:void',
