@@ -16,7 +16,8 @@ import { getDashboard } from '../services/dashboard';
 import { listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
-import { createProduct, listProducts, updateProduct } from '../services/products';
+import { getDayMovements } from '../services/counter';
+import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
 import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
@@ -28,10 +29,6 @@ import type { Handlers } from './execute';
 export interface BackupOps {
   exportBackup(): Promise<BackupOutcome>;
   restoreBackup(): Promise<BackupOutcome>;
-}
-
-function notImplemented(): never {
-  throw new Error('not implemented');
 }
 
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
@@ -73,9 +70,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'kiosk:sell': (input) => sellKiosk(ctx, input),
     'kiosk:void': ({ id }) => voidKioskSale(ctx, id),
     'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
-    // Wired by the counter backend task.
-    'kiosk:top': () => notImplemented(),
-    'counter:today': () => notImplemented(),
+    'kiosk:top': () => listTopProducts(ctx),
+    'counter:today': () => getDayMovements(ctx),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),

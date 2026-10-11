@@ -1,8 +1,9 @@
+import { addMonths } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import { suggestedPriceCents, unitCostCents } from '../../domain/kiosk';
 import type { ProductInput, ProductUpdate } from '../../shared/schemas';
 import type { Product } from '../../shared/types';
-import type { Context } from '../context';
+import { type Context, today } from '../context';
 import * as repo from '../repos/products';
 
 function toProduct(row: repo.ProductRow): Product {
@@ -42,4 +43,8 @@ export function updateProduct(ctx: Context, { id, ...input }: ProductUpdate): Pr
     repo.updateProductRow(ctx.db, id, input);
     return getProduct(ctx, id);
   })();
+}
+
+export function listTopProducts(ctx: Context): Product[] {
+  return repo.topProducts(ctx.db, addMonths(today(ctx), -1), 5).map(toProduct);
 }

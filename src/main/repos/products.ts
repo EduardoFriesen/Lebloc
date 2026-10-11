@@ -53,3 +53,20 @@ export function listProducts(db: Db, includeInactive: boolean): ProductRow[] {
 export function findProductIdByName(db: Db, name: string): number | undefined {
   return db.prepare<[string], { id: number }>('SELECT id FROM products WHERE name = ? COLLATE NOCASE').get(name)?.id;
 }
+
+/** Active products ordered by units sold in non-voided tickets since `since`, then by name. */
+export function topProducts(db: Db, since: string, limit: number): ProductRow[] {
+  const cols = COLUMNS.split(',').map((c) => `p.${c.trim()}`).join(', ');
+  return db
+    .prepare<[string, number], Parameters<typeof toRow>[0]>(
+      `SELECT ${cols} FROM products p
+       LEFT JOIN (
+         SELECT i.product_id, SUM(i.quantity) AS units FROM kiosk_sale_items i
+         JOIN kiosk_sales k ON k.id = i.sale_id
+         WHERE k.voided_at IS NULL AND k.sold_at >= ? GROUP BY i.product_id
+       ) u ON u.product_id = p.id
+       WHERE p.active = 1 ORDER BY COALESCE(u.units, 0) DESC, p.name COLLATE NOCASE LIMIT ?`,
+    )
+    .all(since, limit)
+    .map(toRow);
+}

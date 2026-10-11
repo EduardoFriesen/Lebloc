@@ -1,4 +1,5 @@
-import type { Payment, PaymentMethod } from '../../shared/types';
+import { saleDebt } from '../../domain/ledger';
+import type { DayMovement, Payment, PaymentMethod } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 export interface NewPayment {
@@ -59,4 +60,26 @@ export function activeAllocationTotals(db: Db, saleId: number): { localCents: nu
 
 export function voidPayment(db: Db, id: number, now: string): void {
   db.prepare('UPDATE payments SET voided_at = ? WHERE id = ?').run(now, id);
+}
+
+/** Non-voided payments made on `date`, newest first, with the sale's current debt. */
+export function listPaymentsOn(db: Db, date: string): Extract<DayMovement, { kind: 'plan' }>[] {
+  return db
+    .prepare<
+      [string],
+      Omit<Extract<DayMovement, { kind: 'plan' }>, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }
+    >(
+      `SELECT p.id AS paymentId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
+         s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
+         s.voided_at AS saleVoidedAt,
+         COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents
+       FROM payments p JOIN sales s ON s.id = p.sale_id JOIN clients c ON c.id = s.client_id
+       WHERE p.paid_at = ? AND p.voided_at IS NULL ORDER BY p.id DESC`,
+    )
+    .all(date)
+    .map(({ paidCents, saleVoidedAt, ...row }) => ({
+      kind: 'plan' as const,
+      ...row,
+      debtCents: saleVoidedAt ? 0 : saleDebt(row.saleTotalCents, paidCents),
+    }));
 }

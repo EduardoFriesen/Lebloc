@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
 import type { ProductInput } from '../../shared/schemas';
 import { createTestContext, type TestContext } from '../test-context';
-import { createProduct, getProduct, listProducts, updateProduct } from './products';
+import { sellKiosk, voidKioskSale } from './kiosk';
+import { createProduct, getProduct, listProducts, listTopProducts, updateProduct } from './products';
 
 const alfajor: ProductInput = {
   name: 'Alfajor',
@@ -50,5 +51,28 @@ describe('products', () => {
   it('fails with NOT_FOUND for unknown ids', () => {
     expectDomainError(() => getProduct(ctx, 99), 'NOT_FOUND');
     expectDomainError(() => updateProduct(ctx, { ...alfajor, id: 99 }), 'NOT_FOUND');
+  });
+});
+
+describe('top products', () => {
+  const make = (ctx: TestContext, name: string, active = true) =>
+    createProduct(ctx, { name, packSize: 1, packCostCents: 1000, markupPercent: 50, priceCents: 1500, active }).id;
+
+  it('ranks by units, skips voided/old/inactive, fills by name, max 5', () => {
+    const ctx = createTestContext();
+    const [beta, alfa, cola, dulce, , fanta] = ['Beta', 'Alfa', 'Cola', 'Dulce', 'Eter', 'Fanta'].map((n) => make(ctx, n)) as [number, number, number, number, number, number];
+    const off = make(ctx, 'Zeta');
+    const sell = (productId: number, quantity: number) => sellKiosk(ctx, { items: [{ productId, quantity }], method: 'cash' });
+    sell(cola, 3);
+    sell(beta, 1);
+    sell(fanta, 5);
+    voidKioskSale(ctx, sell(alfa, 9).id);
+    sell(off, 20);
+    updateProduct(ctx, { id: off, name: 'Zeta', packSize: 1, packCostCents: 1000, markupPercent: 50, priceCents: 1500, active: false });
+    ctx.clock.set(new Date(2026, 8, 1, 12));
+    sell(dulce, 50);
+    ctx.clock.set(new Date(2026, 9, 5, 12));
+    const names = listTopProducts(ctx).map((p) => p.name);
+    expect(names).toEqual(['Fanta', 'Cola', 'Beta', 'Alfa', 'Dulce']);
   });
 });
