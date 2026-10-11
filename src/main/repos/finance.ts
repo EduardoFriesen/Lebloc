@@ -1,6 +1,6 @@
 import type { MoneySource } from '../../domain/finance';
 import type { DateRange } from '../../domain/periods';
-import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking, VisitKind } from '../../shared/types';
+import type { CounterSaleKind, ExpenseCategory, PlanRanking, ProductRanking, TeacherActivity, VisitKind } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregations for the finance screen. Dates are inclusive ISO days; voided rows never count.
@@ -119,6 +119,27 @@ export function visits(db: Db, range: DateRange): VisitRow[] {
        )
        WHERE date(at, 'localtime') BETWEEN @from AND @to
        GROUP BY 1, 2, 3, 4`,
+    )
+    .all(range);
+}
+
+type TeacherActivityRow = Omit<TeacherActivity, 'balanceCents' | 'active'> & { active: number };
+
+export function teacherActivity(db: Db, range: DateRange): TeacherActivityRow[] {
+  return db
+    .prepare<[DateRange], TeacherActivityRow>(
+      `WITH classes AS (
+         SELECT s.teacher_id, s.client_id FROM consumptions c JOIN sales s ON s.id = c.sale_id
+         WHERE c.voided_at IS NULL AND c.kind = 'teacher' AND date(c.consumed_at, 'localtime') BETWEEN @from AND @to
+       )
+       SELECT t.id AS teacherId, t.first_name || ' ' || t.last_name AS name, t.active,
+         (SELECT COUNT(*) FROM classes WHERE teacher_id = t.id) AS classes,
+         (SELECT COUNT(DISTINCT client_id) FROM classes WHERE teacher_id = t.id) AS students,
+         (SELECT COALESCE(SUM(p.teacher_cents), 0) FROM payments p JOIN sales s ON s.id = p.sale_id
+            WHERE s.teacher_id = t.id AND p.voided_at IS NULL AND p.paid_at BETWEEN @from AND @to) AS earnedCents,
+         (SELECT COALESCE(SUM(amount_cents), 0) FROM teacher_payouts
+            WHERE teacher_id = t.id AND voided_at IS NULL AND paid_at BETWEEN @from AND @to) AS paidOutCents
+       FROM teachers t ORDER BY classes DESC, name`,
     )
     .all(range);
 }

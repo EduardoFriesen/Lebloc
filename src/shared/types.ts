@@ -486,3 +486,17 @@ export interface FinanceTraffic {
   byWeekday: number[];
   series: { bucket: string; visits: number }[];
 }
+
+export interface TeacherActivity {
+  teacherId: number;
+  name: string;
+  active: boolean;
+  /** Teacher passes consumed in the range, and by how many different clients. */
+  classes: number;
+  students: number;
+  /** Teacher share of the plan payments collected in the range: the teacher's money, not the local's. */
+  earnedCents: number;
+  paidOutCents: number;
+  /** What the local owes the teacher today, whatever the range. */
+  balanceCents: number;
+}

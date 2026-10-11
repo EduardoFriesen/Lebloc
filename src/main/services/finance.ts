@@ -1,8 +1,9 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
-import type { FinanceSales, FinanceSummary, FinanceTraffic } from '../../shared/types';
+import type { FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
 import type { Context } from '../context';
 import * as repo from '../repos/finance';
+import { listTeacherBalances } from './payouts';
 
 const OUTFLOW = new Set<MoneySource>(['expenses', 'staff', 'kiosk_cost']);
 const SERIES_FIELDS = ['plans', 'kiosk', 'day_pass', 'shoe_rental', 'outflow'] as const;
@@ -66,4 +67,13 @@ export function getFinanceTraffic(ctx: Context, range: DateRange): FinanceTraffi
     byWeekday: heatmap.map((hours) => hours.reduce((total, count) => total + count, 0)),
     series: bucketize(range, granularity, rows, ['visits']).map(({ bucket, visits }) => ({ bucket, visits })),
   };
+}
+
+/** Every active teacher, plus inactive ones that still had movement or a balance. */
+export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActivity[] {
+  const balances = new Map(listTeacherBalances(ctx).map((balance) => [balance.teacherId, balance.balanceCents]));
+  return repo
+    .teacherActivity(ctx.db, range)
+    .map((row) => ({ ...row, active: row.active === 1, balanceCents: balances.get(row.teacherId) ?? 0 }))
+    .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0);
 }

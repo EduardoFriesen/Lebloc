@@ -5,7 +5,7 @@ import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
 import { createEmployee, recordShift } from './employees';
 import { createExpense, voidExpense } from './expenses';
-import { getFinanceSales, getFinanceSummary, getFinanceTraffic } from './finance';
+import { getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
@@ -178,6 +178,29 @@ describe('finance', () => {
 
     it('leaves the other months out', () => {
       expect(getFinanceTraffic(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject({ total: 1, byKind: { free: 1, teacher: 0, day_pass: 0 } });
+    });
+  });
+
+  describe('teachers', () => {
+    it('shows classes given, students, what was collected and paid for each teacher, and the balance today', () => {
+      expect(getFinanceTeachers(ctx, OCTOBER)).toEqual([
+        {
+          teacherId: expect.any(Number),
+          name: 'Juan Pared',
+          active: true,
+          classes: 1,
+          students: 1,
+          earnedCents: 1_000_000,
+          paidOutCents: 400_000,
+          balanceCents: 600_000,
+        },
+      ]);
+    });
+
+    it('keeps active teachers without movement in the range', () => {
+      expect(getFinanceTeachers(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject([
+        { name: 'Juan Pared', classes: 0, earnedCents: 0, paidOutCents: 0, balanceCents: 600_000 },
+      ]);
     });
   });
 });
