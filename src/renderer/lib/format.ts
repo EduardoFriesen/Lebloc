@@ -2,13 +2,19 @@ import { ageFrom } from '../../domain/client';
 import { toIsoDate } from '../../domain/dates';
 import type { PassKind } from '../../domain/passes';
 import type { SplitRule } from '../../domain/sale';
-import type { PaymentMethod, WaiverStatus } from '../../shared/types';
+import type { CounterSaleKind, PaymentMethod, WaiverStatus } from '../../shared/types';
 
 import { formatMoney } from '../../shared/money';
 
 export { formatMoney, formatMoneyInput } from '../../shared/money';
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = { cash: 'Efectivo', transfer: 'Transferencia' };
+export const COUNTER_SALE_LABELS: Record<CounterSaleKind, string> = { day_pass: 'Pase del día', shoe_rental: 'Pédulas' };
+
+/** Local HH:MM of an ISO timestamp, e.g. the time a ticket was recorded. */
+export function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
 export const SPLIT_RULE_LABELS: Record<SplitRule, string> = {
   proportional: 'Proporcional',
   teacher_first: 'Primero el profesor',

@@ -136,6 +136,15 @@ export const kioskSellInput = z.object({
   method: paymentMethodSchema,
 });
 export const kioskSalesInput = z.object({ date: isoDate });
+export const counterPricesInput = z.object({ dayPassCents: cents, shoeRentalCents: cents });
+export const counterSellInput = z.object({
+  kinds: z
+    .array(z.enum(['day_pass', 'shoe_rental']))
+    .min(1)
+    .max(2)
+    .refine((kinds) => new Set(kinds).size === kinds.length, 'Sin repetir'),
+  method: paymentMethodSchema,
+});
 
 export type GuardianInput = z.infer<typeof guardianInput>;
 export type ClientInput = z.infer<typeof clientInput>;
@@ -155,3 +164,4 @@ export type WaiverInput = z.infer<typeof waiverInput>;
 export type ProductInput = z.infer<typeof productInput>;
 export type ProductUpdate = z.infer<typeof productUpdate>;
 export type KioskSellInput = z.infer<typeof kioskSellInput>;
+export type CounterSellInput = z.infer<typeof counterSellInput>;

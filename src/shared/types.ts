@@ -292,8 +292,27 @@ export interface KioskSale {
   totalCents: number;
 }
 
+export type CounterSaleKind = 'day_pass' | 'shoe_rental';
+
+/** A walk-in day pass or a shoe rental, charged at the counter without a client. */
+export interface CounterSale {
+  id: number;
+  kind: CounterSaleKind;
+  priceCents: number;
+  method: PaymentMethod;
+  soldAt: string;
+  recordedAt: string;
+  voidedAt: string | null;
+}
+
+export interface CounterPrices {
+  dayPassCents: number;
+  shoeRentalCents: number;
+}
+
 export type DayMovement =
   | { kind: 'kiosk'; sale: KioskSale }
+  | { kind: 'counter'; sale: CounterSale }
   | {
       kind: 'plan';
       paymentId: number;
@@ -311,6 +330,7 @@ export interface DayMovements {
   rows: DayMovement[];
   kioskCents: number;
   plansCents: number;
+  counterCents: number;
   totalCents: number;
 }
 

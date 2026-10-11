@@ -21,6 +21,7 @@ export const ERROR_MESSAGES = {
   WAIVER_DATE_IN_FUTURE: 'La fecha de firma no puede ser posterior a hoy.',
   PRODUCT_INACTIVE: 'El producto está inactivo.',
   PRODUCT_NAME_TAKEN: 'Ya hay un producto con ese nombre.',
+  PRICE_NOT_SET: 'Configurá el precio en Planes.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 

@@ -61,6 +61,16 @@ describe('migrations', () => {
     ).toThrow(/CHECK/);
   });
 
+  it('rejects invalid walk-in sales at the database level', () => {
+    const db = openDatabase(':memory:');
+    const sale = db.prepare(
+      "INSERT INTO counter_sales (kind, price_cents, method, sold_at, recorded_at) VALUES (?, ?, 'cash', '2026-10-11', 'x')",
+    );
+    sale.run('day_pass', 800_000);
+    expect(() => sale.run('day_pass', 0)).toThrow(/CHECK/);
+    expect(() => sale.run('locker', 100)).toThrow(/CHECK/);
+  });
+
   it('seeds the low passes threshold', () => {
     const db = openDatabase(':memory:');
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });

@@ -10,6 +10,7 @@ import type { Context } from './context';
 import { type Db, openDatabase } from './db/connection';
 import { archiveClient, createClient } from './services/clients';
 import { consume, voidConsumption } from './services/consumptions';
+import { sellCounter, updateCounterPrices } from './services/counterSales';
 import { sellKiosk, voidKioskSale } from './services/kiosk';
 import { createProduct, updateProduct } from './services/products';
 import { registerPayment, voidPayment } from './services/payments';
@@ -416,6 +417,13 @@ export function seedDatabase(db: Db, now: Date): void {
     // Carla paga hoy otra cuota (debía $24.000, queda en $20.000): fila de plan en "Movimientos de hoy".
     at(0, Math.min(17, now.getHours()));
     registerPayment(ctx, { saleId: carlaSale.id, amountCents: pesos(4_000), method: 'cash', paidAt: toIsoDate(now) });
+
+    // Pases sueltos: precios configurados y dos visitantes hoy, uno con pédulas.
+    updateCounterPrices(ctx, { dayPassCents: pesos(8_000), shoeRentalCents: pesos(3_000) });
+    at(0, Math.min(11, now.getHours()));
+    sellCounter(ctx, { kinds: ['day_pass', 'shoe_rental'], method: 'cash' });
+    at(0, Math.min(16, now.getHours()));
+    sellCounter(ctx, { kinds: ['day_pass'], method: 'transfer' });
 
     at(70, 12);
     archiveClient(ctx, hernan);

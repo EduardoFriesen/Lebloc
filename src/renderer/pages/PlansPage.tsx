@@ -1,12 +1,12 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useId, useState } from 'react';
 import { parseMoneyInput } from '../../shared/money';
 import { planInput } from '../../shared/schemas';
-import type { Plan } from '../../shared/types';
+import type { CounterPrices, Plan } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, MoneyField, TextField } from '../components/ui/Field';
-import { Notice } from '../components/ui/Notice';
+import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, EmptyState } from '../components/ui/States';
@@ -47,7 +47,8 @@ export function PlansPage() {
         />
         {onlyActive !== null && <ClearFilter label={onlyActive ? 'Activos' : 'Inactivos'} onClear={() => setOnlyActive(null)} />}
       </div>
-      <div className={SUMMARY_LIST}>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
+        <CounterPricesSection />
         <AsyncView
           state={plans}
           isEmpty={(data) => data.length === 0}
@@ -181,6 +182,71 @@ export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSav
           Guardar plan
         </Button>
       </div>
+    </form>
+  );
+}
+
+/** Prices of what the counter sells without a client: the walk-in day pass and the shoe rental. */
+function CounterPricesSection() {
+  const headingId = useId();
+  const prices = useAsync(() => call('prices:get', {}), []);
+  return (
+    <section aria-labelledby={headingId} className="rounded-2xl bg-surface p-5 shadow-warm">
+      <h2 id={headingId} className="mb-1 font-display text-xl font-semibold">
+        Precios sueltos
+      </h2>
+      <p className="mb-3 text-sm text-ink-soft">Se cobran en el Mostrador sin registrar cliente.</p>
+      <AsyncView state={prices}>{(data) => <CounterPricesForm prices={data} />}</AsyncView>
+    </section>
+  );
+}
+
+function CounterPricesForm({ prices }: { prices: CounterPrices }) {
+  const [dayPass, setDayPass] = useState(formatMoneyInput(prices.dayPassCents));
+  const [shoeRental, setShoeRental] = useState(formatMoneyInput(prices.shoeRentalCents));
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const dayPassCents = parseMoneyInput(dayPass);
+    const shoeRentalCents = parseMoneyInput(shoeRental);
+    setNotice(null);
+    if (dayPassCents === null || shoeRentalCents === null) {
+      setErrors({
+        ...(dayPassCents === null ? { dayPassCents: MONEY_ERROR } : {}),
+        ...(shoeRentalCents === null ? { shoeRentalCents: MONEY_ERROR } : {}),
+      });
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    try {
+      await call('prices:update', { dayPassCents, shoeRentalCents });
+      setNotice({ tone: 'success', text: 'Precios guardados.' });
+    } catch (caught) {
+      setNotice({ tone: 'error', text: errorMessage(caught) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-start gap-4">
+        <MoneyField label="Pase libre del día" value={dayPass} onChange={(event) => setDayPass(event.target.value)} error={errors.dayPassCents} />
+        <MoneyField
+          label="Alquiler de pédulas"
+          value={shoeRental}
+          onChange={(event) => setShoeRental(event.target.value)}
+          error={errors.shoeRentalCents}
+        />
+        <Button type="submit" disabled={busy} className="mt-6">
+          Guardar precios
+        </Button>
+      </div>
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     </form>
   );
 }

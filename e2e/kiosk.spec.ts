@@ -86,3 +86,32 @@ test('the main menu collapses and expands', async () => {
   await menu.getByRole('button', { name: 'Mostrar menú' }).click();
   await expect(menu.getByRole('link', { name: 'Kiosco', exact: true })).toBeVisible();
 });
+
+test('a walk-in day pass with shoes is priced in Planes and lands in today movements', async () => {
+  const nav = page.getByRole('navigation', { name: 'Principal' });
+  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Pase del día/ })).toBeDisabled();
+
+  await nav.getByRole('link', { name: 'Planes', exact: true }).click();
+  await label('Pase libre del día').fill('8.000');
+  await label('Alquiler de pédulas').fill('3.000');
+  await page.getByRole('button', { name: 'Guardar precios' }).click();
+  await expect(page.getByText('Precios guardados.')).toBeVisible();
+
+  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await page.getByRole('button', { name: /Pase del día/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Medio de pago').selectOption('transfer');
+  await dialog.getByRole('button', { name: /Sí, con pédulas/ }).click();
+  await expect(dialog).toBeHidden();
+
+  const movements = page.getByRole('table', { name: 'Movimientos de hoy' });
+  await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText('Transferencia');
+  await expect(movements.getByRole('row', { name: /Pédulas/ })).toContainText(/3\.000/);
+  await expect(page.getByText(/Pases sueltos \$\s11\.000,00/)).toBeVisible();
+
+  await movements.getByRole('button', { name: /Anular pédulas/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Anular', exact: true }).click();
+  await expect(movements.getByRole('row', { name: /Pédulas/ })).toHaveCount(0);
+  await expect(page.getByText(/Pases sueltos \$\s8\.000,00/)).toBeVisible();
+});

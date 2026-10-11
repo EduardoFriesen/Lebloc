@@ -56,12 +56,13 @@ describe('seedDatabase', () => {
     ).toBe(true);
   });
 
-  it('shows a plan payment and a kiosk ticket in the counter movements of today', () => {
-    const { rows, plansCents, kioskCents, totalCents } = getDayMovements(ctx);
+  it('shows a plan payment, a kiosk ticket and walk-in passes in the counter movements of today', () => {
+    const { rows, plansCents, kioskCents, counterCents, totalCents } = getDayMovements(ctx);
     const plan = rows.find((row) => row.kind === 'plan' && row.clientName.startsWith('Carla'));
     expect(plan).toMatchObject({ amountCents: 400_000, debtCents: 2_000_000 });
     expect(rows.some((row) => row.kind === 'kiosk')).toBe(true);
-    expect(totalCents).toBe(plansCents + kioskCents);
+    expect(counterCents).toBe(1_900_000);
+    expect(totalCents).toBe(plansCents + kioskCents + counterCents);
   });
 
   it('never writes movements in the future', () => {
@@ -71,7 +72,7 @@ describe('seedDatabase', () => {
         `SELECT MAX(d) AS d FROM (
            SELECT sold_at AS d FROM sales UNION ALL SELECT paid_at FROM payments
            UNION ALL SELECT substr(consumed_at, 1, 10) FROM consumptions UNION ALL SELECT signed_at FROM waiver_signatures
-           UNION ALL SELECT sold_at FROM kiosk_sales)`,
+           UNION ALL SELECT sold_at FROM kiosk_sales UNION ALL SELECT sold_at FROM counter_sales)`,
       )
       .get() as { d: string };
     expect(latest.d <= todayIso).toBe(true);

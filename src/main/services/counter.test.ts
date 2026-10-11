@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { adultClient, createTestContext, freePlan, type TestContext } from '../test-context';
 import { createClient } from './clients';
 import { getDayMovements } from './counter';
+import { sellCounter, updateCounterPrices, voidCounterSale } from './counterSales';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment, voidPayment } from './payments';
 import { createPlan } from './plans';
@@ -26,7 +27,7 @@ describe('counter day movements', () => {
   const sell = () => sellKiosk(ctx, { items: [{ productId, quantity: 2 }], method: 'cash' });
 
   it('is empty without movements', () => {
-    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, totalCents: 0 });
+    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, counterCents: 0, totalCents: 0 });
   });
 
   it('lists today payments (with current debt) before kiosk tickets and totals them', () => {
@@ -57,6 +58,20 @@ describe('counter day movements', () => {
     ctx.clock.set(new Date(2026, 9, 4, 12));
     sell();
     ctx.clock.set(new Date(2026, 9, 5, 12));
-    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, totalCents: 0 });
+    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, counterCents: 0, totalCents: 0 });
+  });
+
+  it('lists walk-in passes and shoe rentals after the kiosk, leaving out voided ones', () => {
+    updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
+    const [pass, shoes] = sellCounter(ctx, { kinds: ['day_pass', 'shoe_rental'], method: 'cash' });
+    voidCounterSale(ctx, sellCounter(ctx, { kinds: ['day_pass'], method: 'cash' })[0]?.id ?? 0);
+    const ticket = sell();
+    const day = getDayMovements(ctx);
+    expect(day.rows).toEqual([
+      { kind: 'kiosk', sale: ticket },
+      { kind: 'counter', sale: pass },
+      { kind: 'counter', sale: shoes },
+    ]);
+    expect(day).toMatchObject({ kioskCents: 200_000, counterCents: 1_100_000, totalCents: 1_300_000 });
   });
 });

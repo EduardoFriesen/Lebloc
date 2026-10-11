@@ -13,7 +13,7 @@ import { AsyncView, EmptyState } from '../components/ui/States';
 import { tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { sum } from '../lib/arrays';
-import { formatMoney, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
+import { formatMoney, formatTime, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
 import { matchesSearch } from '../lib/search';
 import { useAsync } from '../lib/useAsync';
 import type { KioskSale, Product } from '../../shared/types';
@@ -166,13 +166,6 @@ function ProductsBlock() {
   );
 }
 
-function ticketTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function SalesTable({
   sales,
   onVoid,
@@ -202,7 +195,7 @@ function SalesTable({
               key={sale.id}
               className={sale.voidedAt ? 'text-ink-soft line-through' : ''}
             >
-              <td>{ticketTime(sale.recordedAt)}</td>
+              <td>{formatTime(sale.recordedAt)}</td>
               <td>
                 {sale.items
                   .map((item) => `${item.quantity} × ${item.productName}`)
@@ -218,7 +211,7 @@ function SalesTable({
                 ) : (
                   <Button
                     variant="ghost"
-                    aria-label={`Anular ticket de las ${ticketTime(sale.recordedAt)}`}
+                    aria-label={`Anular ticket de las ${formatTime(sale.recordedAt)}`}
                     onClick={() => onVoid(sale)}
                   >
                     Anular
@@ -246,7 +239,7 @@ function SalesBlock() {
   function askVoid(sale: KioskSale) {
     setPending({
       title: 'Anular venta',
-      message: `Se anula el ticket de ${formatMoney(sale.totalCents)} de las ${ticketTime(sale.recordedAt)}. Deja de contar en el total del día.`,
+      message: `Se anula el ticket de ${formatMoney(sale.totalCents)} de las ${formatTime(sale.recordedAt)}. Deja de contar en el total del día.`,
       confirmLabel: 'Anular venta',
       action: () => call('kiosk:void', { id: sale.id }),
     });

@@ -4,6 +4,7 @@ import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
 import { DayMovementsTable } from '../components/DayMovementsTable';
 import { KioskSalePanel } from '../components/KioskSalePanel';
+import { WalkInButtons } from '../components/WalkInButtons';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, FOCUS_WITHIN, PassBadge, STRETCHED } from '../components/ui/Card';
 import { TextField } from '../components/ui/Field';
@@ -50,6 +51,11 @@ export function HomePage() {
     }
   }
 
+  function refreshIncome() {
+    dashboard.reload();
+    movements.reload();
+  }
+
   const strip = (client: ClientSummary) => <ClientStrip key={client.id} client={client} busy={busy} onConsume={consume} />;
 
   return (
@@ -59,14 +65,20 @@ export function HomePage() {
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
       </div>
       <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
-        <TextField
-          label="Buscar cliente"
-          type="search"
-          autoFocus
-          placeholder="Nombre o apellido"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <h2 className="font-display text-2xl font-semibold">Pases</h2>
+        <div className="-mt-3 flex flex-wrap items-end gap-3">
+          <div className="w-full max-w-sm">
+            <TextField
+              label="Buscar cliente"
+              type="search"
+              autoFocus
+              placeholder="Nombre o apellido"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <WalkInButtons onSold={refreshIncome} />
+        </div>
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
         {query ? (
           <ListSection title="Resultados">
@@ -96,13 +108,8 @@ export function HomePage() {
           </ListSection>
         )}
         <Stripe className="my-2" />
-        <KioskSalePanel
-          onSold={() => {
-            dashboard.reload();
-            movements.reload();
-          }}
-        />
-        <DayMovementsTable state={movements} />
+        <KioskSalePanel onSold={refreshIncome} />
+        <DayMovementsTable state={movements} onChanged={refreshIncome} />
       </div>
       <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
         <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
@@ -117,9 +124,9 @@ function ListSection({ title, children }: { title: string; children: ReactNode }
   const id = useId();
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h2 id={id} className="font-display text-2xl font-semibold">
+      <h3 id={id} className="font-display text-lg font-semibold text-ink-soft">
         {title}
-      </h2>
+      </h3>
       {children}
     </section>
   );

@@ -17,6 +17,7 @@ import { listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
 import { getDayMovements } from '../services/counter';
+import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
 import { createPlan, getPlan, getPlanEnrollments, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, voidSale } from '../services/sales';
@@ -72,6 +73,10 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
     'kiosk:top': () => listTopProducts(ctx),
     'counter:today': () => getDayMovements(ctx),
+    'counter:sell': (input) => sellCounter(ctx, input),
+    'counter:void': ({ id }) => voidCounterSale(ctx, id),
+    'prices:get': () => getCounterPrices(ctx),
+    'prices:update': (input) => updateCounterPrices(ctx, input),
     'dashboard:get': () => getDashboard(ctx),
     'waivers:create': (input) => signWaiver(ctx, input),
     'waivers:void': ({ id }) => voidWaiver(ctx, id),
