@@ -9,8 +9,12 @@ import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
-import { AsyncView, EmptyState } from '../components/ui/States';
-import { tableClass } from '../components/ui/table';
+import { AsyncView } from '../components/ui/States';
+import {
+  FillerRows,
+  TABLE_PAGE_SIZE,
+  tableClass,
+} from '../components/ui/table';
 import { call } from '../lib/api';
 import { sum } from '../lib/arrays';
 import { formatMoney, formatTime, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
@@ -36,12 +40,14 @@ export function KioskPage() {
 
 function ProductsTable({
   products,
+  empty,
   onEdit,
 }: {
   products: Product[];
+  empty: string;
   onEdit: (product: Product) => void;
 }) {
-  const { visible, page, pages, setPage } = usePage(products, 10);
+  const { visible, page, pages, setPage } = usePage(products, TABLE_PAGE_SIZE);
   return (
     <>
       <table className={tableClass}>
@@ -86,9 +92,16 @@ function ProductsTable({
               </td>
             </tr>
           ))}
+          <FillerRows filled={visible.length} columns={7} empty={empty} />
         </tbody>
       </table>
-      <PageBar label="Productos" page={page} pages={pages} onChange={setPage} />
+      <PageBar
+        keep
+        label="Productos"
+        page={page}
+        pages={pages}
+        onChange={setPage}
+      />
     </>
   );
 }
@@ -122,29 +135,21 @@ function ProductsBlock() {
           <Button onClick={() => setEditing('new')}>Nuevo producto</Button>
         </div>
       </div>
-      <AsyncView
-        state={products}
-        isEmpty={(data) => data.length === 0}
-        empty={
-          <EmptyState title="Todavía no hay productos">
-            <p className="text-sm">Creá el primero con “Nuevo producto”.</p>
-          </EmptyState>
-        }
-      >
-        {(data) => {
-          const found = data.filter((product) =>
-            matchesSearch(product.name, search),
-          );
-          return found.length === 0 ? (
-            <p className="text-sm text-ink-soft">Ningún producto coincide</p>
-          ) : (
-            <ProductsTable
-              key={`${search}|${showInactive}`}
-              products={found}
-              onEdit={setEditing}
-            />
-          );
-        }}
+      <AsyncView state={products}>
+        {(data) => (
+          <ProductsTable
+            key={`${search}|${showInactive}`}
+            products={data.filter((product) =>
+              matchesSearch(product.name, search),
+            )}
+            empty={
+              data.length === 0
+                ? 'Todavía no hay productos. Creá el primero con “Nuevo producto”.'
+                : 'Ningún producto coincide'
+            }
+            onEdit={setEditing}
+          />
+        )}
       </AsyncView>
       <Dialog
         open={editing !== null}
@@ -173,7 +178,7 @@ function SalesTable({
   sales: KioskSale[];
   onVoid: (sale: KioskSale) => void;
 }) {
-  const { visible, page, pages, setPage } = usePage(sales, 10);
+  const { visible, page, pages, setPage } = usePage(sales, TABLE_PAGE_SIZE);
   return (
     <>
       <table className={tableClass}>
@@ -220,9 +225,20 @@ function SalesTable({
               </td>
             </tr>
           ))}
+          <FillerRows
+            filled={visible.length}
+            columns={5}
+            empty="No hay ventas ese día"
+          />
         </tbody>
       </table>
-      <PageBar label="Ventas" page={page} pages={pages} onChange={setPage} />
+      <PageBar
+        keep
+        label="Ventas"
+        page={page}
+        pages={pages}
+        onChange={setPage}
+      />
     </>
   );
 }
@@ -258,11 +274,7 @@ function SalesBlock() {
           }
         />
       </div>
-      <AsyncView
-        state={sales}
-        isEmpty={(data) => data.length === 0}
-        empty={<EmptyState title="No hay ventas ese día" />}
-      >
+      <AsyncView state={sales}>
         {(data) => (
           <>
             <p className="text-sm">

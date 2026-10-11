@@ -8,8 +8,9 @@ import { Dialog } from '../components/ui/Dialog';
 import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageBar, usePage } from '../components/ui/Pager';
 import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
-import { tableClass } from '../components/ui/table';
+import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import {
   ageLabel,
@@ -323,12 +324,16 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
   );
 }
 
+// Smaller than other tables: there is one per sale.
+const PAYMENTS_PAGE_SIZE = 5;
+
 function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
   const voided = sale.voidedAt !== null;
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
     .reduce<Payment | null>((last, payment) => (!last || payment.id > last.id ? payment : last), null);
   const border = voided ? 'border-ink/30 opacity-70' : sale.debtCents > 0 ? 'border-accent' : 'border-moss';
+  const paymentsPage = usePage(payments, PAYMENTS_PAGE_SIZE);
 
   return (
     <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 rounded-2xl bg-surface p-5 shadow-warm ${border}`}>
@@ -367,33 +372,33 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
         ) : (
           <p className="font-semibold text-moss">Saldada</p>
         ))}
-      {payments.length > 0 && (
-        <table className={tableClass}>
-          <caption className="sr-only">Pagos de la venta</caption>
-          <thead>
-            <tr>
-              <th scope="col">Fecha</th>
-              <th scope="col">Medio</th>
-              <th scope="col">Monto</th>
-              <th scope="col">Local / Profesor</th>
-              <th scope="col">Estado</th>
+      <table className={tableClass}>
+        <caption className="sr-only">Pagos de la venta</caption>
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Medio</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Local / Profesor</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paymentsPage.visible.map((payment) => (
+            <tr key={payment.id} className={payment.voidedAt ? 'text-ink-soft' : ''}>
+              <td>{formatDate(payment.paidAt)}</td>
+              <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
+              <td>{formatMoney(payment.amountCents)}</td>
+              <td>
+                {formatMoney(payment.localCents)} / {formatMoney(payment.teacherCents)}
+              </td>
+              <td>{payment.voidedAt ? 'Anulado' : 'Activo'}</td>
             </tr>
-          </thead>
-          <tbody>
-            {payments.map((payment) => (
-              <tr key={payment.id} className={payment.voidedAt ? 'text-ink-soft' : ''}>
-                <td>{formatDate(payment.paidAt)}</td>
-                <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
-                <td>{formatMoney(payment.amountCents)}</td>
-                <td>
-                  {formatMoney(payment.localCents)} / {formatMoney(payment.teacherCents)}
-                </td>
-                <td>{payment.voidedAt ? 'Anulado' : 'Activo'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+          <FillerRows filled={paymentsPage.visible.length} columns={5} empty="Sin pagos." size={PAYMENTS_PAGE_SIZE} />
+        </tbody>
+      </table>
+      <PageBar keep label="Pagos" page={paymentsPage.page} pages={paymentsPage.pages} onChange={paymentsPage.setPage} />
       {!voided && !disabled && (
         <div className="flex flex-wrap gap-2">
           {sale.debtCents > 0 && <Button onClick={() => onPay(sale)}>Registrar pago</Button>}
@@ -416,7 +421,7 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
   );
 }
 
-/** One month of consumptions (current month by default) in a short table that scrolls inside itself. */
+/** One month of consumptions (current month by default), a page of rows at a time. */
 function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: Consumption[]; disabled: boolean; onVoid: (consumption: Consumption) => void }) {
   const [month, setMonth] = useState(() => localMonth(new Date().toISOString()));
   const visible = consumptions.filter((consumption) => localMonth(consumption.consumedAt) === month);
@@ -427,64 +432,79 @@ function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: C
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="consumos-title" className="font-display text-2xl font-semibold">
           Consumos
-          {consumptions.length > 0 && <span className="ml-2 font-sans text-sm font-normal text-ink-soft">{visible.length} en el mes</span>}
+          <span className="ml-2 font-sans text-sm font-normal text-ink-soft">{visible.length} en el mes</span>
         </h2>
-        {consumptions.length > 0 && (
-          <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
-            Mes
-            <input
-              type="month"
-              required
-              value={month}
-              onChange={(event) => event.target.value && setMonth(event.target.value)}
-              className="rounded-xl border border-ink/25 bg-surface px-3 py-1 text-sm text-ink"
-            />
-          </label>
-        )}
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
+          Mes
+          <input
+            type="month"
+            required
+            value={month}
+            onChange={(event) => event.target.value && setMonth(event.target.value)}
+            className="rounded-xl border border-ink/25 bg-surface px-3 py-1 text-sm text-ink"
+          />
+        </label>
       </header>
-      {consumptions.length === 0 ? (
-        <EmptyState title="Sin consumos todavía" />
-      ) : visible.length === 0 ? (
-        <p className="text-sm text-ink-soft">Sin consumos en {monthName}.</p>
-      ) : (
-        <div className="max-h-72 overflow-y-auto rounded-2xl">
-          <table className={`${tableClass} overflow-visible! [&_td]:py-1! [&_th]:py-1.5! [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-surface`}>
-            <caption className="sr-only">Consumos de {monthName}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Día</th>
-                <th scope="col">Tipo</th>
-                <th scope="col">Estado</th>
-                <th scope="col">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((consumption) => (
-                <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
-                  <td>{formatDateTime(consumption.consumedAt)}</td>
-                  <td>{PASS_KIND_LABELS[consumption.kind]}</td>
-                  <td>{consumption.voidedAt ? 'Anulado' : 'Activo'}</td>
-                  <td className="text-right">
-                    {!consumption.voidedAt && !disabled && (
-                      <Button
-                        variant="ghost"
-                        className="px-3! py-0.5! text-xs"
-                        aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
-                        onClick={() => onVoid(consumption)}
-                      >
-                        Anular
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ConsumptionsTable
+        key={month}
+        consumptions={visible}
+        caption={`Consumos de ${monthName}`}
+        empty={consumptions.length === 0 ? 'Sin consumos todavía.' : `Sin consumos en ${monthName}.`}
+        disabled={disabled}
+        onVoid={onVoid}
+      />
     </section>
+  );
+}
+
+interface ConsumptionsTableProps {
+  consumptions: Consumption[];
+  caption: string;
+  empty: string;
+  disabled: boolean;
+  onVoid: (consumption: Consumption) => void;
+}
+
+function ConsumptionsTable({ consumptions, caption, empty, disabled, onVoid }: ConsumptionsTableProps) {
+  const { visible, page, pages, setPage } = usePage(consumptions, TABLE_PAGE_SIZE);
+  return (
+    <>
+      <table className={tableClass}>
+        <caption className="sr-only">{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Día</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((consumption) => (
+            <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
+              <td>{formatDateTime(consumption.consumedAt)}</td>
+              <td>{PASS_KIND_LABELS[consumption.kind]}</td>
+              <td>{consumption.voidedAt ? 'Anulado' : 'Activo'}</td>
+              <td className="text-right">
+                {!consumption.voidedAt && !disabled && (
+                  <Button
+                    variant="ghost"
+                    aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
+                    onClick={() => onVoid(consumption)}
+                  >
+                    Anular
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+          <FillerRows filled={visible.length} columns={4} empty={empty} />
+        </tbody>
+      </table>
+      <PageBar keep label="Consumos" page={page} pages={pages} onChange={setPage} />
+    </>
   );
 }
 

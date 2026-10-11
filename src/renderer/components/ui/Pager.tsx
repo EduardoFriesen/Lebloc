@@ -18,9 +18,18 @@ export function usePage<T>(items: readonly T[], pageSize: number) {
   return { visible, page, pages, setPage };
 }
 
-/** The ‹ 1 / 3 › bar; hidden when everything fits in one page. */
-export function PageBar({ label, page, pages, onChange }: { label: string; page: number; pages: number; onChange: (page: number) => void }) {
-  if (pages <= 1) return null;
+interface PageBarProps {
+  label: string;
+  page: number;
+  pages: number;
+  onChange: (page: number) => void;
+  /** Show it even with a single page (tables, so nothing below them moves). */
+  keep?: boolean;
+}
+
+/** The ‹ 1 / 3 › bar; hidden when everything fits in one page, unless `keep`. */
+export function PageBar({ label, page, pages, onChange, keep = false }: PageBarProps) {
+  if (pages <= 1 && !keep) return null;
   return (
     <nav aria-label={`Páginas de ${label.toLowerCase()}`} className="flex items-center justify-center gap-3 text-sm">
       <PageButton label="Página anterior" disabled={page === 0} onClick={() => onChange(page - 1)}>

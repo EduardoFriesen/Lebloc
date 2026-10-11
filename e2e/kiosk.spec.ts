@@ -107,6 +107,7 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
 
   const movements = page.getByRole('table', { name: 'Movimientos de hoy' });
   await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText('Transferencia');
+  await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText(/\d{2}:\d{2}/);
   await expect(movements.getByRole('row', { name: /Pédulas/ })).toContainText(/3\.000/);
   await expect(page.getByText(/Pases sueltos \$\s11\.000,00/)).toBeVisible();
 
@@ -117,5 +118,5 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
 
   // The window never scrolls: with the movements filled in, only the counter's own column does.
   await page.mouse.wheel(0, 5000);
-  expect(await page.evaluate(() => [document.scrollingElement?.scrollTop, document.documentElement.scrollHeight <= innerHeight])).toEqual([0, true]);
+  expect(await page.evaluate('[document.scrollingElement.scrollTop, document.documentElement.scrollHeight <= innerHeight]')).toEqual([0, true]);
 });

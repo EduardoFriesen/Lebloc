@@ -7,8 +7,8 @@ import type { AsyncResult } from '../lib/useAsync';
 import { Button } from './ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from './ui/ConfirmDialog';
 import { PageBar, usePage } from './ui/Pager';
-import { AsyncView, EmptyState } from './ui/States';
-import { tableClass } from './ui/table';
+import { AsyncView } from './ui/States';
+import { FillerRows, TABLE_PAGE_SIZE, tableClass } from './ui/table';
 
 function rowKey(movement: DayMovement) {
   if (movement.kind === 'plan') return `p${movement.paymentId}`;
@@ -20,6 +20,7 @@ function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (req
     const { sale } = movement;
     return (
       <tr>
+        <td>{formatTime(sale.recordedAt)}</td>
         <td>Kiosco</td>
         <td>{sale.items.map((item) => `${item.quantity} × ${item.productName}`).join(', ')}</td>
         <td>{PAYMENT_METHOD_LABELS[sale.method]}</td>
@@ -33,6 +34,7 @@ function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (req
     const label = COUNTER_SALE_LABELS[sale.kind];
     return (
       <tr>
+        <td>{formatTime(sale.recordedAt)}</td>
         <td>Pase suelto</td>
         <td>{label}</td>
         <td>{PAYMENT_METHOD_LABELS[sale.method]}</td>
@@ -58,6 +60,7 @@ function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (req
   }
   return (
     <tr>
+      <td>{movement.recordedAt ? formatTime(movement.recordedAt) : '—'}</td>
       <td>Plan</td>
       <td>
         <Link className="underline" to={`/clientes/${movement.clientId}`}>
@@ -76,7 +79,7 @@ function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (req
 }
 
 function MovementsBody({ data, onVoid }: { data: DayMovements; onVoid: (request: ConfirmRequest) => void }) {
-  const { visible, page, pages, setPage } = usePage(data.rows, 10);
+  const { visible, page, pages, setPage } = usePage(data.rows, TABLE_PAGE_SIZE);
   return (
     <>
       <p className="text-sm">
@@ -87,6 +90,7 @@ function MovementsBody({ data, onVoid }: { data: DayMovements; onVoid: (request:
         <caption className="sr-only">Movimientos de hoy</caption>
         <thead>
           <tr>
+            <th scope="col">Hora</th>
             <th scope="col">Tipo</th>
             <th scope="col">Detalle</th>
             <th scope="col">Medio</th>
@@ -100,9 +104,10 @@ function MovementsBody({ data, onVoid }: { data: DayMovements; onVoid: (request:
           {visible.map((movement) => (
             <MovementRow key={rowKey(movement)} movement={movement} onVoid={onVoid} />
           ))}
+          <FillerRows filled={visible.length} columns={6} empty="Todavía no hay movimientos hoy" />
         </tbody>
       </table>
-      <PageBar label="Movimientos" page={page} pages={pages} onChange={setPage} />
+      <PageBar keep label="Movimientos" page={page} pages={pages} onChange={setPage} />
     </>
   );
 }
@@ -119,9 +124,7 @@ export function DayMovementsTable({ state, onChanged }: { state: AsyncResult<Day
       <h2 id={headingId} className="font-display text-2xl font-semibold">
         Movimientos de hoy
       </h2>
-      <AsyncView state={state} isEmpty={(data) => data.rows.length === 0} empty={<EmptyState title="Todavía no hay movimientos hoy" />}>
-        {(data) => <MovementsBody data={data} onVoid={setConfirm} />}
-      </AsyncView>
+      <AsyncView state={state}>{(data) => <MovementsBody data={data} onVoid={setConfirm} />}</AsyncView>
       <ConfirmDialog
         request={confirm}
         onClose={() => setConfirm(null)}

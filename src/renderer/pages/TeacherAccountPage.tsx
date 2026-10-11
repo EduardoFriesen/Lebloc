@@ -10,8 +10,9 @@ import { EnrollmentsSection } from '../components/ui/Enrollments';
 import { MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
-import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
-import { tableClass } from '../components/ui/table';
+import { PageBar, usePage } from '../components/ui/Pager';
+import { AsyncView, SkeletonRows } from '../components/ui/States';
+import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { currentMonthLabel, formatDate, formatMoney, formatMoneyInput, fullName, PAYMENT_METHOD_LABELS, todayIso, WEEKDAY_LABELS } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
@@ -48,6 +49,8 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
+  const payouts = usePage(account.payouts, TABLE_PAGE_SIZE);
+  const shares = usePage(account.shares, TABLE_PAGE_SIZE);
 
   return (
     <>
@@ -94,83 +97,79 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           <h2 id="liquidaciones-title" className="font-display text-2xl font-semibold">
             Liquidaciones
           </h2>
-          {account.payouts.length === 0 ? (
-            <EmptyState title="Todavía no hay liquidaciones" />
-          ) : (
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Medio</th>
-                  <th scope="col">Monto</th>
-                  <th scope="col">Nota</th>
-                  <th scope="col">
-                    <span className="sr-only">Acciones</span>
-                  </th>
+          <table className={tableClass}>
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Medio</th>
+                <th scope="col">Monto</th>
+                <th scope="col">Nota</th>
+                <th scope="col">
+                  <span className="sr-only">Acciones</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {payouts.visible.map((payout) => (
+                <tr key={payout.id} className={payout.voidedAt ? 'text-ink-soft' : ''}>
+                  <td>{formatDate(payout.paidAt)}</td>
+                  <td>{PAYMENT_METHOD_LABELS[payout.method]}</td>
+                  <td>{formatMoney(payout.amountCents)}</td>
+                  <td>{payout.note ?? '—'}</td>
+                  <td className="text-right">
+                    {payout.voidedAt ? (
+                      'Anulada'
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`}
+                        onClick={() =>
+                          setPending({
+                            title: 'Anular liquidación',
+                            message: `Se anula la liquidación de ${formatMoney(payout.amountCents)} y el saldo del profesor vuelve a subir.`,
+                            confirmLabel: 'Anular liquidación',
+                            action: () => call('payouts:void', { id: payout.id }),
+                          })
+                        }
+                      >
+                        Anular
+                      </Button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {account.payouts.map((payout) => (
-                  <tr key={payout.id} className={payout.voidedAt ? 'text-ink-soft' : ''}>
-                    <td>{formatDate(payout.paidAt)}</td>
-                    <td>{PAYMENT_METHOD_LABELS[payout.method]}</td>
-                    <td>{formatMoney(payout.amountCents)}</td>
-                    <td>{payout.note ?? '—'}</td>
-                    <td className="text-right">
-                      {payout.voidedAt ? (
-                        'Anulada'
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`}
-                          onClick={() =>
-                            setPending({
-                              title: 'Anular liquidación',
-                              message: `Se anula la liquidación de ${formatMoney(payout.amountCents)} y el saldo del profesor vuelve a subir.`,
-                              confirmLabel: 'Anular liquidación',
-                              action: () => call('payouts:void', { id: payout.id }),
-                            })
-                          }
-                        >
-                          Anular
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+              <FillerRows filled={payouts.visible.length} columns={5} empty="Todavía no hay liquidaciones" />
+            </tbody>
+          </table>
+          <PageBar keep label="Liquidaciones" page={payouts.page} pages={payouts.pages} onChange={payouts.setPage} />
         </section>
 
         <section aria-labelledby="cobros-title" className="flex flex-col gap-3">
           <h2 id="cobros-title" className="font-display text-2xl font-semibold">
             Cobros generados
           </h2>
-          {account.shares.length === 0 ? (
-            <EmptyState title="Todavía no hay cobros con este profesor" />
-          ) : (
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Cliente</th>
-                  <th scope="col">Plan</th>
-                  <th scope="col">Le corresponde</th>
+          <table className={tableClass}>
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Plan</th>
+                <th scope="col">Le corresponde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shares.visible.map((share) => (
+                <tr key={share.paymentId}>
+                  <td>{formatDate(share.paidAt)}</td>
+                  <td>{share.clientName}</td>
+                  <td>{share.planName}</td>
+                  <td>{formatMoney(share.teacherCents)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {account.shares.map((share) => (
-                  <tr key={share.paymentId}>
-                    <td>{formatDate(share.paidAt)}</td>
-                    <td>{share.clientName}</td>
-                    <td>{share.planName}</td>
-                    <td>{formatMoney(share.teacherCents)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+              <FillerRows filled={shares.visible.length} columns={4} empty="Todavía no hay cobros con este profesor" />
+            </tbody>
+          </table>
+          <PageBar keep label="Cobros generados" page={shares.page} pages={shares.pages} onChange={shares.setPage} />
         </section>
       </div>
 
