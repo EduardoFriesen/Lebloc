@@ -6,7 +6,7 @@ import {
   type ConfirmRequest,
 } from "../components/ui/ConfirmDialog";
 import { Dialog } from "../components/ui/Dialog";
-import { TextField } from "../components/ui/Field";
+import { CheckboxField, TextField } from "../components/ui/Field";
 import { PageHeader } from "../components/ui/PageHeader";
 import { AsyncView, EmptyState } from "../components/ui/States";
 import { tableClass } from "../components/ui/table";
@@ -35,7 +35,7 @@ export function KioskPage() {
 function ProductsBlock() {
   const [showInactive, setShowInactive] = useState(false);
   const products = useAsync(
-    async () => await call("products:list", { includeInactive: showInactive }),
+    () => call("products:list", { includeInactive: showInactive }),
     [showInactive],
     { keepPreviousData: true },
   );
@@ -46,14 +46,11 @@ function ProductsBlock() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className={HEADING}>Productos</h2>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(event) => setShowInactive(event.target.checked)}
-            />
-            Mostrar inactivos
-          </label>
+          <CheckboxField
+            label="Mostrar inactivos"
+            checked={showInactive}
+            onChange={(event) => setShowInactive(event.target.checked)}
+          />
           <Button onClick={() => setEditing("new")}>Nuevo producto</Button>
         </div>
       </div>
@@ -88,12 +85,9 @@ function ProductsBlock() {
                   key={product.id}
                   className={product.active ? "" : "text-ink-soft"}
                 >
-                  <th
-                    scope="row"
-                    className="!bg-transparent !text-sm !font-semibold !text-current"
-                  >
+                  <td className="font-semibold">
                     {product.name} {!product.active && <Badge>Inactivo</Badge>}
-                  </th>
+                  </td>
                   <td>{product.packSize} u.</td>
                   <td>{formatMoney(product.unitCostCents)}</td>
                   <td>{product.markupPercent}%</td>
@@ -146,7 +140,7 @@ function ticketTime(iso: string): string {
 function SalesBlock() {
   const [date, setDate] = useState(todayIso());
   const sales = useAsync(
-    async () => await call("kiosk:sales", { date }),
+    () => call("kiosk:sales", { date }),
     [date],
     { keepPreviousData: true },
   );
@@ -183,7 +177,7 @@ function SalesBlock() {
           <>
             <p className="text-sm">
               Total del día:{" "}
-              <strong data-testid="kiosk-day-total">
+              <strong>
                 {formatMoney(
                   sum(
                     data
@@ -224,9 +218,9 @@ function SalesBlock() {
                     <td className="font-semibold">
                       {formatMoney(sale.totalCents)}
                     </td>
-                    <td className="text-right no-underline">
+                    <td className="text-right">
                       {sale.voidedAt ? (
-                        <Badge>Anulado</Badge>
+                        <span className="inline-block no-underline"><Badge>Anulado</Badge></span>
                       ) : (
                         <Button
                           variant="ghost"

@@ -394,9 +394,7 @@ export function seedDatabase(db: Db, now: Date): void {
     const alfajor = product('Alfajor', 12, 9_600, 50, 1_200);
     const magnesio = product('Magnesio en bolsa', 10, 15_000, 60, 2_400);
     const cinta = product('Cinta de dedos', 5, 10_000, 50, 3_000);
-    at(100, 12);
     const energizante = product('Energizante', 12, 24_000, 40, 2_800);
-    at(60, 12);
     updateProduct(ctx, { id: energizante, name: 'Energizante', packSize: 12, packCostCents: pesos(24_000), markupPercent: 40, priceCents: pesos(2_800), active: false });
 
     const ticket = (daysAgo: number, hour: number, method: PaymentMethod, items: [number, number][]) => {
@@ -411,9 +409,9 @@ export function seedDatabase(db: Db, now: Date): void {
     at(2, 20);
     voidKioskSale(ctx, mistakenTicket.id);
     ticket(1, 18, 'transfer', [[magnesio, 2], [agua, 2]]);
-    ticket(0, 0, 'cash', [[agua, 2]]);
-    ticket(0, 0, 'transfer', [[isotonica, 1], [barrita, 2]]);
-    ticket(0, 0, 'cash', [[alfajor, 3], [cinta, 1]]);
+    ticket(0, 10, 'cash', [[agua, 2]]);
+    ticket(0, 15, 'transfer', [[isotonica, 1], [barrita, 2]]);
+    ticket(0, 18, 'cash', [[alfajor, 3], [cinta, 1]]);
 
     at(70, 12);
     archiveClient(ctx, hernan);

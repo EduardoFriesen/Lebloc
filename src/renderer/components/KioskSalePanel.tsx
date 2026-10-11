@@ -29,12 +29,17 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
-  async function charge(items: { productId: number; quantity: number }[], total: number) {
+  function updateCart(productId: number, delta: number) {
+    setNotice(null);
+    setCart((current) => changeQuantity(current, productId, delta));
+  }
+
+  async function charge(items: { productId: number; quantity: number }[]) {
     setBusy(true);
     try {
-      await call('kiosk:sell', { items, method });
+      const sale = await call('kiosk:sell', { items, method });
       setCart({});
-      setNotice({ tone: 'success', text: `Venta registrada: ${formatMoney(total)}` });
+      setNotice({ tone: 'success', text: `Venta registrada: ${formatMoney(sale.totalCents)}` });
       onSold();
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
@@ -67,7 +72,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
               <ul className="flex flex-wrap gap-2" aria-label="Productos">
                 {list.map((product: Product) => (
                   <li key={product.id}>
-                    <Button variant="secondary" disabled={busy} onClick={() => setCart((current) => changeQuantity(current, product.id, 1))}>
+                    <Button variant="secondary" disabled={busy} onClick={() => updateCart(product.id, 1)}>
                       {product.name} · {formatMoney(product.priceCents)}
                     </Button>
                   </li>
@@ -81,11 +86,11 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
                     <li key={product.id} className="flex items-center justify-between gap-3">
                       <span className="font-semibold">{product.name}</span>
                       <span className="flex items-center gap-2">
-                        <Button variant="ghost" disabled={busy} aria-label={`Quitar uno de ${product.name}`} onClick={() => setCart((c) => changeQuantity(c, product.id, -1))}>
+                        <Button variant="ghost" disabled={busy} aria-label={`Quitar uno de ${product.name}`} onClick={() => updateCart(product.id, -1)}>
                           −
                         </Button>
                         <span className="min-w-6 text-center tabular-nums">{quantity}</span>
-                        <Button variant="ghost" disabled={busy} aria-label={`Agregar uno de ${product.name}`} onClick={() => setCart((c) => changeQuantity(c, product.id, 1))}>
+                        <Button variant="ghost" disabled={busy} aria-label={`Agregar uno de ${product.name}`} onClick={() => updateCart(product.id, 1)}>
                           +
                         </Button>
                         <span className="min-w-20 text-right tabular-nums">{formatMoney(quantity * product.priceCents)}</span>
@@ -104,7 +109,7 @@ export function KioskSalePanel({ onSold }: { onSold: () => void }) {
                 </SelectField>
                 <Button
                   disabled={busy || lines.length === 0}
-                  onClick={() => void charge(lines.map(({ product, quantity }) => ({ productId: product.id, quantity })), total)}
+                  onClick={() => void charge(lines.map(({ product, quantity }) => ({ productId: product.id, quantity })))}
                 >
                   Cobrar {formatMoney(total)}
                 </Button>
