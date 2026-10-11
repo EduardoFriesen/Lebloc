@@ -6,8 +6,10 @@ import { ClientsPage } from './pages/ClientsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { FinancePage } from './pages/FinancePage';
+import { ClientsTab } from './pages/finance/ClientsTab';
 import { SalesTab } from './pages/finance/SalesTab';
 import { SummaryTab } from './pages/finance/SummaryTab';
+import { TeachersTab } from './pages/finance/TeachersTab';
 import { TrafficTab } from './pages/finance/TrafficTab';
 import { HomePage } from './pages/HomePage';
 import { KioskPage } from './pages/KioskPage';
@@ -47,8 +49,8 @@ export function AppRoutes() {
           <Route index element={<SummaryTab />} />
           <Route path="ventas" element={<SalesTab />} />
           <Route path="afluencia" element={<TrafficTab />} />
-          <Route path="profesores" element={<EmptyState title="Próximamente" />} />
-          <Route path="clientes" element={<EmptyState title="Próximamente" />} />
+          <Route path="profesores" element={<TeachersTab />} />
+          <Route path="clientes" element={<ClientsTab />} />
         </Route>
         <Route path="ajustes" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
