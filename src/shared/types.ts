@@ -373,3 +373,48 @@ export interface ExpenseMonth {
   /** Non-voided only, largest first. */
   byCategory: { category: ExpenseCategory; cents: number }[];
 }
+
+/** Every employee is paid by the hour; staff/casual is only a label. */
+export type EmployeeKind = 'staff' | 'casual';
+
+export interface Employee {
+  id: number;
+  firstName: string;
+  lastName: string;
+  dni: string | null;
+  phone: string | null;
+  address: string | null;
+  kind: EmployeeKind;
+  hourlyRateCents: number;
+  active: boolean;
+}
+
+export interface EmployeeSummary extends Employee {
+  /** Non-voided shifts of the requested month. */
+  monthMinutes: number;
+  monthCostCents: number;
+}
+
+export interface WorkShift {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  workedOn: string;
+  minutes: number;
+  /** Snapshots taken when the shift was recorded. */
+  hourlyRateCents: number;
+  costCents: number;
+  note: string | null;
+  recordedAt: string;
+  voidedAt: string | null;
+}
+
+export interface StaffStats {
+  /** Active employees, and how many of them are staff or casual. */
+  active: number;
+  staff: number;
+  casual: number;
+  /** Non-voided shifts of the month, any employee. */
+  monthMinutes: number;
+  monthCostCents: number;
+}

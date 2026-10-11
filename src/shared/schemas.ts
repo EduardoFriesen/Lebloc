@@ -156,6 +156,27 @@ export const expenseInput = z.object({
   paidAt: isoDate,
 });
 
+const employeeFields = {
+  firstName: personName,
+  lastName: personName,
+  dni: optionalText(20),
+  phone: optionalText(30),
+  address: optionalText(200),
+  kind: z.enum(['staff', 'casual']),
+  hourlyRateCents: cents,
+  active: z.boolean(),
+};
+export const employeeInput = z.object(employeeFields);
+export const employeeUpdate = z.object({ id, ...employeeFields });
+export const employeeListInput = z.object({ includeInactive: z.boolean().default(false), month });
+export const shiftListInput = z.object({ month, employeeId: id.optional() });
+export const shiftInput = z.object({
+  employeeId: id,
+  workedOn: isoDate,
+  minutes: z.number().int().min(1, 'Cargá al menos un minuto').max(1440, 'Un turno no puede pasar de 24 horas'),
+  note: optionalText(200),
+});
+
 export type GuardianInput = z.infer<typeof guardianInput>;
 export type ClientInput = z.infer<typeof clientInput>;
 export type ClientUpdate = z.infer<typeof clientUpdate>;
@@ -177,3 +198,6 @@ export type KioskSellInput = z.infer<typeof kioskSellInput>;
 export type CounterSellInput = z.infer<typeof counterSellInput>;
 export type MonthInput = z.infer<typeof monthInput>;
 export type ExpenseInput = z.infer<typeof expenseInput>;
+export type EmployeeInput = z.infer<typeof employeeInput>;
+export type EmployeeUpdate = z.infer<typeof employeeUpdate>;
+export type ShiftInput = z.infer<typeof shiftInput>;
