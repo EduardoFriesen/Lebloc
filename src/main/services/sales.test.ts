@@ -98,6 +98,16 @@ describe('sales and payments', () => {
     expectDomainError(() => sellPlan(ctx, saleOf({ planId: mixedPlanId })), 'CLIENT_ARCHIVED');
   });
 
+  it('rejects sale and payment dates after today', () => {
+    expectDomainError(() => sellPlan(ctx, saleOf({ soldAt: '2026-10-06' })), 'DATE_IN_FUTURE');
+    expectDomainError(
+      () => sellPlan(ctx, saleOf({ initialPayment: { amountCents: 100, method: 'cash', paidAt: '2026-10-06' } })),
+      'DATE_IN_FUTURE',
+    );
+    const sale = sellPlan(ctx, saleOf({}));
+    expectDomainError(() => registerPayment(ctx, { saleId: sale.id, amountCents: 100, method: 'cash', paidAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+  });
+
   it('rolls the sale back when the initial payment is invalid', () => {
     expectDomainError(
       () => sellPlan(ctx, saleOf({ initialPayment: { amountCents: 2_000_001, method: 'cash', paidAt: '2026-10-05' } })),

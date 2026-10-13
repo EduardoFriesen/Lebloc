@@ -92,6 +92,13 @@ describe('clients service', () => {
     expect(search('ALVAREZ')).toEqual([martin.id]);
   });
 
+  it('rejects a birth or enrollment date after today', () => {
+    expectDomainError(() => createClient(ctx, { ...adultClient, birthDate: '2026-10-06' }), 'DATE_IN_FUTURE');
+    expectDomainError(() => createClient(ctx, { ...adultClient, enrolledAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+    const ana = createClient(ctx, adultClient);
+    expectDomainError(() => updateClient(ctx, { ...adultClient, id: ana.id, enrolledAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+  });
+
   it('lists every client, with no cap on how many', () => {
     for (let n = 1; n <= 201; n += 1) createClient(ctx, { ...adultClient, lastName: `Cliente ${String(n).padStart(3, '0')}` });
     const all = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });

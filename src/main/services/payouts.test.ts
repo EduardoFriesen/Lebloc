@@ -46,6 +46,13 @@ describe('teacher ledger', () => {
     ]);
   });
 
+  it('rejects a payout dated after today', () => {
+    expectDomainError(
+      () => registerPayout(ctx, { teacherId, amountCents: 100, method: 'cash', paidAt: '2026-10-06', note: null }),
+      'DATE_IN_FUTURE',
+    );
+  });
+
   it('registers payouts up to the balance and voids them once', () => {
     const first = payout(300_000);
     expect(getTeacherAccount(ctx, teacherId).balanceCents).toBe(200_000);
