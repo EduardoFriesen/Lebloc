@@ -80,6 +80,18 @@ describe('clients service', () => {
     expect(listClients(ctx, { search: '%', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })).toEqual([]);
   });
 
+  it('finds names ignoring accents and case', () => {
+    const lucia = createClient(ctx, { ...adultClient, firstName: 'Lucía', lastName: 'González' });
+    const martin = createClient(ctx, { ...adultClient, firstName: 'Martín', lastName: 'Álvarez' });
+    const search = (text: string) =>
+      listClients(ctx, { search: text, includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).map((c) => c.id);
+    expect(search('gonzalez')).toEqual([lucia.id]);
+    expect(search('LUCIA')).toEqual([lucia.id]);
+    expect(search('gonzalez lucia')).toEqual([lucia.id]);
+    expect(search('álvarez')).toEqual([martin.id]);
+    expect(search('ALVAREZ')).toEqual([martin.id]);
+  });
+
   it('summarizes a client without sales as zero passes and zero debt', () => {
     createClient(ctx, adultClient);
     expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]).toMatchObject({
