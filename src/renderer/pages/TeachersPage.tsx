@@ -96,7 +96,7 @@ export function TeachersPage() {
                     </Stat>
                     <Stat label="Clases por dar">
                       {teacher.pendingClasses}
-                      {teacher.pendingClasses > 0 && <span className="font-sans text-sm text-ink-soft"> · {formatMoney(teacher.pendingCents)}</span>}
+                      {teacher.pendingClasses > 0 && <span className="block font-sans text-sm text-ink-soft">{formatMoney(teacher.pendingCents)}</span>}
                     </Stat>
                   </dl>
                   {teacher.schedules.length === 0 ? (
