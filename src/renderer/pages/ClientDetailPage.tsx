@@ -14,6 +14,7 @@ import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table'
 import { call } from '../lib/api';
 import {
   ageLabel,
+  archiveMessage,
   formatDate,
   formatDateTime,
   formatMoney,
@@ -107,8 +108,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         onClick={() =>
           setPending({
             title: 'Archivar cliente',
-            message:
-              'El cliente deja de aparecer en las listas y no se le pueden vender planes ni marcar pases. Su historial se conserva y se puede desarchivar.',
+            message: archiveMessage(account),
             confirmLabel: 'Archivar',
             action: () => call('clients:archive', { id: client.id }),
           })

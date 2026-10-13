@@ -83,6 +83,19 @@ export function debtLabel({ debtCents, debtDays }: { debtCents: number; debtDays
   return debtDays === null ? amount : `${amount} · ${sinceLabel(debtDays)}`;
 }
 
+/** The archive confirmation: an archived client's debt and passes drop off every list, so it says what is left. */
+export function archiveMessage(account: { debtCents: number; remainingFree: number; remainingTeacher: number }): string {
+  const passes = account.remainingFree + account.remainingTeacher;
+  return [
+    'El cliente deja de aparecer en las listas y no se le pueden vender planes ni marcar pases. Su historial se conserva y se puede desarchivar.',
+    account.debtCents > 0 &&
+      `Debe ${formatMoney(account.debtCents)}: deja de figurar en Deudores y no se le pueden registrar pagos hasta desarchivarlo.`,
+    passes > 0 && (passes === 1 ? 'Le queda 1 pase.' : `Le quedan ${passes} pases.`),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 /** Current month in Spanish, lowercase ("octubre"). */
 export function currentMonthLabel(): string {
   return new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
