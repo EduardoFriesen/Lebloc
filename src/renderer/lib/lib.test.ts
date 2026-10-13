@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { removeAt, replaceAt, sum } from './arrays';
-import { bucketLabel, debtLabel, formatCompactMoney, formatDate, formatHours, formatPercentChange, localMonth } from './format';
+import { archiveMessage, bucketLabel, debtLabel, formatCompactMoney, formatDate, formatHours, formatPercentChange, localMonth } from './format';
 import { toFieldErrors } from './formErrors';
 
 describe('renderer helpers', () => {
@@ -54,6 +54,13 @@ describe('renderer helpers', () => {
     expect(debtLabel({ debtCents: 100, debtDays: 1 })).toMatch(/· hace 1 día$/);
     expect(debtLabel({ debtCents: 100, debtDays: 0 })).toMatch(/· desde hoy$/);
     expect(debtLabel({ debtCents: 100, debtDays: null })).toMatch(/^Debe \$\s1,00$/);
+  });
+
+  it('warns before archiving a client who owes or still has passes', () => {
+    expect(archiveMessage({ debtCents: 0, remainingFree: 0, remainingTeacher: 0 })).not.toMatch(/Debe|Le queda/);
+    expect(archiveMessage({ debtCents: 1_500_000, remainingFree: 0, remainingTeacher: 0 })).toMatch(/Debe \$\s15\.000,00: deja de figurar en Deudores/);
+    expect(archiveMessage({ debtCents: 0, remainingFree: 2, remainingTeacher: 1 })).toMatch(/Le quedan 3 pases/);
+    expect(archiveMessage({ debtCents: 0, remainingFree: 1, remainingTeacher: 0 })).toMatch(/Le queda 1 pase\./);
   });
 
   it('takes the month of a UTC timestamp in local time', () => {
