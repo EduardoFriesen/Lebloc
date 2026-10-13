@@ -230,6 +230,8 @@ export interface DashboardSummary {
   /** Kiosk tickets sold today that are not voided. */
   kioskTodayCount: number;
   kioskTodayCents: number;
+  /** The last copy to the external backup folder failed (e.g. the pendrive is not plugged in). */
+  externalBackupFailed: boolean;
 }
 
 /** Headline numbers beside the client list. "Active" means not archived. */
@@ -369,6 +371,15 @@ export interface Settings {
 }
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };
+
+/** The automatic copy of every backup into an external folder: a pendrive or a synced Drive folder. */
+export interface BackupStatus {
+  mirrorDir: string | null;
+  /** Last successful external copy. */
+  mirrorAt: string | null;
+  /** Why the last external copy failed; null when it worked. */
+  mirrorError: string | null;
+}
 
 export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored';
 

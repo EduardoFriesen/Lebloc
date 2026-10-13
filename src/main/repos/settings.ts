@@ -9,3 +9,7 @@ export function setSetting(db: Db, key: string, value: string): void {
     'INSERT INTO settings (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
   ).run({ key, value });
 }
+
+export function deleteSetting(db: Db, key: string): void {
+  db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+}
