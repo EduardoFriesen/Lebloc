@@ -1,23 +1,26 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError, must } from '../../test/helpers';
 import { adultClient, basicTeacher, createTestContext, mixedPlan, type TestContext } from '../test-context';
-import { createClient } from './clients';
+import { archiveClient, createClient } from './clients';
+import { consume, voidConsumption } from './consumptions';
 import { voidPayment } from './payments';
 import { getTeacherAccount, registerPayout, voidPayout } from './payouts';
 import { createPlan } from './plans';
-import { sellPlan } from './sales';
-import { createTeacher } from './teachers';
+import { sellPlan, voidSale } from './sales';
+import { createTeacher, updateTeacher } from './teachers';
 
 describe('teacher ledger', () => {
   let ctx: TestContext;
   let teacherId: number;
+  let clientId: number;
+  let planId: number;
   let saleId: number;
 
   beforeEach(() => {
     ctx = createTestContext();
-    const clientId = createClient(ctx, adultClient).id;
+    clientId = createClient(ctx, adultClient).id;
     teacherId = createTeacher(ctx, basicTeacher).id;
-    const planId = createPlan(ctx, mixedPlan).id;
+    planId = createPlan(ctx, mixedPlan).id;
     saleId = sellPlan(ctx, {
       clientId,
       planId,
@@ -44,6 +47,23 @@ describe('teacher ledger', () => {
         teacherCents: 500_000,
       },
     ]);
+  });
+
+  it('counts the classes left to give, valued at the rate each sale kept', () => {
+    // Ana's mixed plan left 4 classes with Juan at $2.500 each; one is used and then Juan's rate goes up.
+    const used = consume(ctx, { clientId, kind: 'teacher', note: null });
+    updateTeacher(ctx, { ...basicTeacher, id: teacherId, classRateCents: 900_000 });
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 3, pendingCents: 750_000 });
+    voidConsumption(ctx, used.id);
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 4, pendingCents: 1_000_000 });
+  });
+
+  it('leaves voided sales and archived clients out of the classes left to give', () => {
+    const carlaId = createClient(ctx, { ...adultClient, firstName: 'Carla' }).id;
+    const voided = sellPlan(ctx, { clientId: carlaId, planId, teacherId, splitRule: 'proportional', soldAt: '2026-10-05', initialPayment: null });
+    voidSale(ctx, voided.id);
+    archiveClient(ctx, clientId);
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 0, pendingCents: 0 });
   });
 
   it('rejects a payout dated after today', () => {

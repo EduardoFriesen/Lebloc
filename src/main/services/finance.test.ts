@@ -195,6 +195,8 @@ describe('finance', () => {
           earnedCents: 1_000_000,
           paidOutCents: 400_000,
           balanceCents: 600_000,
+          pendingClasses: 3,
+          pendingCents: 750_000,
         },
       ]);
     });
