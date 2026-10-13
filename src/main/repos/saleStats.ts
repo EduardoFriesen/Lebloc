@@ -12,10 +12,6 @@ export const SALE_STATS_CTE = `sale_stats AS (
   WHERE s.voided_at IS NULL
 )`;
 
-export function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
 export type EnrollmentRow = Omit<Enrollment, 'passStatus'>;
 
 /** Active sales sold on or after `from` (ISO date) of one plan or one teacher, for active clients, newest first. */

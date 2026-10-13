@@ -1,7 +1,8 @@
 import type { ClientInput, GuardianInput } from '../../shared/schemas';
+import { fold } from '../../shared/text';
 import type { Client, ClientSummary, Guardian } from '../../shared/types';
 import type { Db } from '../db/connection';
-import { escapeLike, SALE_STATS_CTE } from './saleStats';
+import { SALE_STATS_CTE } from './saleStats';
 import { LAST_SIGNED_AT_SQL } from './waivers';
 
 export type ClientSummaryRow = Omit<ClientSummary, 'waiver' | 'debtDays' | 'passStatus'> & {
@@ -158,8 +159,8 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          AND (@bornAfter IS NULL OR c.birth_date > @bornAfter)
          AND (@enrolledFrom IS NULL OR c.enrolled_at >= @enrolledFrom)
          AND (@search = ''
-           OR (c.first_name || ' ' || c.last_name) LIKE '%' || @search || '%' ESCAPE '\\'
-           OR (c.last_name || ' ' || c.first_name) LIKE '%' || @search || '%' ESCAPE '\\')
+           OR instr(fold(c.first_name || ' ' || c.last_name), @search) > 0
+           OR instr(fold(c.last_name || ' ' || c.first_name), @search) > 0)
          AND (@attendedFrom IS NULL OR ${ATTENDED_SQL('@attendedFrom', '@attendedTo')})
          AND (@notAttendedSince IS NULL OR NOT ${ATTENDED_SQL('@notAttendedSince', 'NULL')})
        GROUP BY c.id
@@ -169,7 +170,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
        LIMIT 200`,
     )
     .all({
-      search: escapeLike(filters.search),
+      search: fold(filters.search),
       includeArchived: filters.includeArchived ? 1 : 0,
       onlyDebtors: filters.onlyDebtors ? 1 : 0,
       onlyWithPasses: filters.onlyWithPasses ? 1 : 0,
