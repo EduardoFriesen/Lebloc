@@ -77,6 +77,9 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('link', { name: 'Juan Pared', exact: true }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/5\.000,00/);
+  // One of the two classes with Juan was used: one left, worth his $5.000 rate.
+  await expect(page.getByText('1 clase', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Valen \$\s5\.000,00/)).toBeVisible();
   await page.getByRole('button', { name: 'Registrar liquidación' }).click();
   await page.getByRole('button', { name: 'Confirmar liquidación' }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/\$\s0,00/);
@@ -276,4 +279,18 @@ test('the counter summary opens the detail behind each number', async () => {
   await summary.getByRole('link', { name: 'Saldo con profesores' }).click();
   const juan = page.getByRole('list', { name: 'Profesores' }).getByRole('listitem').filter({ hasText: 'Juan Pared' });
   await expect(juan.getByText('Saldo')).toBeVisible();
+});
+
+test('the counter finds a client without typing the accents', async () => {
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Lucía');
+  await label('Apellido').fill('González');
+  await label('Fecha de nacimiento').fill('1992-03-04');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Lucía González' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await label('Buscar cliente').fill('gonzalez lucia');
+  await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
 });

@@ -72,10 +72,19 @@ export function getFinanceTraffic(ctx: Context, range: DateRange): FinanceTraffi
 
 /** Every active teacher, plus inactive ones that still had movement or a balance. */
 export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActivity[] {
-  const balances = new Map(listTeacherBalances(ctx).map((balance) => [balance.teacherId, balance.balanceCents]));
+  const balances = new Map(listTeacherBalances(ctx).map((balance) => [balance.teacherId, balance]));
   return repo
     .teacherActivity(ctx.db, range)
-    .map((row) => ({ ...row, active: row.active === 1, balanceCents: balances.get(row.teacherId) ?? 0 }))
+    .map((row) => {
+      const balance = balances.get(row.teacherId);
+      return {
+        ...row,
+        active: row.active === 1,
+        balanceCents: balance?.balanceCents ?? 0,
+        pendingClasses: balance?.pendingClasses ?? 0,
+        pendingCents: balance?.pendingCents ?? 0,
+      };
+    })
     .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0);
 }
 

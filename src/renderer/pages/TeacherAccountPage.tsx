@@ -73,7 +73,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           <Notice tone={notice.tone}>{notice.text}</Notice>
         </div>
       )}
-      <dl className="mb-8 grid gap-4 md:grid-cols-3">
+      <dl className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Stat label="Generado" value={formatMoney(account.earnedCents)} hint="Su parte de los pagos ya cobrados" />
         <Stat label="Liquidado" value={formatMoney(account.paidOutCents)} />
         <Stat
@@ -81,6 +81,11 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           value={formatMoney(account.balanceCents)}
           testId="teacher-balance"
           hint={account.balanceCents < 0 ? 'A favor del local' : 'Pendiente de pagar al profesor'}
+        />
+        <Stat
+          label="Por dar"
+          value={account.pendingClasses === 1 ? '1 clase' : `${account.pendingClasses} clases`}
+          hint={`Valen ${formatMoney(account.pendingCents)}; se le paga a medida que los clientes pagan`}
         />
       </dl>
 

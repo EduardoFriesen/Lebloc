@@ -29,10 +29,18 @@ export function TeachersPage() {
         call('teachers:list', { includeInactive: includeInactive || onlyInactive }),
         call('teachers:balances', {}),
       ]);
-      const balanceById = new Map(balances.map((balance) => [balance.teacherId, balance.balanceCents]));
+      const balanceById = new Map(balances.map((balance) => [balance.teacherId, balance]));
       return list
         .filter((teacher) => !onlyInactive || !teacher.active)
-        .map((teacher) => ({ ...teacher, balanceCents: balanceById.get(teacher.id) ?? 0 }));
+        .map((teacher) => {
+          const balance = balanceById.get(teacher.id);
+          return {
+            ...teacher,
+            balanceCents: balance?.balanceCents ?? 0,
+            pendingClasses: balance?.pendingClasses ?? 0,
+            pendingCents: balance?.pendingCents ?? 0,
+          };
+        });
     },
     [includeInactive, onlyInactive],
     { keepPreviousData: true },
@@ -82,9 +90,13 @@ export function TeachersPage() {
                     </Button>
                   }
                 >
-                  <dl>
+                  <dl className="flex gap-6">
                     <Stat label="Saldo">
                       <span className={teacher.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(teacher.balanceCents)}</span>
+                    </Stat>
+                    <Stat label="Clases por dar">
+                      {teacher.pendingClasses}
+                      {teacher.pendingClasses > 0 && <span className="font-sans text-sm text-ink-soft"> · {formatMoney(teacher.pendingCents)}</span>}
                     </Stat>
                   </dl>
                   {teacher.schedules.length === 0 ? (
@@ -126,7 +138,10 @@ export function TeachersPage() {
             label: 'Saldo a pagar',
             value: <SummaryValue count={data.owedTeachers} amount={data.owedTeachers > 0 ? formatMoney(data.owedCents) : undefined} />,
           },
-          { label: 'Clases pendientes', value: <SummaryValue count={data.pendingClasses} /> },
+          {
+            label: 'Clases pendientes',
+            value: <SummaryValue count={data.pendingClasses} amount={data.pendingClasses > 0 ? formatMoney(data.pendingCents) : undefined} />,
+          },
         ]}
       />
       <Dialog wide open={editing !== null} title={editing === 'new' ? 'Nuevo profesor' : 'Editar profesor'} onClose={() => setEditing(null)}>

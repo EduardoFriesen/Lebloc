@@ -178,6 +178,9 @@ export interface TeacherBalance {
   earnedCents: number;
   paidOutCents: number;
   balanceCents: number;
+  /** Classes sold to active clients and not given yet, and what they are worth at each sale's rate. Not owed until clients pay. */
+  pendingClasses: number;
+  pendingCents: number;
 }
 
 export interface TeacherAccount extends TeacherBalance {
@@ -253,8 +256,9 @@ export interface TeacherStats {
   /** What the local owes its teachers: positive balances only. */
   owedCents: number;
   owedTeachers: number;
-  /** Teacher passes sold to active clients and not yet given. */
+  /** Teacher passes sold to active clients and not yet given, and what they are worth. */
   pendingClasses: number;
+  pendingCents: number;
 }
 
 /** Headline numbers beside the plan list. */
@@ -521,6 +525,9 @@ export interface TeacherActivity {
   paidOutCents: number;
   /** What the local owes the teacher today, whatever the range. */
   balanceCents: number;
+  /** Classes left to give today and their value, whatever the range. */
+  pendingClasses: number;
+  pendingCents: number;
 }
 
 export interface LapsedClient {

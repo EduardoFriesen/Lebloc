@@ -1,5 +1,6 @@
 import type { PaymentMethod, TeacherPayout, TeacherShare } from '../../shared/types';
 import type { Db } from '../db/connection';
+import { SALE_STATS_CTE } from './saleStats';
 
 export interface NewPayout {
   teacherId: number;
@@ -14,17 +15,30 @@ export interface BalanceRow {
   teacherName: string;
   earnedCents: number;
   paidOutCents: number;
+  pendingClasses: number;
+  pendingCents: number;
 }
 
 const PAYOUT_COLUMNS = `id, teacher_id AS teacherId, paid_at AS paidAt, amount_cents AS amountCents, method, note,
   voided_at AS voidedAt`;
 
-const BALANCE_SELECT = `SELECT t.id AS teacherId, t.first_name || ' ' || t.last_name AS teacherName,
+// Pending: teacher passes of non-voided sales to active clients that were not used yet, at the rate each sale kept.
+const BALANCE_SELECT = `WITH ${SALE_STATS_CTE},
+  pending AS (
+    SELECT ss.teacher_id, SUM(ss.teacher_passes - ss.used_teacher) AS classes,
+      SUM((ss.teacher_passes - ss.used_teacher) * ss.teacher_rate_cents) AS cents
+    FROM sale_stats ss JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
+    WHERE ss.teacher_id IS NOT NULL
+    GROUP BY ss.teacher_id
+  )
+  SELECT t.id AS teacherId, t.first_name || ' ' || t.last_name AS teacherName,
     COALESCE((SELECT SUM(p.teacher_cents) FROM payments p JOIN sales s ON s.id = p.sale_id
               WHERE s.teacher_id = t.id AND p.voided_at IS NULL), 0) AS earnedCents,
     COALESCE((SELECT SUM(tp.amount_cents) FROM teacher_payouts tp
-              WHERE tp.teacher_id = t.id AND tp.voided_at IS NULL), 0) AS paidOutCents
-  FROM teachers t`;
+              WHERE tp.teacher_id = t.id AND tp.voided_at IS NULL), 0) AS paidOutCents,
+    COALESCE(pd.classes, 0) AS pendingClasses, COALESCE(pd.cents, 0) AS pendingCents
+  FROM teachers t
+  LEFT JOIN pending pd ON pd.teacher_id = t.id`;
 
 export function insertPayout(db: Db, payout: NewPayout): number {
   const result = db

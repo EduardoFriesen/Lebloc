@@ -5,6 +5,7 @@ import type { Db } from '../db/connection';
 export const SALE_STATS_CTE = `sale_stats AS (
   SELECT
     s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.plan_name, s.free_passes, s.teacher_passes, s.total_cents,
+    s.teacher_rate_cents,
     COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paid_cents,
     (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'free') AS used_free,
     (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'teacher') AS used_teacher
@@ -76,20 +77,6 @@ export function summaryCounts(db: Db): SummaryCounts {
        FROM per_client`,
     )
     .get() as SummaryCounts;
-}
-
-/** Teacher passes sold to active (not archived) clients and not yet consumed. */
-export function pendingTeacherClasses(db: Db): number {
-  const row = db
-    .prepare<[], { pending: number }>(
-      `WITH ${SALE_STATS_CTE}
-       SELECT COALESCE(SUM(ss.teacher_passes - ss.used_teacher), 0) AS pending
-       FROM sale_stats ss
-       JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
-       WHERE ss.teacher_id IS NOT NULL`,
-    )
-    .get() as { pending: number };
-  return row.pending;
 }
 
 /** Non-voided sales sold on or after `from` (ISO date), and their local price (no teacher surcharge). */

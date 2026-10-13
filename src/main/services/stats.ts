@@ -4,7 +4,7 @@ import type { ClientStats, PlanStats, TeacherStats } from '../../shared/types';
 import { type Context, today } from '../context';
 import { clientCounts } from '../repos/clients';
 import { planCounts } from '../repos/plans';
-import { monthSales, pendingTeacherClasses, summaryCounts } from '../repos/saleStats';
+import { monthSales, summaryCounts } from '../repos/saleStats';
 import { teacherCounts } from '../repos/teachers';
 import { listTeacherBalances } from './payouts';
 import { listWaiverAlerts } from './waivers';
@@ -23,12 +23,14 @@ export function getClientStats(ctx: Context): ClientStats {
 }
 
 export function getTeacherStats(ctx: Context): TeacherStats {
-  const owed = listTeacherBalances(ctx).filter((balance) => balance.balanceCents > 0);
+  const balances = listTeacherBalances(ctx);
+  const owed = balances.filter((balance) => balance.balanceCents > 0);
   return {
     ...teacherCounts(ctx.db),
     owedCents: owed.reduce((total, balance) => total + balance.balanceCents, 0),
     owedTeachers: owed.length,
-    pendingClasses: pendingTeacherClasses(ctx.db),
+    pendingClasses: balances.reduce((total, balance) => total + balance.pendingClasses, 0),
+    pendingCents: balances.reduce((total, balance) => total + balance.pendingCents, 0),
   };
 }
 
