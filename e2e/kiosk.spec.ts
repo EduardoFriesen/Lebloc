@@ -92,6 +92,10 @@ test('the main menu collapses and expands', async () => {
   await expect(menu.getByRole('link', { name: 'Kiosco', exact: true })).toBeVisible();
 });
 
+test("the built app drops Electron's default English menu", async () => {
+  expect(await app.evaluate(({ Menu }) => Menu.getApplicationMenu() === null)).toBe(true);
+});
+
 test('a walk-in day pass with shoes is priced in Planes and lands in today movements', async () => {
   const nav = page.getByRole('navigation', { name: 'Principal' });
   await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
