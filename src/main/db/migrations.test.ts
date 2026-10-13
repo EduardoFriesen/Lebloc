@@ -92,6 +92,14 @@ describe('migrations', () => {
     expect(() => shift.run(99, 60)).toThrow(/FOREIGN KEY/);
   });
 
+  it('keeps the audit log append-only', () => {
+    const db = openDatabase(':memory:');
+    db.prepare("INSERT INTO audit_log (at, action) VALUES ('2026-10-05T15:00:00.000Z', 'backup_exported')").run();
+    expect(() => db.prepare("UPDATE audit_log SET detail = 'otro'").run()).toThrow(/append-only/);
+    expect(() => db.prepare('DELETE FROM audit_log').run()).toThrow(/append-only/);
+    expect(() => db.prepare("INSERT INTO audit_log (at, action) VALUES ('x', 'client_deleted')").run()).toThrow(/CHECK/);
+  });
+
   it('seeds the low passes threshold', () => {
     const db = openDatabase(':memory:');
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });

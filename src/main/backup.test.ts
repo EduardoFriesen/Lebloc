@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError, expectDomainErrorAsync } from '../test/helpers';
-import { BACKUPS_TO_KEEP, createBackup, validateBackupFile } from './backup';
+import { BACKUPS_TO_KEEP, createBackup, exportBackup, validateBackupFile } from './backup';
 import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { DatabaseHolder } from './db/holder';
@@ -49,6 +49,29 @@ describe('backups', () => {
     await writeFile(bogus, 'esto no es una base de datos');
     expectDomainError(() => validateBackupFile(bogus), 'INVALID_BACKUP');
     expectDomainError(() => validateBackupFile(join(dir, 'no-existe.db')), 'INVALID_BACKUP');
+  });
+
+  it('traces each export with the file it went to', async () => {
+    const db = openDatabase(':memory:');
+    const file = join(dir, 'pendrive.db');
+    await exportBackup(db, file, TEST_NOW);
+    expect(() => validateBackupFile(file)).not.toThrow();
+    expect(db.prepare('SELECT at, action, detail FROM audit_log').all()).toEqual([
+      { at: TEST_NOW.toISOString(), action: 'backup_exported', detail: file },
+    ]);
+  });
+
+  it('traces a restore in the restored database', async () => {
+    const holder = new DatabaseHolder(join(dir, 'lebloc.db'));
+    const saved = await createBackup(holder.db, join(dir, 'saved'), new Date(Date.UTC(2026, 9, 5, 12)));
+    const restoredAt = new Date(Date.UTC(2026, 9, 5, 13));
+
+    await holder.restoreFrom(saved, join(dir, 'backups'), restoredAt);
+
+    expect(holder.db.prepare('SELECT at, action, detail FROM audit_log').all()).toEqual([
+      { at: restoredAt.toISOString(), action: 'backup_restored', detail: saved },
+    ]);
+    holder.close();
   });
 
   it('restores a backup after saving a safety copy of the current data', async () => {

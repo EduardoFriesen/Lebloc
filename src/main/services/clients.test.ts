@@ -192,6 +192,15 @@ describe('clients service', () => {
     expect(unarchiveClient(ctx, client.id).archivedAt).toBeNull();
   });
 
+  it('traces each anonymization by client id, without the name', () => {
+    const ana = createClient(ctx, adultClient);
+    archiveClient(ctx, ana.id);
+    anonymizeClient(ctx, ana.id);
+    expect(ctx.db.prepare('SELECT at, action, subject_id AS subjectId, detail FROM audit_log').all()).toEqual([
+      { at: TEST_NOW.toISOString(), action: 'client_anonymized', subjectId: ana.id, detail: null },
+    ]);
+  });
+
   it('anonymizes only archived clients, wiping personal data and guardians', () => {
     const client = createClient(ctx, minorClient);
     expectDomainError(() => anonymizeClient(ctx, client.id), 'CLIENT_NOT_ARCHIVED');
