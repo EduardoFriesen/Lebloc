@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import type { Employee, WorkShift } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { Badge, Card, CardGrid, Stat } from '../components/ui/Card';
+import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, TextField } from '../components/ui/Field';
@@ -137,10 +137,10 @@ export function EmployeesPage() {
                       </>
                     }
                   >
-                    <dl className="grid grid-cols-2 gap-3">
+                    <StatRow>
                       <Stat label="Horas del mes">{formatHours(employee.monthMinutes)}</Stat>
                       <Stat label="Costo del mes">{formatMoney(employee.monthCostCents)}</Stat>
-                    </dl>
+                    </StatRow>
                   </Card>
                 ))}
               </CardGrid>

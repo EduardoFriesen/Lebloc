@@ -89,6 +89,12 @@ body,
   font-variation-settings: 'SOFT' 100;
 }
 
+/* El número grande de un recuadro (que es un @container): tan grande como pide el diseño, más chico si el recuadro es
+   angosto, nunca afuera. 11cqi deja lugar a "$ 216.000.000,00" (tres años de ingresos) en Fraunces. */
+@utility tile-number {
+  font-size: clamp(1.125rem, 11cqi, 1.875rem);
+}
+
 /* En @layer base para que una utilidad (focus-visible:outline-none) lo pueda pisar, como en las cartas. */
 @layer base {
   :focus-visible {

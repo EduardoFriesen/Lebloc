@@ -38,9 +38,9 @@ export function KpiTile({ label, value, change, changeUnit = '%', higherIsBetter
   const moved = change !== undefined && change !== null && change !== 0;
   const good = moved && change > 0 === higherIsBetter;
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-surface p-5 shadow-warm">
+    <div className="@container flex flex-col gap-1 rounded-2xl bg-surface p-5 shadow-warm">
       <dt className="text-sm font-semibold text-ink-soft">{label}</dt>
-      <dd className="font-display text-3xl leading-tight">{value}</dd>
+      <dd className="font-display tile-number leading-tight">{value}</dd>
       {change !== undefined && (
         <dd className="text-sm">
           <span className={`font-bold ${moved ? (good ? 'text-moss' : 'text-danger') : 'text-ink-soft'}`}>

@@ -33,9 +33,9 @@ export function TeacherAccountPage() {
 
 function Stat({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
   return (
-    <div className="rounded-2xl bg-surface p-5 shadow-warm">
+    <div className="@container rounded-2xl bg-surface p-5 shadow-warm">
       <dt className="text-sm font-semibold text-ink-soft">{label}</dt>
-      <dd data-testid={testId} className="font-display text-4xl font-bold">
+      <dd data-testid={testId} className="font-display tile-number font-bold">
         {value}
       </dd>
       {hint && <dd className="text-xs text-ink-soft">{hint}</dd>}
@@ -73,7 +73,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           <Notice tone={notice.tone}>{notice.text}</Notice>
         </div>
       )}
-      <dl className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <dl className="mb-8 grid gap-4 md:grid-cols-2">
         <Stat label="Generado" value={formatMoney(account.earnedCents)} hint="Su parte de los pagos ya cobrados" />
         <Stat label="Liquidado" value={formatMoney(account.paidOutCents)} />
         <Stat

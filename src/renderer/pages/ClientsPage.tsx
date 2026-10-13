@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Badge, Card, CardGrid, PassBadge, Stat } from '../components/ui/Card';
+import { Badge, Card, CardGrid, PassBadge, Stat, StatRow } from '../components/ui/Card';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageBar, usePage } from '../components/ui/Pager';
@@ -186,10 +186,10 @@ function ClientCards({ clients }: { clients: ClientSummary[] }) {
               )
             }
           >
-            <dl className="flex gap-6">
+            <StatRow>
               <Stat label="Pases libres">{client.remainingFree}</Stat>
               <Stat label="Con profesor">{client.remainingTeacher}</Stat>
-            </dl>
+            </StatRow>
           </Card>
         ))}
       </CardGrid>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { Badge, Card, CardGrid, Stat } from '../components/ui/Card';
+import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -90,7 +90,7 @@ export function TeachersPage() {
                     </Button>
                   }
                 >
-                  <dl className="flex gap-6">
+                  <StatRow>
                     <Stat label="Saldo">
                       <span className={teacher.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(teacher.balanceCents)}</span>
                     </Stat>
@@ -98,7 +98,7 @@ export function TeachersPage() {
                       {teacher.pendingClasses}
                       {teacher.pendingClasses > 0 && <span className="block font-sans text-sm text-ink-soft">{formatMoney(teacher.pendingCents)}</span>}
                     </Stat>
-                  </dl>
+                  </StatRow>
                   {teacher.schedules.length === 0 ? (
                     <p className="text-sm text-ink-soft">Sin horarios</p>
                   ) : (

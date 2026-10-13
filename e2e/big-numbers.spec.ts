@@ -62,36 +62,35 @@ test.afterAll(async () => {
   rmSync(userData, { recursive: true, force: true });
 });
 
-async function overflowingOn(route: string, ready: string): Promise<string[]> {
+async function open(route: string, heading: string): Promise<void> {
   await page.evaluate(`window.location.hash = '#${route}'`);
-  await expect(page.getByRole('heading', { name: ready }).first()).toBeVisible();
-  // The numbers arrive after the skeleton; wait for the biggest one before measuring.
-  await page.waitForLoadState('networkidle');
-  return page.evaluate<string[]>(OVERFLOWING);
+  await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible();
 }
 
+const overflowing = () => page.evaluate<string[]>(OVERFLOWING);
+
 test('big amounts stay inside the employee cards', async () => {
-  const overflowing = await overflowingOn('/empleados', 'Empleados');
+  await open('/empleados', 'Empleados');
   await expect(page.getByText('$ 1.999.980,00').first()).toBeVisible();
-  expect(await page.evaluate<string[]>(OVERFLOWING), String(overflowing)).toEqual([]);
+  expect(await overflowing()).toEqual([]);
 });
 
 test('big amounts stay inside the teacher cards and the teacher account tiles', async () => {
-  await overflowingOn('/profesores', 'Profesores');
+  await open('/profesores', 'Profesores');
   await expect(page.getByText('$ 1.999.998,00').first()).toBeVisible();
-  expect(await page.evaluate<string[]>(OVERFLOWING)).toEqual([]);
+  expect(await overflowing()).toEqual([]);
 
-  await overflowingOn(`/profesores/${teacherId}`, 'Mara Cumbre');
+  await open(`/profesores/${teacherId}`, 'Mara Cumbre');
   await expect(page.getByText('$ 1.999.998,00').first()).toBeVisible();
-  expect(await page.evaluate<string[]>(OVERFLOWING)).toEqual([]);
+  expect(await overflowing()).toEqual([]);
 });
 
 test('big amounts stay inside the finance tiles and the counter summary', async () => {
-  await overflowingOn('/finanzas', 'Finanzas');
+  await open('/finanzas', 'Finanzas');
   await expect(page.getByText('$ 99.999.999,00').first()).toBeVisible();
-  expect(await page.evaluate<string[]>(OVERFLOWING)).toEqual([]);
+  expect(await overflowing()).toEqual([]);
 
-  await overflowingOn('/', 'Mostrador');
+  await open('/', 'Mostrador');
   await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
-  expect(await page.evaluate<string[]>(OVERFLOWING)).toEqual([]);
+  expect(await overflowing()).toEqual([]);
 });

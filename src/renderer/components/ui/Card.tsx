@@ -90,7 +90,12 @@ export function Badge({ tone = 'neutral', children }: { tone?: keyof typeof BADG
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${BADGE_TONES[tone]}`}>{children}</span>;
 }
 
-/** Big number with a small label above, for counts and amounts inside a card. */
+/** The numbers of a card side by side while they fit; an amount too long for the row takes a line of its own. */
+export function StatRow({ children }: { children: ReactNode }) {
+  return <dl className="flex flex-wrap gap-x-6 gap-y-3">{children}</dl>;
+}
+
+/** Big number with a small label above, for counts and amounts inside a card (in a StatRow). */
 export function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
