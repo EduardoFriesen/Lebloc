@@ -30,6 +30,9 @@
   --color-series-3: #5a63b8; /* índigo */
   --color-series-4: #4f8a3e; /* salvia */
   --color-heat-ink: #fbf4ea; /* texto sobre las celdas intensas del mapa de calor (oscuras en este tema) */
+  /* Ancho del área principal desde el que el resumen va al costado de la lista: 40rem de lista (sus tablas), 2rem de
+     separación, 20rem de resumen y 4rem de márgenes. En rem del contenedor, así se corre con el tamaño de letra. */
+  --container-summary: 66rem;
 }
 
 /* "Cielo de noche": mismo atardecer con el fondo oscuro. Lo activa lib/preferences.ts. */

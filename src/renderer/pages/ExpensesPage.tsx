@@ -153,7 +153,8 @@ function ExpensesTable({ expenses, empty, onRepeat, onVoid }: ExpensesTableProps
                 <td>{PAYMENT_METHOD_LABELS[expense.method]}</td>
                 <td className="font-semibold">{formatMoney(expense.amountCents)}</td>
                 <td className="text-right whitespace-nowrap">
-                  <Button variant="ghost" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
+                  {/* Two actions share the cell: tighter buttons keep the table inside the list beside the summary. */}
+                  <Button variant="ghost" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
                     Repetir
                   </Button>
                   {expense.voidedAt ? (
@@ -161,7 +162,7 @@ function ExpensesTable({ expenses, empty, onRepeat, onVoid }: ExpensesTableProps
                       <Badge>Anulado</Badge>
                     </span>
                   ) : (
-                    <Button variant="ghost" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
+                    <Button variant="ghost" className="px-3!" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
                       Anular
                     </Button>
                   )}

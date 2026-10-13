@@ -55,7 +55,7 @@ export function KioskPage() {
         )}
       </div>
       {/* The scroll padding keeps focused rows out from under the sticky headings. */}
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-40`}>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
         <ProductsBlock onlyActive={onlyActive} onChanged={stats.reload} />
         <Stripe />
         <SalesBlock onChanged={stats.reload} />

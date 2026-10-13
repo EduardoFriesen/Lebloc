@@ -14,21 +14,24 @@ export interface SummaryRow {
 }
 
 /**
- * Page layout, from lg on (1024px): header and filters fixed on top, the list below them scrolling on its own, and the
- * summary beside the list, starting at its height. On narrow windows everything stacks and the page scrolls.
+ * Page layout once the main area is `summary` wide (see styles.css; the default 1280px window at normal text size):
+ * header and filters fixed on top, the list below them scrolling on its own, and the summary beside the list, starting
+ * at its height. A narrower area, larger text or a collapsed menu change that width, because it is a container query in
+ * rem: below it everything stacks and the page scrolls, since next to a 20rem summary the list would be too narrow for
+ * its tables.
  */
 export const WITH_SUMMARY =
-  'grid gap-8 p-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-y-0';
-export const SUMMARY_TOP = 'min-w-0 lg:col-start-1 lg:row-start-1';
+  'grid gap-8 p-8 @summary/main:min-h-0 @summary/main:flex-1 @summary/main:grid-cols-[minmax(0,1fr)_20rem] @summary/main:grid-rows-[auto_minmax(0,1fr)] @summary/main:gap-y-0';
+export const SUMMARY_TOP = 'min-w-0 @summary/main:col-start-1 @summary/main:row-start-1';
 // The padding (offset by the negative margin) keeps card shadows, hover lift and focus rings from being clipped.
 // `relative` keeps absolutely positioned descendants (e.g. sr-only captions) inside the scroller instead of growing the page.
-export const SUMMARY_LIST = 'relative min-w-0 lg:col-start-1 lg:row-start-2 lg:-m-2 lg:overflow-y-auto lg:p-2';
+export const SUMMARY_LIST = 'relative min-w-0 @summary/main:col-start-1 @summary/main:row-start-2 @summary/main:-m-2 @summary/main:overflow-y-auto @summary/main:p-2';
 
 /** Section heading that stays at the top of SUMMARY_LIST while its section scrolls under it. */
 export const STICKY_HEADING = 'paper sticky -top-2 z-20 py-2';
 
 /** The summary column beside the list: starts at the list's height and scrolls on its own. */
-export const SUMMARY_SIDE = 'relative self-start lg:col-start-2 lg:row-start-2 lg:max-h-full lg:overflow-y-auto';
+export const SUMMARY_SIDE = 'relative self-start @summary/main:col-start-2 @summary/main:row-start-2 @summary/main:max-h-full @summary/main:overflow-y-auto';
 
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';

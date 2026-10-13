@@ -89,7 +89,8 @@ export function ChartCard({ title, subtitle, legend, actions, table, height = 'h
       <div className={height}>{children}</div>
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold text-ink-soft hover:text-ink">Ver como tabla</summary>
-        <div className="mt-3">{table}</div>
+        {/* A wide table scrolls inside the card; the padding (offset by the margin) keeps its shadow from being cut. */}
+        <div className="-mx-2 mt-1 overflow-x-auto p-2">{table}</div>
       </details>
     </figure>
   );

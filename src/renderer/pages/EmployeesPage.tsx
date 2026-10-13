@@ -88,7 +88,7 @@ export function EmployeesPage() {
         </div>
         {selected && <ClearFilter label={fullName(selected)} onClear={() => setSelected(null)} />}
       </div>
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-16`}>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-16`}>
         <section aria-labelledby={teamId} className="flex flex-col gap-3">
           <h2 id={teamId} className={HEADING}>
             Equipo

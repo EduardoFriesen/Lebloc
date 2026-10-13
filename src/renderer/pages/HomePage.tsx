@@ -69,7 +69,7 @@ export function HomePage() {
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
       </div>
       {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 lg:scroll-pt-40`}>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
         <section aria-labelledby={pasesId} className="flex flex-col gap-6">
           <h2 id={pasesId} className={`${STICKY_HEADING} font-display text-2xl font-semibold`}>
             Pases
