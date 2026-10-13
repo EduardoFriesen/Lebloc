@@ -294,3 +294,17 @@ test('the counter finds a client without typing the accents', async () => {
   await label('Buscar cliente').fill('gonzalez lucia');
   await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
 });
+
+test('exporting a backup leaves a line in the audit log', async () => {
+  const file = join(userData, 'pendrive.db');
+  // The native save dialog cannot be driven from the page: answer it from the main process.
+  await app.evaluate(({ dialog }, filePath) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+  }, file);
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Exportar backup' }).click();
+  await expect(page.getByText(`Backup guardado en ${file}`)).toBeVisible();
+  const log = page.getByRole('table', { name: 'Registro de auditoría' });
+  await expect(log.getByRole('cell', { name: 'Backup exportado' })).toBeVisible();
+  await expect(log.getByRole('cell', { name: file })).toBeVisible();
+});
