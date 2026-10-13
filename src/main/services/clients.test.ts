@@ -92,6 +92,13 @@ describe('clients service', () => {
     expect(search('ALVAREZ')).toEqual([martin.id]);
   });
 
+  it('lists every client, with no cap on how many', () => {
+    for (let n = 1; n <= 201; n += 1) createClient(ctx, { ...adultClient, lastName: `Cliente ${String(n).padStart(3, '0')}` });
+    const all = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(all).toHaveLength(201);
+    expect(all.at(-1)?.lastName).toBe('Cliente 201');
+  });
+
   it('summarizes a client without sales as zero passes and zero debt', () => {
     createClient(ctx, adultClient);
     expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]).toMatchObject({
