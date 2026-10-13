@@ -54,3 +54,18 @@ export async function changeBackupMirror(ctx: Context, action: 'choose' | 'clear
   if (dir) await mirrorBackup(ctx, await ops.backupNow());
   return getBackupStatus(ctx);
 }
+
+/**
+ * The external folder belongs to this PC, not to the data, but it is stored with the data: restoring a backup would
+ * bring back that backup's folder (often none) and silently stop the copies. This keeps the current one and its status.
+ */
+export async function restoreKeepingMirror(ctx: Context, restore: () => Promise<void>): Promise<void> {
+  const kept = [MIRROR_DIR, MIRROR_AT, MIRROR_ERROR].map((key) => [key, getSetting(ctx.db, key)] as const);
+  await restore();
+  ctx.db.transaction(() => {
+    for (const [key, value] of kept) {
+      if (value === undefined) deleteSetting(ctx.db, key);
+      else setSetting(ctx.db, key, value);
+    }
+  })();
+}

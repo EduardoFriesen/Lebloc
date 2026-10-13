@@ -9,7 +9,7 @@ import { type Context, systemClock } from './context';
 import { DatabaseHolder } from './db/holder';
 import { type BackupOps, createHandlers } from './ipc/handlers';
 import { registerIpc } from './ipc/register';
-import { mirrorBackup } from './services/backups';
+import { mirrorBackup, restoreKeepingMirror } from './services/backups';
 
 // E2E tests point userData at a temp dir so they never touch real data.
 if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USER_DATA);
@@ -60,7 +60,7 @@ function showOpen(options: OpenDialogOptions) {
   return mainWindow ? dialog.showOpenDialog(mainWindow, options) : dialog.showOpenDialog(options);
 }
 
-function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
+function createBackupOps(ctx: Context, holder: DatabaseHolder, backupDir: string): BackupOps {
   return {
     async exportBackup() {
       const result = await showSave({
@@ -80,7 +80,7 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
       });
       const [source] = result.filePaths;
       if (result.canceled || !source) return { status: 'cancelled' };
-      await holder.restoreFrom(source, backupDir, new Date());
+      await restoreKeepingMirror(ctx, () => holder.restoreFrom(source, backupDir, new Date()));
       return { status: 'done', path: source };
     },
     async pickFolder() {
@@ -109,7 +109,7 @@ async function start(): Promise<void> {
     clock: systemClock,
   };
   const logError = (error: unknown) => log.error(error);
-  const backups = createBackupOps(holder, backupDir);
+  const backups = createBackupOps(ctx, holder, backupDir);
   const copyOutside = (file: string) =>
     mirrorBackup(ctx, file).then((error) => {
       if (error) logError(error);
