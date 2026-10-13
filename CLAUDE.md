@@ -17,6 +17,7 @@ npm run typecheck    # tsc sobre tsconfig.node.json y tsconfig.web.json
 npm run lint
 npm run test:e2e     # build + Playwright sobre Electron
 npm run audit        # npm audit --audit-level=high
+npm run dist:win     # instalador de Windows en dist/, generado desde Linux con Wine (ver docs/instalacion.md)
 ```
 
 No correr Vitest con el `node` del sistema: falla con `NODE_MODULE_VERSION`. Si se reinstaló algo, `npx electron-rebuild -f -w better-sqlite3`.
