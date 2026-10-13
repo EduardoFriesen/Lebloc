@@ -1,6 +1,7 @@
 import type { BackupOutcome } from '../../shared/types';
 import type { Context } from '../context';
 import { getClientAccount } from '../services/account';
+import { listAuditLog } from '../services/audit';
 import {
   anonymizeClient,
   archiveClient,
@@ -105,5 +106,6 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'settings:update': (input) => updateSettings(ctx, input),
     'backup:export': () => backup.exportBackup(),
     'backup:restore': () => backup.restoreBackup(),
+    'audit:list': () => listAuditLog(ctx),
   };
 }

@@ -1,26 +1,32 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { settingsInput } from '../../shared/schemas';
 import { Button } from '../components/ui/Button';
 import { type ConfirmRequest, ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageBar, usePage } from '../components/ui/Pager';
 import { AsyncView } from '../components/ui/States';
+import { FillerRows, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import type { Settings } from '../../shared/types';
+import type { AuditAction, AuditEntry, Settings } from '../../shared/types';
+import { formatDateTime } from '../lib/format';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { type FontSize, loadPreferences, type Preferences, savePreferences, type ThemePref } from '../lib/preferences';
-import { useAsync } from '../lib/useAsync';
+import { type AsyncResult, useAsync } from '../lib/useAsync';
 
 export function SettingsPage() {
   const settings = useAsync(() => call('settings:get', {}), []);
+  const audit = useAsync(() => call('audit:list', {}), []);
   return (
     <section className="max-w-3xl p-8">
       <PageHeader title="Ajustes" />
       <div className="flex flex-col gap-8">
         <AppearancePanel />
         <AsyncView state={settings}>{(data) => <SettingsForm initial={data} />}</AsyncView>
-        <BackupPanel />
+        <BackupPanel onExported={audit.reload} />
+        <AuditPanel state={audit} />
       </div>
     </section>
   );
@@ -160,7 +166,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
   );
 }
 
-function BackupPanel() {
+function BackupPanel({ onExported }: { onExported: () => void }) {
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
   const [restoreRequest, setRestoreRequest] = useState<ConfirmRequest | null>(null);
@@ -169,7 +175,10 @@ function BackupPanel() {
     setBusy(true);
     try {
       const outcome = await call('backup:export', {});
-      if (outcome.status === 'done') setNotice({ tone: 'success', text: `Backup guardado en ${outcome.path}` });
+      if (outcome.status === 'done') {
+        setNotice({ tone: 'success', text: `Backup guardado en ${outcome.path}` });
+        onExported();
+      }
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
     } finally {
@@ -211,5 +220,67 @@ function BackupPanel() {
       </div>
       <ConfirmDialog request={restoreRequest} onDone={() => setRestoreRequest(null)} onClose={() => setRestoreRequest(null)} />
     </div>
+  );
+}
+
+const AUDIT_LABELS: Record<AuditAction, string> = {
+  client_anonymized: 'Cliente anonimizado',
+  backup_exported: 'Backup exportado',
+  backup_restored: 'Backup restaurado',
+};
+const AUDIT_PAGE_SIZE = 5;
+
+/** The audit trail Ley 25.326 asks for: anonymizations and full copies of the data. It cannot be edited. */
+function AuditPanel({ state }: { state: AsyncResult<AuditEntry[]> }) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
+      <div>
+        <h2 id={headingId} className="font-display text-2xl font-semibold">
+          Registro de auditoría
+        </h2>
+        <p className="text-sm text-ink-soft">
+          Anonimizaciones y copias de todos los datos, como pide la Ley 25.326 de datos personales. No se puede editar ni borrar.
+        </p>
+      </div>
+      <AsyncView state={state}>{(entries) => <AuditTable entries={entries} />}</AsyncView>
+    </section>
+  );
+}
+
+function AuditTable({ entries }: { entries: AuditEntry[] }) {
+  const { visible, page, pages, setPage } = usePage(entries, AUDIT_PAGE_SIZE);
+  return (
+    <>
+      <table className={tableClass}>
+        <caption className="sr-only">Registro de auditoría</caption>
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Operación</th>
+            <th scope="col">Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((entry) => (
+            <tr key={entry.id}>
+              <td className="tabular-nums">{formatDateTime(entry.at)}</td>
+              <td>{AUDIT_LABELS[entry.action]}</td>
+              <td className="break-all">
+                {entry.subjectId !== null ? (
+                  <Link className="underline decoration-ochre underline-offset-4" to={`/clientes/${entry.subjectId}`}>
+                    Cliente #{entry.subjectId}
+                  </Link>
+                ) : (
+                  (entry.detail ?? '—')
+                )}
+              </td>
+            </tr>
+          ))}
+          <FillerRows filled={visible.length} columns={3} empty="Todavía no hay operaciones registradas." size={AUDIT_PAGE_SIZE} />
+        </tbody>
+      </table>
+      <PageBar keep label="Registro de auditoría" page={page} pages={pages} onChange={setPage} />
+    </>
   );
 }

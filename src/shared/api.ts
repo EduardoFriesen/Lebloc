@@ -72,6 +72,7 @@ export const apiSchemas = {
   'settings:update': schemas.settingsInput,
   'backup:export': schemas.emptyInput,
   'backup:restore': schemas.emptyInput,
+  'audit:list': schemas.emptyInput,
 } satisfies Record<Channel, z.ZodType>;
 
 export interface ApiOutputs {
@@ -143,6 +144,7 @@ export interface ApiOutputs {
   'settings:update': T.Settings;
   'backup:export': T.BackupOutcome;
   'backup:restore': T.BackupOutcome;
+  'audit:list': T.AuditEntry[];
 }
 
 export type ApiInput<C extends Channel> = z.input<(typeof apiSchemas)[C]>;

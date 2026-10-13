@@ -67,6 +67,7 @@ export const CHANNELS = [
   'settings:update',
   'backup:export',
   'backup:restore',
+  'audit:list',
 ] as const;
 
 export type Channel = (typeof CHANNELS)[number];
