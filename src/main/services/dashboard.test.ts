@@ -86,6 +86,7 @@ describe('debtors and dashboard', () => {
       teacherBalanceCents: getTeacherAccount(ctx, juanId).balanceCents,
       kioskTodayCount: 0,
       kioskTodayCents: 0,
+      externalBackupFailed: false,
     });
   });
 });

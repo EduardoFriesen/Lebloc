@@ -1,9 +1,10 @@
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError, expectDomainErrorAsync } from '../test/helpers';
-import { BACKUPS_TO_KEEP, createBackup, exportBackup, validateBackupFile } from './backup';
+import { BACKUPS_TO_KEEP, backupsToKeep, copyToMirror, createBackup, exportBackup, validateBackupFile } from './backup';
 import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { DatabaseHolder } from './db/holder';
@@ -39,6 +40,56 @@ describe('backups', () => {
     const files = (await readdir(backups)).sort();
     expect(files).toHaveLength(3);
     expect(files[0]).toContain('T12-01');
+  });
+
+  it('keeps the newest backups plus the last one of each recent day', () => {
+    const names = [
+      'lebloc-2026-10-01T10-00-00-000Z.db',
+      'lebloc-2026-10-01T20-00-00-000Z.db',
+      'lebloc-2026-10-02T09-00-00-000Z.db',
+      'lebloc-2026-10-03T09-00-00-000Z.db',
+      'lebloc-2026-10-03T10-00-00-000Z.db',
+      'lebloc-2026-10-03T11-00-00-000Z.db',
+    ];
+    expect([...backupsToKeep(names, 2, 2)].sort()).toEqual([
+      'lebloc-2026-10-02T09-00-00-000Z.db',
+      'lebloc-2026-10-03T10-00-00-000Z.db',
+      'lebloc-2026-10-03T11-00-00-000Z.db',
+    ]);
+    expect(backupsToKeep(names, 0, 0).size).toBe(0);
+  });
+
+  it("keeps yesterday's backup however many times the app opens today", async () => {
+    const db = openDatabase(':memory:');
+    const backups = join(dir, 'backups');
+    const yesterday = await createBackup(db, backups, new Date(Date.UTC(2026, 9, 4, 20, 0)));
+    for (let minute = 0; minute < 12; minute += 1) {
+      await createBackup(db, backups, new Date(Date.UTC(2026, 9, 5, 12, minute)));
+    }
+    const files = await readdir(backups);
+    expect(files).toHaveLength(BACKUPS_TO_KEEP + 1);
+    expect(files).toContain(basename(yesterday));
+  });
+
+  it('copies into its own folder inside the external one and prunes only there', async () => {
+    const db = openDatabase(':memory:');
+    const pendrive = join(dir, 'pendrive');
+    await mkdir(pendrive);
+    await writeFile(join(pendrive, 'lebloc-2020-01-01.db'), 'una exportación a mano');
+    for (let minute = 0; minute < 12; minute += 1) {
+      await copyToMirror(await createBackup(db, join(dir, 'backups'), new Date(Date.UTC(2026, 9, 5, 12, minute))), pendrive);
+    }
+    expect((await readdir(pendrive)).sort()).toEqual(['lebloc-2020-01-01.db', 'lebloc-backups']);
+    const copies = await readdir(join(pendrive, 'lebloc-backups'));
+    expect(copies).toHaveLength(BACKUPS_TO_KEEP);
+    expect(() => validateBackupFile(join(pendrive, 'lebloc-backups', copies[0] ?? ''))).not.toThrow();
+  });
+
+  it('refuses a missing external folder instead of creating it on this disk', async () => {
+    const file = await createBackup(openDatabase(':memory:'), join(dir, 'backups'), TEST_NOW);
+    const unplugged = join(dir, 'pendrive-desenchufado');
+    await expect(copyToMirror(file, unplugged)).rejects.toThrow();
+    expect(existsSync(unplugged)).toBe(false);
   });
 
   it('accepts real backups and rejects anything else', async () => {
