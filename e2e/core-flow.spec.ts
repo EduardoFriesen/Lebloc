@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron, type ElectronApplication, expect, type Page, test } from '@playwright/test';
@@ -307,4 +307,30 @@ test('exporting a backup leaves a line in the audit log', async () => {
   const log = page.getByRole('table', { name: 'Registro de auditoría' });
   await expect(log.getByRole('cell', { name: 'Backup exportado' })).toBeVisible();
   await expect(log.getByRole('cell', { name: file })).toBeVisible();
+});
+
+test('backups get copied to an external folder, and a missing one warns on the counter', async () => {
+  const pick = (folder: string) =>
+    app.evaluate(({ dialog }, filePath) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] });
+    }, folder);
+  const warning = page.getByRole('complementary', { name: 'Alertas' }).getByText(/No se pudo hacer la copia externa/);
+
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await pick(join(userData, 'pendrive-desenchufado'));
+  await page.getByRole('button', { name: 'Elegir carpeta' }).click();
+  await expect(page.getByText(/No se pudo copiar el backup a la carpeta externa/)).toBeVisible();
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await expect(warning).toBeVisible();
+
+  const pendrive = join(userData, 'pendrive');
+  mkdirSync(pendrive);
+  await pick(pendrive);
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Elegir carpeta' }).click();
+  await expect(page.getByText(/Última copia externa:/)).toBeVisible();
+  expect(readdirSync(join(pendrive, 'lebloc-backups'))).toHaveLength(1);
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
+  await expect(warning).toHaveCount(0);
 });
