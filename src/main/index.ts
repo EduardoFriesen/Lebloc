@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import log from 'electron-log/main';
 import { toIsoDate } from '../domain/dates';
 import { createBackup, writeBackupFile } from './backup';
@@ -101,6 +101,8 @@ async function start(): Promise<void> {
   };
   registerIpc(ipcMain, createHandlers(ctx, createBackupOps(holder, backupDir)), (error) => log.error(error), APP_URL);
   app.on('before-quit', () => holder.close());
+  // Electron's default menu is in English and offers Reload and DevTools: only development keeps it.
+  if (!process.env.ELECTRON_RENDERER_URL) Menu.setApplicationMenu(null);
   createWindow();
 }
 
