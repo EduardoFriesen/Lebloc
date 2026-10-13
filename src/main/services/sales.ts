@@ -3,7 +3,7 @@ import { assertSaleVoidable } from '../../domain/ledger';
 import { buildSaleSnapshot } from '../../domain/sale';
 import type { SaleInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
-import { type Context, nowIso } from '../context';
+import { assertNotFuture, type Context, nowIso } from '../context';
 import * as salesRepo from '../repos/sales';
 import { requireActiveClient } from './clients';
 import { registerPayment } from './payments';
@@ -18,6 +18,7 @@ export function getSale(ctx: Context, id: number): Sale {
 
 export function sellPlan(ctx: Context, input: SaleInput): Sale {
   return ctx.db.transaction(() => {
+    assertNotFuture(ctx, input.soldAt);
     requireActiveClient(ctx, input.clientId);
     const plan = getPlan(ctx, input.planId);
     const teacher = input.teacherId === null ? null : getTeacher(ctx, input.teacherId);

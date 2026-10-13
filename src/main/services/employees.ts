@@ -2,7 +2,7 @@ import { DomainError } from '../../domain/errors';
 import { shiftCostCents } from '../../domain/staff';
 import type { EmployeeInput, EmployeeUpdate, PayslipInput, ShiftInput } from '../../shared/schemas';
 import type { Employee, EmployeeSummary, Payslip, StaffStats, WorkShift } from '../../shared/types';
-import { type Context, nowIso, today } from '../context';
+import { assertNotFuture, type Context, nowIso } from '../context';
 import * as employees from '../repos/employees';
 import * as shifts from '../repos/shifts';
 
@@ -44,7 +44,7 @@ export function recordShift(ctx: Context, input: ShiftInput): WorkShift {
   return ctx.db.transaction(() => {
     const employee = getEmployee(ctx, input.employeeId);
     if (!employee.active) throw new DomainError('EMPLOYEE_INACTIVE');
-    if (input.workedOn > today(ctx)) throw new DomainError('DATE_IN_FUTURE');
+    assertNotFuture(ctx, input.workedOn);
     const id = shifts.insertShift(ctx.db, {
       ...input,
       hourlyRateCents: employee.hourlyRateCents,

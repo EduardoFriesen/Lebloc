@@ -186,7 +186,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
         </>
       )}
 
-      <TextField label="Fecha de venta" type="date" value={soldAt} onChange={(event) => setSoldAt(event.target.value)} error={errors.soldAt} />
+      <TextField label="Fecha de venta" type="date" max={todayIso()} value={soldAt} onChange={(event) => setSoldAt(event.target.value)} error={errors.soldAt} />
 
       {preview && ('error' in preview ? <Notice tone="warning">{preview.error}</Notice> : <SaleBreakdown snapshot={preview.snapshot} />)}
 
@@ -227,6 +227,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
           <TextField
             label="Fecha del pago"
             type="date"
+            max={todayIso()}
             value={paidAt}
             onChange={(event) => setPaidAt(event.target.value)}
             error={errors['initialPayment.paidAt']}

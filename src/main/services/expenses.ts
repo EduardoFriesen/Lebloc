@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
 import type { ExpenseInput } from '../../shared/schemas';
 import type { Expense, ExpenseCategory, ExpenseMonth } from '../../shared/types';
-import { type Context, nowIso, today } from '../context';
+import { assertNotFuture, type Context, nowIso } from '../context';
 import * as repo from '../repos/expenses';
 
 function getExpense(ctx: Context, id: number): Expense {
@@ -11,7 +11,7 @@ function getExpense(ctx: Context, id: number): Expense {
 }
 
 export function createExpense(ctx: Context, input: ExpenseInput): Expense {
-  if (input.paidAt > today(ctx)) throw new DomainError('DATE_IN_FUTURE');
+  assertNotFuture(ctx, input.paidAt);
   return getExpense(ctx, repo.insertExpense(ctx.db, { ...input, recordedAt: nowIso(ctx) }));
 }
 

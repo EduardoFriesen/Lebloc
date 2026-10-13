@@ -101,11 +101,12 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
           <TextField
             label="Fecha de nacimiento"
             type="date"
+            max={todayIso()}
             required
             {...bind('birthDate')}
             hint={validBirthDate ? ageLabel(fields.birthDate) : undefined}
           />
-          <TextField label="Fecha de inscripción" type="date" required {...bind('enrolledAt')} />
+          <TextField label="Fecha de inscripción" type="date" max={todayIso()} required {...bind('enrolledAt')} />
           <TextField label="Dirección" {...bind('address')} />
           <TextField label="Teléfono" type="tel" {...bind('phone')} />
         </div>

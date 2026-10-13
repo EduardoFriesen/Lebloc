@@ -79,7 +79,7 @@ export function PaymentForm({ sale, payments, onDone, onCancel }: PaymentFormPro
         <option value="cash">Efectivo</option>
         <option value="transfer">Transferencia</option>
       </SelectField>
-      <TextField label="Fecha" type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} error={errors.paidAt} />
+      <TextField label="Fecha" type="date" max={todayIso()} value={paidAt} onChange={(event) => setPaidAt(event.target.value)} error={errors.paidAt} />
       {split && <p className="text-sm text-ink-soft">{split}</p>}
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">

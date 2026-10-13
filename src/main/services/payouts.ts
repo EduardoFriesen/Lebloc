@@ -2,7 +2,7 @@ import { DomainError } from '../../domain/errors';
 import { assertPayoutFits, teacherBalance } from '../../domain/ledger';
 import type { PayoutInput } from '../../shared/schemas';
 import type { TeacherAccount, TeacherBalance, TeacherPayout } from '../../shared/types';
-import { type Context, nowIso } from '../context';
+import { assertNotFuture, type Context, nowIso } from '../context';
 import * as repo from '../repos/payouts';
 import { listEnrollments } from './enrollments';
 import { getTeacher } from './teachers';
@@ -40,6 +40,7 @@ export function getPayout(ctx: Context, id: number): TeacherPayout {
 
 export function registerPayout(ctx: Context, input: PayoutInput): TeacherPayout {
   return ctx.db.transaction(() => {
+    assertNotFuture(ctx, input.paidAt);
     assertPayoutFits(getBalance(ctx, input.teacherId).balanceCents, input.amountCents);
     const id = repo.insertPayout(ctx.db, {
       teacherId: input.teacherId,

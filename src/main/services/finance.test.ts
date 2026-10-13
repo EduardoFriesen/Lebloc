@@ -37,6 +37,8 @@ function scenario(ctx: TestContext) {
   sellPlan(ctx, { ...sale, clientId: betoId, planId: freeId, soldAt: '2026-09-02' });
   ctx.clock.set(new Date(2026, 8, 3, 18, 0));
   consume(ctx, { clientId: betoId, kind: 'free', note: null });
+  // Back to today: the sales below are dated after September 3rd, and no sale can be dated after "now".
+  ctx.clock.set(TEST_NOW);
 
   const september = sellPlan(ctx, {
     ...sale,

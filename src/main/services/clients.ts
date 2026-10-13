@@ -5,7 +5,7 @@ import { DomainError } from '../../domain/errors';
 import { passStatus } from '../../domain/passes';
 import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/schemas';
 import type { Client, ClientSummary } from '../../shared/types';
-import { type Context, nowIso, today } from '../context';
+import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as repo from '../repos/clients';
 import { getSettings } from './settings';
 import { waiverStatusResolver } from './waivers';
@@ -67,6 +67,7 @@ export function listRenewals(ctx: Context): ClientSummary[] {
 }
 
 export function createClient(ctx: Context, input: ClientInput): Client {
+  assertNotFuture(ctx, input.birthDate, input.enrolledAt);
   assertGuardianRule(input.birthDate, input.guardians.length, today(ctx));
   return ctx.db.transaction(() => {
     const id = repo.insertClient(ctx.db, input, nowIso(ctx));
@@ -77,6 +78,7 @@ export function createClient(ctx: Context, input: ClientInput): Client {
 
 export function updateClient(ctx: Context, input: ClientUpdate): Client {
   requireActiveClient(ctx, input.id);
+  assertNotFuture(ctx, input.birthDate, input.enrolledAt);
   assertGuardianRule(input.birthDate, input.guardians.length, today(ctx));
   return ctx.db.transaction(() => {
     repo.updateClient(ctx.db, input.id, input, nowIso(ctx));

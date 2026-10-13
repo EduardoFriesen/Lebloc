@@ -279,7 +279,7 @@ function PayoutForm({ account, onDone, onCancel }: { account: TeacherAccount; on
         <option value="cash">Efectivo</option>
         <option value="transfer">Transferencia</option>
       </SelectField>
-      <TextField label="Fecha" type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} error={errors.paidAt} />
+      <TextField label="Fecha" type="date" max={todayIso()} value={paidAt} onChange={(event) => setPaidAt(event.target.value)} error={errors.paidAt} />
       <TextField label="Nota" value={note} onChange={(event) => setNote(event.target.value)} error={errors.note} />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
