@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createBackup } from '../backup';
+import type { Context } from '../context';
+import { DatabaseHolder } from '../db/holder';
 import { createTestContext, TEST_NOW, type TestContext } from '../test-context';
-import { changeBackupMirror, getBackupStatus, mirrorBackup } from './backups';
+import { changeBackupMirror, getBackupStatus, mirrorBackup, restoreKeepingMirror } from './backups';
 
 describe('external backup copy', () => {
   let ctx: TestContext;
@@ -61,5 +63,24 @@ describe('external backup copy', () => {
     ctx.clock.set(later);
     expect(await mirrorBackup(ctx, await backupNow())).toBeUndefined();
     expect(getBackupStatus(ctx)).toEqual({ mirrorDir: pendrive, mirrorAt: later.toISOString(), mirrorError: null });
+  });
+
+  it("keeps this PC's external folder when an older backup is restored", async () => {
+    const holder = new DatabaseHolder(join(dir, 'lebloc.db'));
+    const pc: Context = {
+      get db() {
+        return holder.db;
+      },
+      clock: ctx.clock,
+    };
+    const backups = join(dir, 'backups');
+    // Taken before the folder was chosen, so its settings have no external folder.
+    const older = await createBackup(holder.db, join(dir, 'saved'), TEST_NOW);
+    await changeBackupMirror(pc, 'choose', { pickFolder: async () => pendrive, backupNow: () => createBackup(holder.db, backups, TEST_NOW) });
+
+    await restoreKeepingMirror(pc, () => holder.restoreFrom(older, backups, TEST_NOW));
+
+    expect(getBackupStatus(pc)).toEqual({ mirrorDir: pendrive, mirrorAt: TEST_NOW.toISOString(), mirrorError: null });
+    holder.close();
   });
 });
