@@ -8,6 +8,8 @@ import { isTrustedSender } from './register';
 const backup: BackupOps = {
   exportBackup: async () => ({ status: 'cancelled' }),
   restoreBackup: async () => ({ status: 'cancelled' }),
+  pickFolder: async () => null,
+  backupNow: async () => '',
 };
 
 describe('execute', () => {

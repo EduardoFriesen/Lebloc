@@ -2,6 +2,7 @@ import type { BackupOutcome } from '../../shared/types';
 import type { Context } from '../context';
 import { getClientAccount } from '../services/account';
 import { listAuditLog } from '../services/audit';
+import { changeBackupMirror, getBackupStatus, type MirrorOps } from '../services/backups';
 import {
   anonymizeClient,
   archiveClient,
@@ -31,7 +32,8 @@ import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../servi
 import { signWaiver, voidWaiver } from '../services/waivers';
 import type { Handlers } from './execute';
 
-export interface BackupOps {
+/** What only the main process can do: native dialogs and the database file itself. */
+export interface BackupOps extends MirrorOps {
   exportBackup(): Promise<BackupOutcome>;
   restoreBackup(): Promise<BackupOutcome>;
 }
@@ -106,6 +108,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'settings:update': (input) => updateSettings(ctx, input),
     'backup:export': () => backup.exportBackup(),
     'backup:restore': () => backup.restoreBackup(),
+    'backup:status': () => getBackupStatus(ctx),
+    'backup:mirror': ({ action }) => changeBackupMirror(ctx, action, backup),
     'audit:list': () => listAuditLog(ctx),
   };
 }

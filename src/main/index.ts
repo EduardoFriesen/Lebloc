@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, Menu, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import log from 'electron-log/main';
@@ -8,11 +9,14 @@ import { type Context, systemClock } from './context';
 import { DatabaseHolder } from './db/holder';
 import { type BackupOps, createHandlers } from './ipc/handlers';
 import { registerIpc } from './ipc/register';
+import { mirrorBackup } from './services/backups';
 
 // E2E tests point userData at a temp dir so they never touch real data.
 if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USER_DATA);
 
 const BACKUP_FILTERS = [{ name: 'Base de datos de Lebloc', extensions: ['db'] }];
+// Closing waits this long at most for the last backup and its external copy.
+const QUIT_BACKUP_CAP_MS = 15_000;
 
 // Exact page the app loads; the only sender IPC trusts.
 const APP_URL = process.env.ELECTRON_RENDERER_URL ?? pathToFileURL(join(__dirname, '../renderer/index.html')).href;
@@ -79,6 +83,11 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
       await holder.restoreFrom(source, backupDir, new Date());
       return { status: 'done', path: source };
     },
+    async pickFolder() {
+      const result = await showOpen({ title: 'Carpeta para copiar los backups', properties: ['openDirectory', 'createDirectory'] });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
+    },
+    backupNow: () => createBackup(holder.db, backupDir, new Date()),
   };
 }
 
@@ -91,7 +100,7 @@ async function start(): Promise<void> {
   await seed?.setAsideForSeed(dbPath, backupDir, new Date());
   const holder = new DatabaseHolder(dbPath);
   seed?.seedDatabase(holder.db, new Date());
-  await createBackup(holder.db, backupDir, new Date());
+  const startupBackup = await createBackup(holder.db, backupDir, new Date());
 
   const ctx: Context = {
     get db() {
@@ -99,11 +108,32 @@ async function start(): Promise<void> {
     },
     clock: systemClock,
   };
-  registerIpc(ipcMain, createHandlers(ctx, createBackupOps(holder, backupDir)), (error) => log.error(error), APP_URL);
-  app.on('before-quit', () => holder.close());
+  const logError = (error: unknown) => log.error(error);
+  const backups = createBackupOps(holder, backupDir);
+  const copyOutside = (file: string) =>
+    mirrorBackup(ctx, file).then((error) => {
+      if (error) logError(error);
+    });
+  registerIpc(ipcMain, createHandlers(ctx, backups), logError, APP_URL);
+
+  let quitting = false;
+  app.on('before-quit', (event) => {
+    if (quitting) return;
+    quitting = true;
+    event.preventDefault();
+    // A last backup and its external copy on the way out, capped so closing never hangs on a slow folder.
+    void Promise.race([backups.backupNow().then(copyOutside), delay(QUIT_BACKUP_CAP_MS)])
+      .catch(logError)
+      .finally(() => {
+        holder.close();
+        app.quit();
+      });
+  });
   // Electron's default menu is in English and offers Reload and DevTools: only development keeps it.
   if (!process.env.ELECTRON_RENDERER_URL) Menu.setApplicationMenu(null);
   createWindow();
+  // The external copy waits for the window: a slow or missing folder must not hold the app back.
+  void copyOutside(startupBackup);
 }
 
 // A second instance would open the same SQLite file and race restores against writes.

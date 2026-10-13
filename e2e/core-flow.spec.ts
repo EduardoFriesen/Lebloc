@@ -316,7 +316,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
     }, folder);
   const warning = page.getByRole('complementary', { name: 'Alertas' }).getByText(/No se pudo hacer la copia externa/);
 
-  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await pick(join(userData, 'pendrive-desenchufado'));
   await page.getByRole('button', { name: 'Elegir carpeta' }).click();
   await expect(page.getByText(/No se pudo copiar el backup a la carpeta externa/)).toBeVisible();
@@ -326,7 +326,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
   const pendrive = join(userData, 'pendrive');
   mkdirSync(pendrive);
   await pick(pendrive);
-  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir carpeta' }).click();
   await expect(page.getByText(/Última copia externa:/)).toBeVisible();
   expect(readdirSync(join(pendrive, 'lebloc-backups'))).toHaveLength(1);

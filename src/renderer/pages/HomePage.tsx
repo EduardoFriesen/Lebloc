@@ -267,6 +267,14 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
 function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
   return (
     <>
+      {dashboard.summary.externalBackupFailed && (
+        <Notice tone="warning">
+          No se pudo hacer la copia externa del backup. ¿Está conectado el pendrive?{' '}
+          <Link className="font-semibold underline" to="/ajustes">
+            Revisalo en Ajustes
+          </Link>
+        </Notice>
+      )}
       <SummaryPanel summary={dashboard.summary} />
       <Panel title="Tienen que renovar">
         {dashboard.renewals.length === 0 ? (

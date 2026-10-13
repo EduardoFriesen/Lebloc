@@ -7,10 +7,10 @@ import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageBar, usePage } from '../components/ui/Pager';
-import { AsyncView } from '../components/ui/States';
+import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { FillerRows, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import type { AuditAction, AuditEntry, Settings } from '../../shared/types';
+import type { AuditAction, AuditEntry, BackupStatus, Settings } from '../../shared/types';
 import { formatDateTime } from '../lib/format';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { type FontSize, loadPreferences, type Preferences, savePreferences, type ThemePref } from '../lib/preferences';
@@ -167,6 +167,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
 }
 
 function BackupPanel({ onExported }: { onExported: () => void }) {
+  const status = useAsync(() => call('backup:status', {}), []);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
   const [restoreRequest, setRestoreRequest] = useState<ConfirmRequest | null>(null);
@@ -195,9 +196,13 @@ function BackupPanel({ onExported }: { onExported: () => void }) {
     <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
       <h2 className="font-display text-2xl font-semibold">Backup</h2>
       <p className="text-sm text-ink-soft">
-        Cada vez que se abre la app se guarda un backup automático (se conservan los últimos 10). Exportá una copia a un
-        pendrive con regularidad: si la PC se rompe, es la única forma de recuperar los datos.
+        Cada vez que se abre y se cierra la app se guarda un backup automático: se conservan los últimos 10 y uno por día del
+        último mes. Si la PC se rompe, los datos solo se recuperan con una copia fuera de ella: elegí una carpeta externa (un
+        pendrive o una carpeta de Google Drive) o exportá una copia con regularidad.
       </p>
+      <AsyncView state={status} skeleton={<SkeletonRows rows={2} />}>
+        {(data) => <MirrorSection status={data} onChanged={status.reload} />}
+      </AsyncView>
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" disabled={busy} onClick={() => void exportBackup()}>
@@ -219,6 +224,51 @@ function BackupPanel({ onExported }: { onExported: () => void }) {
         </Button>
       </div>
       <ConfirmDialog request={restoreRequest} onDone={() => setRestoreRequest(null)} onClose={() => setRestoreRequest(null)} />
+    </div>
+  );
+}
+
+/** The external folder every automatic backup is also copied to, and how the last copy went. */
+function MirrorSection({ status, onChanged }: { status: BackupStatus; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function change(action: 'choose' | 'clear') {
+    setBusy(true);
+    setError(null);
+    try {
+      await call('backup:mirror', { action });
+      onChanged();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-y border-ink/10 py-4">
+      <h3 className="font-display text-lg font-semibold">Copia en una carpeta externa</h3>
+      {status.mirrorDir === null ? (
+        <p className="text-sm text-ink-soft">Sin carpeta: los backups quedan solo en esta PC.</p>
+      ) : (
+        <p className="break-all text-sm">
+          Cada backup se copia también en <strong>{status.mirrorDir}</strong>.
+        </p>
+      )}
+      {status.mirrorError && <Notice tone="error">{status.mirrorError}</Notice>}
+      {status.mirrorAt && <p className="text-sm text-ink-soft">Última copia externa: {formatDateTime(status.mirrorAt)}</p>}
+      {error && <Notice tone="error">{error}</Notice>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" disabled={busy} onClick={() => void change('choose')}>
+          Elegir carpeta
+        </Button>
+        {status.mirrorDir !== null && (
+          <Button variant="ghost" disabled={busy} onClick={() => void change('clear')}>
+            Quitar
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

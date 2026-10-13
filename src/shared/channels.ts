@@ -67,6 +67,8 @@ export const CHANNELS = [
   'settings:update',
   'backup:export',
   'backup:restore',
+  'backup:status',
+  'backup:mirror',
   'audit:list',
 ] as const;
 

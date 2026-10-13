@@ -184,6 +184,7 @@ export const payslipInput = z
   .object({ employeeId: id, from: isoDate, to: isoDate })
   .refine((range) => range.from <= range.to, { message: 'El inicio tiene que ser anterior al fin', path: ['to'] });
 export const planSalesInput = z.object({ month, planId: id.optional() });
+export const backupMirrorInput = z.object({ action: z.enum(['choose', 'clear']) });
 export const shiftInput = z.object({
   employeeId: id,
   workedOn: isoDate,
