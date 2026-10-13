@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron, type ElectronApplication, expect, type Page, test } from '@playwright/test';
+import { OVERFLOWING } from './overflow';
 
 let app: ElectronApplication;
 let page: Page;
@@ -29,24 +30,6 @@ const SEED = `(async () => {
   await call('expenses:create', { category: 'rent', description: null, amountCents: 9999999900, method: 'transfer', paidAt: today });
   return teacher.id;
 })()`;
-
-/**
- * Every visible text that sticks out of its card or tile (anything drawn with rounded-2xl), measured on the text itself.
- * Screen-reader-only text and closed "Ver como tabla" panels are not drawn, so they are skipped.
- */
-const OVERFLOWING = `[...document.querySelectorAll('[class*="rounded-2xl"]')].flatMap((box) => {
-  const right = box.getBoundingClientRect().right;
-  const out = [];
-  const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (node.parentElement.closest('.sr-only, details:not([open]) > :not(summary)')) continue;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const rect = range.getBoundingClientRect();
-    if (rect.width > 0 && rect.right > right + 0.5) out.push(node.textContent.trim());
-  }
-  return out;
-})`;
 
 test.beforeAll(async () => {
   userData = mkdtempSync(join(tmpdir(), 'lebloc-e2e-'));
