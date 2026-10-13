@@ -166,8 +166,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
        GROUP BY c.id
        HAVING (@onlyDebtors = 0 OR debtCents > 0) AND (@onlyWithPasses = 0 OR remainingFree + remainingTeacher > 0)
          AND (@onlyWithoutPasses = 0 OR remainingFree + remainingTeacher = 0)
-       ORDER BY CASE WHEN @onlyDebtors = 1 THEN oldestDebtSoldAt END, c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE
-       LIMIT 200`,
+       ORDER BY CASE WHEN @onlyDebtors = 1 THEN oldestDebtSoldAt END, c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE`,
     )
     .all({
       search: fold(filters.search),

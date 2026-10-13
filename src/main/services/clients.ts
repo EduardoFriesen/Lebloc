@@ -41,7 +41,6 @@ export function listClients(ctx: Context, input: ClientListInput): ClientSummary
     bornAfter: onlyMinors ? minorBirthCutoff(today(ctx)) : undefined,
     enrolledFrom: onlyNewThisMonth ? monthStart(ctx.clock.now()) : undefined,
   });
-  // ponytail: filters after the query's LIMIT 200; move the waiver rule to SQL if there are ever more clients than that.
   return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state !== 'valid') : clients;
 }
 

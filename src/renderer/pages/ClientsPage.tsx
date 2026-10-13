@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, PassBadge, Stat } from '../components/ui/Card';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageBar, usePage } from '../components/ui/Pager';
 import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, EmptyState } from '../components/ui/States';
 import type { ClientListInput } from '../../shared/schemas';
+import type { ClientSummary } from '../../shared/types';
 import { call } from '../lib/api';
 import { sum } from '../lib/arrays';
 import { ageLabel, debtLabel, formatMoney, fullName, waiverLabel } from '../lib/format';
@@ -117,33 +119,8 @@ export function ClientsPage() {
                   </span>
                 </p>
               )}
-              <CardGrid label="Clientes">
-                {data.map((client) => (
-                  <Card
-                    key={client.id}
-                    to={`/clientes/${client.id}`}
-                    title={fullName(client)}
-                    subtitle={ageLabel(client.birthDate)}
-                    muted={client.archivedAt !== null}
-                    tone={client.passStatus}
-                    badges={
-                      (client.passStatus !== 'ok' || client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
-                        <>
-                          {client.archivedAt && <Badge>Archivado</Badge>}
-                          {!client.archivedAt && <PassBadge status={client.passStatus} />}
-                          {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
-                          {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
-                        </>
-                      )
-                    }
-                  >
-                    <dl className="flex gap-6">
-                      <Stat label="Pases libres">{client.remainingFree}</Stat>
-                      <Stat label="Con profesor">{client.remainingTeacher}</Stat>
-                    </dl>
-                  </Card>
-                ))}
-              </CardGrid>
+              {/* Keyed by the filters so a new filter starts on the first page. */}
+              <ClientCards key={`${search}|${includeArchived}|${params.toString()}`} clients={data} />
             </>
           )}
         </AsyncView>
@@ -172,5 +149,51 @@ export function ClientsPage() {
         ]}
       />
     </section>
+  );
+}
+
+const CLIENTS_PAGE_SIZE = 24;
+
+/** A page of client cards with the ‹ 1 / 9 › bar under them; changing page brings the first card back into view. */
+function ClientCards({ clients }: { clients: ClientSummary[] }) {
+  const top = useRef<HTMLDivElement>(null);
+  const { visible, page, pages, setPage } = usePage(clients, CLIENTS_PAGE_SIZE);
+
+  function goTo(next: number) {
+    setPage(next);
+    top.current?.scrollIntoView({ block: 'start' });
+  }
+
+  return (
+    <div ref={top} className="flex flex-col gap-4">
+      <CardGrid label="Clientes">
+        {visible.map((client) => (
+          <Card
+            key={client.id}
+            to={`/clientes/${client.id}`}
+            title={fullName(client)}
+            subtitle={ageLabel(client.birthDate)}
+            muted={client.archivedAt !== null}
+            tone={client.passStatus}
+            badges={
+              (client.passStatus !== 'ok' || client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
+                <>
+                  {client.archivedAt && <Badge>Archivado</Badge>}
+                  {!client.archivedAt && <PassBadge status={client.passStatus} />}
+                  {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
+                  {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
+                </>
+              )
+            }
+          >
+            <dl className="flex gap-6">
+              <Stat label="Pases libres">{client.remainingFree}</Stat>
+              <Stat label="Con profesor">{client.remainingTeacher}</Stat>
+            </dl>
+          </Card>
+        ))}
+      </CardGrid>
+      <PageBar label="Clientes" page={page} pages={pages} onChange={goTo} />
+    </div>
   );
 }
