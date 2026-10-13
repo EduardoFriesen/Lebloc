@@ -370,6 +370,19 @@ export interface Settings {
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };
 
+export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored';
+
+/** One traced operation on personal data (Ley 25.326). Never edited or deleted. */
+export interface AuditEntry {
+  id: number;
+  at: string;
+  action: AuditAction;
+  /** The client, for an anonymization. */
+  subjectId: number | null;
+  /** The file, for a backup export or restore. */
+  detail: string | null;
+}
+
 export type ExpenseCategory = 'rent' | 'electricity' | 'gas' | 'water' | 'internet' | 'taxes' | 'maintenance' | 'other';
 
 /** A fixed cost of the local (rent, utilities, ...). Kiosk stock is not an expense: its cost goes with each sale. */

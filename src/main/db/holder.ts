@@ -1,6 +1,7 @@
 import { copyFile, rename, rm } from 'node:fs/promises';
 import { DomainError } from '../../domain/errors';
 import { createBackup, validateBackupFile } from '../backup';
+import { insertAudit } from '../repos/audit';
 import { type Db, openDatabase } from './connection';
 
 // Owns the open database so a restore can swap the underlying file.
@@ -28,6 +29,8 @@ export class DatabaseHolder {
     this.restoring = true;
     try {
       await this.swapIn(source, backupDir, now);
+      // Recorded in the restored data, which is what the app keeps using from now on.
+      insertAudit(this.current, { at: now.toISOString(), action: 'backup_restored', subjectId: null, detail: source });
     } finally {
       this.restoring = false;
     }

@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, Menu, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import log from 'electron-log/main';
 import { toIsoDate } from '../domain/dates';
-import { createBackup, writeBackupFile } from './backup';
+import { createBackup, exportBackup } from './backup';
 import { type Context, systemClock } from './context';
 import { DatabaseHolder } from './db/holder';
 import { type BackupOps, createHandlers } from './ipc/handlers';
@@ -65,7 +65,7 @@ function createBackupOps(holder: DatabaseHolder, backupDir: string): BackupOps {
         filters: BACKUP_FILTERS,
       });
       if (result.canceled || !result.filePath) return { status: 'cancelled' };
-      await writeBackupFile(holder.db, result.filePath);
+      await exportBackup(holder.db, result.filePath, new Date());
       return { status: 'done', path: result.filePath };
     },
     async restoreBackup() {

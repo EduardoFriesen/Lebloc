@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import { DomainError } from '../domain/errors';
 import type { Db } from './db/connection';
 import { MIGRATIONS } from './db/migrations';
+import { insertAudit } from './repos/audit';
 
 export const BACKUPS_TO_KEEP = 10;
 const BACKUP_FILE = /^lebloc-.+\.db$/;
@@ -19,6 +20,12 @@ export async function writeBackupFile(db: Db, file: string): Promise<void> {
   } finally {
     copy.close();
   }
+}
+
+/** "Exportar backup": a full copy of the personal data leaves the app, so it is traced (Ley 25.326). */
+export async function exportBackup(db: Db, file: string, now: Date): Promise<void> {
+  await writeBackupFile(db, file);
+  insertAudit(db, { at: now.toISOString(), action: 'backup_exported', subjectId: null, detail: file });
 }
 
 export async function createBackup(db: Db, dir: string, now: Date, keep = BACKUPS_TO_KEEP): Promise<string> {

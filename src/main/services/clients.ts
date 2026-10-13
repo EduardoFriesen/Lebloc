@@ -6,6 +6,7 @@ import { passStatus } from '../../domain/passes';
 import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/schemas';
 import type { Client, ClientSummary } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
+import { insertAudit } from '../repos/audit';
 import * as repo from '../repos/clients';
 import { getSettings } from './settings';
 import { waiverStatusResolver } from './waivers';
@@ -105,6 +106,11 @@ export function anonymizeClient(ctx: Context, id: number): Client {
   const client = getClient(ctx, id);
   if (!client.archivedAt) throw new DomainError('CLIENT_NOT_ARCHIVED');
   if (client.anonymizedAt) throw new DomainError('CLIENT_ANONYMIZED');
-  ctx.db.transaction(() => repo.anonymizeClient(ctx.db, id, nowIso(ctx)))();
+  ctx.db.transaction(() => {
+    const now = nowIso(ctx);
+    repo.anonymizeClient(ctx.db, id, now);
+    // By id only: the log must not keep the personal data that was just wiped.
+    insertAudit(ctx.db, { at: now, action: 'client_anonymized', subjectId: id, detail: null });
+  })();
   return getClient(ctx, id);
 }
