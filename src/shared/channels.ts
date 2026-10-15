@@ -40,6 +40,7 @@ export const CHANNELS = [
   'kiosk:top',
   'kiosk:stats',
   'counter:today',
+  'counter:entries',
   'counter:sell',
   'counter:void',
   'expenses:month',

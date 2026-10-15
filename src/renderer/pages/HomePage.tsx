@@ -2,6 +2,7 @@ import { type ReactNode, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
+import { DayEntriesTable } from '../components/DayEntriesTable';
 import { DayMovementsTable } from '../components/DayMovementsTable';
 import { KioskSalePanel } from '../components/KioskSalePanel';
 import { WalkInButtons } from '../components/WalkInButtons';
@@ -32,7 +33,7 @@ export function HomePage() {
   const query = search.trim();
   const dashboard = useAsync(() => call('dashboard:get', {}), []);
   const movements = useAsync(() => call('counter:today', {}), []);
-  const usual = useAsync(() => call('counter:usual', {}), []);
+  const entries = useAsync(() => call('counter:entries', {}), []);
   const results = useAsync(
     () => (query ? call('clients:list', { search: query, includeArchived: false }) : Promise.resolve([])),
     [query],
@@ -44,10 +45,7 @@ export function HomePage() {
     try {
       await call('consumptions:create', { clientId: client.id, kind, note: null });
       setNotice({ tone: 'success', text: `${fullName(client)}: pase ${PASS_KIND_LABELS[kind].toLowerCase()} registrado.` });
-      // Whoever just came drops out of the preload; colors and renewals follow the new count.
-      results.reload();
-      usual.reload();
-      dashboard.reload();
+      refresh();
     } catch (caught) {
       setNotice({ tone: 'error', text: `${fullName(client)}: ${errorMessage(caught)}` });
     } finally {
@@ -55,9 +53,12 @@ export function HomePage() {
     }
   }
 
-  function refreshIncome() {
+  // Passes, walk-ins and voids touch the entries, the cash, the colors of the results and the renewals at once.
+  function refresh() {
     dashboard.reload();
     movements.reload();
+    entries.reload();
+    results.reload();
   }
 
   const strip = (client: ClientSummary) => <ClientStrip key={client.id} client={client} busy={busy} onConsume={consume} />;
@@ -85,7 +86,7 @@ export function HomePage() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </div>
-            <WalkInButtons onSold={refreshIncome} />
+            <WalkInButtons onSold={refresh} />
           </div>
           {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
           {query ? (
@@ -105,14 +106,8 @@ export function HomePage() {
               </AsyncView>
             </ListSection>
           ) : (
-            <ListSection title="Recomendados">
-              <AsyncView
-                state={usual}
-                isEmpty={(data) => data.length === 0}
-                empty={<p className="text-sm text-ink-soft">Nadie más de la semana pasada a esta hora. Buscá al cliente por nombre.</p>}
-              >
-                {(clients) => <PagedList items={clients} label="Recomendados" render={strip} />}
-              </AsyncView>
+            <ListSection title="Ingresos de hoy">
+              <DayEntriesTable state={entries} onChanged={refresh} />
             </ListSection>
           )}
         </section>
@@ -134,9 +129,9 @@ export function HomePage() {
             />
           </div>
           <div ref={kioskPanel}>
-            <KioskSalePanel search={productSearch} onSearchChange={setProductSearch} onSold={refreshIncome} />
+            <KioskSalePanel search={productSearch} onSearchChange={setProductSearch} onSold={refresh} />
           </div>
-          <DayMovementsTable state={movements} onChanged={refreshIncome} />
+          <DayMovementsTable state={movements} onChanged={refresh} />
         </section>
       </div>
       <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>

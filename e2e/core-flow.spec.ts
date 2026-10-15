@@ -228,6 +228,22 @@ test('the counter tints clients by passes left, lists who has to renew, and Clie
   await expect(clara.getByText('Sin pases')).toBeVisible();
 });
 
+test('a pass marked at the counter shows in today entries and can be voided there', async () => {
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await label('Buscar cliente').fill('Ana Roca');
+  await page.getByRole('button', { name: 'Pase libre para Ana Roca' }).click();
+  await expect(page.getByText('Ana Roca: pase libre registrado.')).toBeVisible();
+  await label('Buscar cliente').fill('');
+
+  const entries = page.getByRole('table', { name: 'Ingresos de hoy' });
+  const freePass = entries.getByRole('row', { name: /Ana Roca\s+Libre\s/ });
+  await expect(freePass).toHaveCount(1);
+  await expect(freePass).toContainText(/\d{2}:\d{2}/);
+  await freePass.getByRole('button', { name: /^Anular pase libre de Ana Roca/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Anular consumo' }).click();
+  await expect(freePass).toHaveCount(0);
+});
+
 test("a plan and a teacher list this month's enrollments", async () => {
   await page.getByRole('link', { name: 'Planes' }).click();
   await page.getByRole('link', { name: 'Pack 2+2', exact: true }).click();

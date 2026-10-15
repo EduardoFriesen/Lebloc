@@ -357,6 +357,21 @@ export type DayMovement =
     };
 
 /** Today's cash in: plan payments first (they carry no time), then kiosk tickets. Totals are derived. */
+/** Who came in today: a client's pass (with what's left) or a walk-in day pass. */
+export type DayEntry =
+  | {
+      kind: 'pass';
+      consumptionId: number;
+      clientId: number;
+      clientName: string;
+      passKind: PassKind;
+      recordedAt: string;
+      remainingFree: number;
+      remainingTeacher: number;
+      passStatus: PassStatus;
+    }
+  | { kind: 'walk_in'; sale: CounterSale };
+
 export interface DayMovements {
   rows: DayMovement[];
   kioskCents: number;

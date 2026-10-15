@@ -119,6 +119,8 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
   await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText(/\d{2}:\d{2}/);
   await expect(movements.getByRole('row', { name: /Pédulas/ })).toContainText(/3\.000/);
   await expect(page.getByText(/Pases sueltos \$\s11\.000,00/)).toBeVisible();
+  // The walk-in is an entry of the day; the shoes are not.
+  await expect(page.getByRole('table', { name: 'Ingresos de hoy' }).getByRole('row', { name: /Pase suelto/ })).toHaveCount(1);
 
   await movements.getByRole('button', { name: /Anular pédulas/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Anular', exact: true }).click();
