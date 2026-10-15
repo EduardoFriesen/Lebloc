@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { adultClient, createTestContext, freePlan, type TestContext } from '../test-context';
-import { createClient } from './clients';
-import { getDayMovements } from './counter';
+import { archiveClient, createClient } from './clients';
+import { consume, voidConsumption } from './consumptions';
+import { getDayEntries, getDayMovements } from './counter';
 import { sellCounter, updateCounterPrices, voidCounterSale } from './counterSales';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment, voidPayment } from './payments';
@@ -85,5 +86,70 @@ describe('counter day movements', () => {
     ctx.clock.set(new Date(2026, 9, 5, 10));
     pay(100_000);
     expect(getDayMovements(ctx).rows.map((row) => row.kind)).toEqual(['counter', 'plan', 'kiosk']);
+  });
+});
+
+describe('counter day entries', () => {
+  let ctx: TestContext;
+  let clientId: number;
+
+  beforeEach(() => {
+    ctx = createTestContext();
+    clientId = createClient(ctx, adultClient).id;
+    const planId = createPlan(ctx, freePlan).id;
+    sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null });
+    updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
+  });
+
+  const climbAt = (when: Date) => {
+    ctx.clock.set(when);
+    return consume(ctx, { clientId, kind: 'free', note: null });
+  };
+
+  it('is empty when nobody came today', () => {
+    expect(getDayEntries(ctx)).toEqual([]);
+  });
+
+  it('lists today passes with what the client has left', () => {
+    const first = climbAt(new Date(2026, 9, 5, 9));
+    expect(getDayEntries(ctx)).toEqual([
+      {
+        kind: 'pass',
+        consumptionId: first.id,
+        clientId,
+        clientName: 'Ana Roca',
+        passKind: 'free',
+        recordedAt: first.consumedAt,
+        remainingFree: 7,
+        remainingTeacher: 0,
+        passStatus: 'ok',
+      },
+    ]);
+  });
+
+  it('leaves out voided passes, other days, shoe rentals and voided walk-ins', () => {
+    climbAt(new Date(2026, 9, 4, 23, 59));
+    voidConsumption(ctx, climbAt(new Date(2026, 9, 5, 9)).id);
+    sellCounter(ctx, { kinds: ['shoe_rental'], method: 'cash' });
+    voidCounterSale(ctx, sellCounter(ctx, { kinds: ['day_pass'], method: 'cash' })[0]?.id ?? 0);
+    expect(getDayEntries(ctx)).toEqual([]);
+  });
+
+  it('keeps the entry of a client archived after coming', () => {
+    climbAt(new Date(2026, 9, 5, 9));
+    archiveClient(ctx, clientId);
+    expect(getDayEntries(ctx).map((entry) => entry.kind)).toEqual(['pass']);
+  });
+
+  it('mixes client passes and walk-in day passes, newest first', () => {
+    ctx.clock.set(new Date(2026, 9, 5, 10));
+    const [walkIn] = sellCounter(ctx, { kinds: ['day_pass', 'shoe_rental'], method: 'cash' });
+    climbAt(new Date(2026, 9, 5, 9));
+    const late = climbAt(new Date(2026, 9, 5, 11));
+    expect(getDayEntries(ctx)).toMatchObject([
+      { kind: 'pass', consumptionId: late.id, remainingFree: 6 },
+      { kind: 'walk_in', sale: walkIn },
+      { kind: 'pass' },
+    ]);
   });
 });
