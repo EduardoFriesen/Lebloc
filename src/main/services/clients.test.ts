@@ -9,11 +9,10 @@ import {
   getClient,
   listClients,
   listRenewals,
-  listUsualAttendees,
   unarchiveClient,
   updateClient,
 } from './clients';
-import { consume, voidConsumption } from './consumptions';
+import { consume } from './consumptions';
 import { registerPayment } from './payments';
 import { createPlan } from './plans';
 import { sellPlan } from './sales';
@@ -237,21 +236,6 @@ describe('clients service', () => {
       ctx.clock.set(TEST_NOW);
       return consumption;
     }
-
-    it('preloads who came last week within an hour of now, minus who came today, voided and archived', () => {
-      climbAt(clientWith('Ana', 8), new Date(2026, 8, 28, 11, 10));
-      climbAt(clientWith('Bruno', 8), new Date(2026, 8, 28, 9, 59));
-      const carla = clientWith('Carla', 8);
-      climbAt(carla, new Date(2026, 8, 28, 12, 30));
-      climbAt(carla, new Date(2026, 9, 5, 9, 0));
-      const dario = clientWith('Dario', 8);
-      voidConsumption(ctx, climbAt(dario, new Date(2026, 8, 28, 12, 0)).id);
-      const eva = clientWith('Eva', 8);
-      climbAt(eva, new Date(2026, 8, 28, 12, 50));
-      archiveClient(ctx, eva);
-
-      expect(listUsualAttendees(ctx).map((client) => client.firstName)).toEqual(['Ana']);
-    });
 
     it('lists who has to renew: low or no passes and came in the last 30 days, no passes first', () => {
       const luis = clientWith('Luis', 3);

@@ -5,7 +5,6 @@ import type * as T from './types';
 
 export const apiSchemas = {
   'clients:list': schemas.clientListInput,
-  'counter:usual': schemas.emptyInput,
   'clients:get': schemas.idInput,
   'clients:create': schemas.clientInput,
   'clients:update': schemas.clientUpdate,
@@ -80,7 +79,6 @@ export const apiSchemas = {
 
 export interface ApiOutputs {
   'clients:list': T.ClientSummary[];
-  'counter:usual': T.ClientSummary[];
   'clients:get': T.Client;
   'clients:create': T.Client;
   'clients:update': T.Client;

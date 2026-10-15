@@ -128,18 +128,9 @@ export interface ClientSummaryFilters {
   bornAfter?: string;
   /** ISO date: only clients enrolled on or after it. */
   enrolledFrom?: string;
-  /** ISO timestamps: only clients with an active consumption in [attendedFrom, attendedTo). */
+  /** ISO timestamp: only clients with an active consumption since then. */
   attendedFrom?: string;
-  attendedTo?: string;
-  /** ISO timestamp: leave out clients with an active consumption since then. */
-  notAttendedSince?: string;
 }
-
-// Active (not voided) consumption of the client in c, between @from and @to; NULL bounds are open.
-const ATTENDED_SQL = (from: string, to: string) => `EXISTS (
-  SELECT 1 FROM consumptions co JOIN sales s ON s.id = co.sale_id
-  WHERE s.client_id = c.id AND co.voided_at IS NULL
-    AND (${from} IS NULL OR co.consumed_at >= ${from}) AND (${to} IS NULL OR co.consumed_at < ${to}))`;
 
 export function listClientSummaries(db: Db, filters: ClientSummaryFilters): ClientSummaryRow[] {
   return db
@@ -161,8 +152,9 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          AND (@search = ''
            OR instr(fold(c.first_name || ' ' || c.last_name), @search) > 0
            OR instr(fold(c.last_name || ' ' || c.first_name), @search) > 0)
-         AND (@attendedFrom IS NULL OR ${ATTENDED_SQL('@attendedFrom', '@attendedTo')})
-         AND (@notAttendedSince IS NULL OR NOT ${ATTENDED_SQL('@notAttendedSince', 'NULL')})
+         AND (@attendedFrom IS NULL OR EXISTS (
+           SELECT 1 FROM consumptions co JOIN sales s ON s.id = co.sale_id
+           WHERE s.client_id = c.id AND co.voided_at IS NULL AND co.consumed_at >= @attendedFrom))
        GROUP BY c.id
        HAVING (@onlyDebtors = 0 OR debtCents > 0) AND (@onlyWithPasses = 0 OR remainingFree + remainingTeacher > 0)
          AND (@onlyWithoutPasses = 0 OR remainingFree + remainingTeacher = 0)
@@ -178,7 +170,5 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
       bornAfter: filters.bornAfter ?? null,
       enrolledFrom: filters.enrolledFrom ?? null,
       attendedFrom: filters.attendedFrom ?? null,
-      attendedTo: filters.attendedTo ?? null,
-      notAttendedSince: filters.notAttendedSince ?? null,
     });
 }

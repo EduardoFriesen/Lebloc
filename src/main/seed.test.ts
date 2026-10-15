@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Context } from './context';
 import { openDatabase } from './db/connection';
 import { seedDatabase } from './seed';
-import { listClients, listUsualAttendees } from './services/clients';
-import { getDayMovements } from './services/counter';
+import { listClients } from './services/clients';
+import { getDayEntries, getDayMovements } from './services/counter';
 import { getDashboard } from './services/dashboard';
 import { getStaffStats } from './services/employees';
 import { getExpenseMonth } from './services/expenses';
@@ -45,8 +45,10 @@ describe('seedDatabase', () => {
     expect(getStaffStats(ctx, '2026-10')).toMatchObject({ active: 3, staff: 2, casual: 1 });
   });
 
-  it('preloads the counter with people who came last week at this time', () => {
-    expect(listUsualAttendees(ctx).length).toBeGreaterThanOrEqual(5);
+  it('fills today entries with client passes and walk-in day passes', () => {
+    const entries = getDayEntries(ctx);
+    expect(entries.filter((entry) => entry.kind === 'pass').length).toBeGreaterThanOrEqual(5);
+    expect(entries.filter((entry) => entry.kind === 'walk_in')).toHaveLength(2);
   });
 
   it('loads kiosk products and today sales that match the summary', () => {

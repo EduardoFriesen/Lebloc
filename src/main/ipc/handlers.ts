@@ -9,7 +9,6 @@ import {
   createClient,
   getClient,
   listClients,
-  listUsualAttendees,
   unarchiveClient,
   updateClient,
 } from '../services/clients';
@@ -41,7 +40,6 @@ export interface BackupOps extends MirrorOps {
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
   return {
     'clients:list': (input) => listClients(ctx, input),
-    'counter:usual': () => listUsualAttendees(ctx),
     'clients:get': ({ id }) => getClient(ctx, id),
     'clients:create': (input) => createClient(ctx, input),
     'clients:update': (input) => updateClient(ctx, input),

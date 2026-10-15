@@ -45,19 +45,6 @@ export function listClients(ctx: Context, input: ClientListInput): ClientSummary
   return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state !== 'valid') : clients;
 }
 
-/** Preload for the counter: who came last week around this time and hasn't come yet today. */
-export function listUsualAttendees(ctx: Context): ClientSummary[] {
-  const { usualSlot, todayStart } = attendanceWindows(ctx.clock.now());
-  return summaries(ctx, {
-    search: '',
-    includeArchived: false,
-    onlyDebtors: false,
-    attendedFrom: usualSlot.from.toISOString(),
-    attendedTo: usualSlot.to.toISOString(),
-    notAttendedSince: todayStart.toISOString(),
-  });
-}
-
 /** Who has to renew: low or no passes, and came in the last 30 days. Those with no passes first. */
 export function listRenewals(ctx: Context): ClientSummary[] {
   const { renewalFrom } = attendanceWindows(ctx.clock.now());
