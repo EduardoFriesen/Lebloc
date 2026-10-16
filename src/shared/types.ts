@@ -391,13 +391,19 @@ export interface Settings {
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };
 
-/** The automatic copy of every backup into an external folder: a pendrive or a synced Drive folder. */
+/** The automatic copies of every backup out of this PC: into an external folder (a pendrive) and up to Google Drive. */
 export interface BackupStatus {
   mirrorDir: string | null;
   /** Last successful external copy. */
   mirrorAt: string | null;
   /** Why the last external copy failed; null when it worked. */
   mirrorError: string | null;
+  /** The Google account every backup is uploaded to; null when Drive is not connected. */
+  driveEmail: string | null;
+  /** Last successful upload to Drive. */
+  driveAt: string | null;
+  /** Why the last upload failed; null when it worked. */
+  driveError: string | null;
 }
 
 export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored' | 'data_imported' | 'drive_connected' | 'drive_disconnected';

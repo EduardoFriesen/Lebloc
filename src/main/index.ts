@@ -9,7 +9,7 @@ import { type Context, systemClock } from './context';
 import { DatabaseHolder } from './db/holder';
 import { type BackupOps, createHandlers } from './ipc/handlers';
 import { registerIpc } from './ipc/register';
-import { mirrorBackup, restoreKeepingMirror } from './services/backups';
+import { mirrorBackup, restoreKeepingExternal } from './services/backups';
 
 // E2E tests point userData at a temp dir so they never touch real data.
 if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USER_DATA);
@@ -81,7 +81,7 @@ function createBackupOps(ctx: Context, holder: DatabaseHolder, backupDir: string
       });
       const [source] = result.filePaths;
       if (result.canceled || !source) return { status: 'cancelled' };
-      await restoreKeepingMirror(ctx, () => holder.restoreFrom(source, backupDir, new Date()));
+      await restoreKeepingExternal(ctx, () => holder.restoreFrom(source, backupDir, new Date()));
       return { status: 'done', path: source };
     },
     async pickFolder() {
