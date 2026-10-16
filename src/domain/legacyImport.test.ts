@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { formatMoney } from '../shared/money';
 import { expectDomainError } from '../test/helpers';
 import { buildImportPlan, type ImportPlan, parseSheetDate, type Rows, splitName, summarizeImport } from './legacyImport';
 
@@ -121,6 +122,29 @@ describe('buildImportPlan', () => {
     });
     expect(result.plans).toEqual([{ key: 'teacher4', name: 'Con profe x4', freePasses: 0, teacherPasses: 4, priceCents: 4_300_000, surchargeCents: 2_700_000 }]);
     expect(result.teachers).toEqual([{ name: 'Fran', active: true }]);
+    expect(warnings(result)).toEqual([
+      `PASES 2: Pagó ${formatMoney(5_000_000)} de ${formatMoney(7_000_000)}: quedó debiendo ${formatMoney(2_000_000)}.`,
+    ]);
+  });
+
+  it('fills the teacher part from the table when the payment row lost its formulas', () => {
+    const result = plan({
+      PASES: rows(['30222333', 'Bruno Sierra', undefined, '2.10.26', '1', 'c/Profe x4', 'Sergio']),
+      'Pagos Pases': payments(['2.10.26', '30222333', 'Bruno Sierra', 'c/Profe x 4', '1', '43000', 'Transferencia', '43000', 'Sergio']),
+    });
+    expect(result.clients[0]?.pass).toMatchObject({ totalCents: 7_000_000, payments: [{ amountCents: 7_000_000 }], debtCents: 0 });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('takes a price typed over the list one (an event, a discount) as what the pass cost', () => {
+    const result = plan({
+      PASES: rows([undefined, 'Toto', undefined, '29.03.26', '1', 'xDIA Libre']),
+      'Pagos Pases': payments(['29.03.26', undefined, 'Toto', 'x DIA', '1', '17000', 'Transferencia', '7000', undefined, '0', '0', '7000']),
+    });
+    expect(result.clients[0]?.pass).toMatchObject({ totalCents: 700_000, payments: [{ amountCents: 700_000 }], debtCents: 0 });
+    expect(warnings(result)).toEqual([
+      `PASES 2: Se cobró ${formatMoney(700_000)} en vez de ${formatMoney(1_700_000)} de la tabla: se tomó lo cobrado como precio.`,
+    ]);
   });
 
   it('keeps a client without pass when the pass started before the window, the date is unreadable or the type unknown', () => {
