@@ -26,7 +26,7 @@ export function SettingsPage() {
       <div className="flex flex-col gap-8">
         <AppearancePanel />
         <AsyncView state={settings}>{(data) => <SettingsForm initial={data} />}</AsyncView>
-        <BackupPanel onExported={audit.reload} />
+        <BackupPanel onAudited={audit.reload} />
         <ImportPanel onImported={audit.reload} />
         <AuditPanel state={audit} />
       </div>
@@ -168,7 +168,8 @@ function SettingsForm({ initial }: { initial: Settings }) {
   );
 }
 
-function BackupPanel({ onExported }: { onExported: () => void }) {
+/** `onAudited`: exporting and connecting or disconnecting Google Drive add a line to the audit log. */
+function BackupPanel({ onAudited }: { onAudited: () => void }) {
   const status = useAsync(() => call('backup:status', {}), []);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -180,7 +181,7 @@ function BackupPanel({ onExported }: { onExported: () => void }) {
       const outcome = await call('backup:export', {});
       if (outcome.status === 'done') {
         setNotice({ tone: 'success', text: `Backup guardado en ${outcome.path}` });
-        onExported();
+        onAudited();
       }
     } catch (caught) {
       setNotice({ tone: 'error', text: errorMessage(caught) });
@@ -199,11 +200,22 @@ function BackupPanel({ onExported }: { onExported: () => void }) {
       <h2 className="font-display text-2xl font-semibold">Backup</h2>
       <p className="text-sm text-ink-soft">
         Cada vez que se abre y se cierra la app se guarda un backup automático: se conservan los últimos 10 y uno por día del
-        último mes. Si la PC se rompe, los datos solo se recuperan con una copia fuera de ella: elegí una carpeta externa (un
-        pendrive o una carpeta de Google Drive) o exportá una copia con regularidad.
+        último mes. Si la PC se rompe, los datos solo se recuperan con una copia fuera de ella: conectá Google Drive, elegí una
+        carpeta externa (un pendrive) o exportá una copia con regularidad.
       </p>
-      <AsyncView state={status} skeleton={<SkeletonRows rows={2} />}>
-        {(data) => <MirrorSection status={data} onChanged={status.reload} />}
+      <AsyncView state={status} skeleton={<SkeletonRows rows={4} />}>
+        {(data) => (
+          <>
+            <DriveSection
+              status={data}
+              onChanged={() => {
+                status.reload();
+                onAudited();
+              }}
+            />
+            <MirrorSection status={data} onChanged={status.reload} />
+          </>
+        )}
       </AsyncView>
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div className="flex flex-wrap gap-2">
@@ -327,6 +339,58 @@ function ImportSummaryView({ preview }: { preview: ImportPreview }) {
   );
 }
 
+/** The Google account every automatic backup is uploaded to, and how the last upload went. */
+function DriveSection({ status, onChanged }: { status: BackupStatus; onChanged: () => void }) {
+  const [pending, setPending] = useState<'connect' | 'disconnect' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const connected = status.driveEmail !== null;
+
+  async function change(action: 'connect' | 'disconnect') {
+    setPending(action);
+    setError(null);
+    try {
+      await call('backup:drive', { action });
+      onChanged();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-ink/10 pt-4">
+      <h3 className="font-display text-lg font-semibold">Copia en Google Drive</h3>
+      {connected ? (
+        <p className="break-all text-sm">
+          Cada backup se sube a la carpeta <strong>Lebloc backups</strong> del Drive de <strong>{status.driveEmail}</strong>.
+        </p>
+      ) : (
+        <p className="text-sm text-ink-soft">
+          Al conectar se abre el navegador para elegir la cuenta de Google del local. Los backups tienen datos personales:
+          activá la verificación en dos pasos en esa cuenta.
+        </p>
+      )}
+      {status.driveError && <Notice tone="error">{status.driveError}</Notice>}
+      {status.driveAt && <p className="text-sm text-ink-soft">Última subida: {formatDateTime(status.driveAt)}</p>}
+      {pending === 'connect' && (
+        <Notice tone="info">Se abrió el navegador: iniciá sesión con la cuenta de Google del local y volvé a Lebloc.</Notice>
+      )}
+      {error && <Notice tone="error">{error}</Notice>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" disabled={pending !== null} onClick={() => void change('connect')}>
+          {connected ? 'Volver a conectar' : 'Conectar Google Drive'}
+        </Button>
+        {connected && (
+          <Button variant="ghost" disabled={pending !== null} onClick={() => void change('disconnect')}>
+            Desconectar
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** The external folder every automatic backup is also copied to, and how the last copy went. */
 function MirrorSection({ status, onChanged }: { status: BackupStatus; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -349,7 +413,7 @@ function MirrorSection({ status, onChanged }: { status: BackupStatus; onChanged:
     <div className="flex flex-col gap-3 border-y border-ink/10 py-4">
       <h3 className="font-display text-lg font-semibold">Copia en una carpeta externa</h3>
       {status.mirrorDir === null ? (
-        <p className="text-sm text-ink-soft">Sin carpeta: los backups quedan solo en esta PC.</p>
+        <p className="text-sm text-ink-soft">Sin carpeta externa.</p>
       ) : (
         <p className="break-all text-sm">
           Cada backup se copia también en <strong>{status.mirrorDir}</strong>.
