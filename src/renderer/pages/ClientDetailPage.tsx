@@ -518,6 +518,7 @@ function ConsumptionsTable({ consumptions, caption, empty, disabled, onVoid }: C
 /** Personal data, tutors and the signed waiver (passed as children). */
 function ClientInfoPanel({ client, children }: { client: Client; children: ReactNode }) {
   const rows: [string, string][] = [
+    ['DNI', client.dni ?? '—'],
     ['Fecha de nacimiento', client.birthDate ? formatDate(client.birthDate) : '—'],
     ['Inscripción', formatDate(client.enrolledAt)],
     ['Teléfono', client.phone ?? '—'],
@@ -543,6 +544,12 @@ function ClientInfoPanel({ client, children }: { client: Client; children: React
           </div>
         ))}
       </dl>
+      {client.notes && (
+        <div className="text-sm">
+          <h3 className={SUBTITLE}>Observaciones</h3>
+          <p className="whitespace-pre-line">{client.notes}</p>
+        </div>
+      )}
       {client.guardians.length > 0 && (
         <div className="text-sm">
           <h3 className={SUBTITLE}>Tutores</h3>

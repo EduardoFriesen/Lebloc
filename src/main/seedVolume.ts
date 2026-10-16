@@ -101,6 +101,9 @@ export function seedVolume(ctx: Context, at: SeedClock, now: Date, refs: { plans
       firstName,
       lastName,
       birthDate,
+      // From the index, not the generator, so the rest of the sample data stays the same.
+      dni: String(30_000_000 + index * 48_611),
+      notes: null,
       address: rng.next() < 0.4 ? `${rng.pick(['Mitre', 'Sarmiento', 'Belgrano', 'Rivadavia', 'San Martín', 'Moreno'])} ${rng.int(100, 3999)}` : null,
       phone: minor ? null : phone,
       emergencyName: contact || minor ? `${rng.pick(FIRST_NAMES)} ${lastName}` : null,

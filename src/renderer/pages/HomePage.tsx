@@ -99,7 +99,7 @@ export function HomePage() {
                 label="Buscar cliente"
                 type="search"
                 autoFocus
-                placeholder="Nombre o apellido"
+                placeholder="Nombre, apellido o DNI"
                 aria-expanded={open}
                 aria-controls={resultsId}
                 value={search}

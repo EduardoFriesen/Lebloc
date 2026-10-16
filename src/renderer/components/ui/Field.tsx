@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, useId } from 'react';
+import { type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, type TextareaHTMLAttributes, useId } from 'react';
 
 const CONTROL =
   'w-full rounded-xl border border-ink/25 bg-surface px-3 py-2 text-sm text-ink aria-[invalid=true]:border-danger';
@@ -54,6 +54,24 @@ export function TextField({ label, error, hint, className = '', ...props }: Text
 
 export function MoneyField(props: TextFieldProps) {
   return <TextField inputMode="decimal" autoComplete="off" placeholder="0,00" {...props} />;
+}
+
+type TextAreaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & { label: string; error?: string; hint?: string };
+
+export function TextAreaField({ label, error, hint, rows = 3, ...props }: TextAreaFieldProps) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} error={error} hint={hint}>
+      <textarea
+        id={id}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, error, hint)}
+        className={`${CONTROL} resize-y`}
+        {...props}
+      />
+    </FieldShell>
+  );
 }
 
 type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & { label: string; error?: string; children: ReactNode };

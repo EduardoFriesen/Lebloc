@@ -42,6 +42,8 @@ const clientFields = {
   firstName: personName,
   lastName: personName,
   birthDate: isoDate,
+  dni: optionalText(20),
+  notes: optionalText(1000),
   address: optionalText(200),
   phone: optionalText(30),
   emergencyName: optionalText(120),

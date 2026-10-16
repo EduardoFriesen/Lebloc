@@ -59,6 +59,8 @@ export function seedDatabase(db: Db, now: Date): void {
   function client(enrolledDaysAgo: number, input: Pick<ClientInput, 'firstName' | 'lastName' | 'birthDate'> & Partial<ClientInput>) {
     const enrolledAt = at(enrolledDaysAgo, 11);
     return createClient(ctx, {
+      dni: null,
+      notes: null,
       address: null,
       phone: null,
       emergencyName: null,
@@ -187,7 +189,7 @@ export function seedDatabase(db: Db, now: Date): void {
     climb(hernan, 'free', [137, 130, 123, 116, 109, 102, 95, 88]);
 
     // Ana: agotó un plan mixto y lo renovó.
-    const ana = client(150, { firstName: 'Ana', lastName: 'Roca', birthDate: '1990-05-10', address: 'Mitre 845', phone: '11 4000-0101', emergencyName: 'Luis Roca', emergencyPhone: '11 4000-0102', emergencyRelation: 'Hermano' });
+    const ana = client(150, { firstName: 'Ana', lastName: 'Roca', birthDate: '1990-05-10', dni: '33456789', notes: 'Viene martes y jueves después del trabajo.', address: 'Mitre 845', phone: '11 4000-0101', emergencyName: 'Luis Roca', emergencyPhone: '11 4000-0102', emergencyRelation: 'Hermano' });
     sign(ana, 150);
     sellPaid(ana, mixto, 140, 'cash', { teacherId: martina });
     climb(ana, 'teacher', [138, 131, 124, 117]);

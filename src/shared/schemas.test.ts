@@ -18,6 +18,8 @@ const client = {
   firstName: '  Ana ',
   lastName: 'Roca',
   birthDate: '1990-05-10',
+  dni: ' 30111222 ',
+  notes: '',
   address: '   ',
   phone: null,
   emergencyName: null,
@@ -32,6 +34,8 @@ describe('schemas', () => {
     const parsed = clientInput.parse(client);
     expect(parsed.firstName).toBe('Ana');
     expect(parsed.address).toBeNull();
+    expect(parsed.dni).toBe('30111222');
+    expect(parsed.notes).toBeNull();
   });
 
   it('rejects empty names and malformed dates', () => {

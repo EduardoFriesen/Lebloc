@@ -6,6 +6,7 @@ import { migration004 } from './migrations/004_counter_sales';
 import { migration005 } from './migrations/005_payment_time';
 import { migration006 } from './migrations/006_expenses_staff';
 import { migration007 } from './migrations/007_audit_log';
+import { migration008 } from './migrations/008_client_dni_import';
 
 export const MIGRATIONS: readonly string[] = [
   migration001,
@@ -15,6 +16,7 @@ export const MIGRATIONS: readonly string[] = [
   migration005,
   migration006,
   migration007,
+  migration008,
 ];
 
 export function migrate(db: Db): void {

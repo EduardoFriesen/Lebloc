@@ -4,7 +4,7 @@ import { isMinor } from '../../domain/client';
 import { clientInput } from '../../shared/schemas';
 import type { Client } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { TextField } from '../components/ui/Field';
+import { TextAreaField, TextField } from '../components/ui/Field';
 import { Dialog } from '../components/ui/Dialog';
 import { Notice } from '../components/ui/Notice';
 import { call } from '../lib/api';
@@ -39,6 +39,8 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
     firstName: client?.firstName ?? '',
     lastName: client?.lastName ?? '',
     birthDate: client?.birthDate ?? '',
+    dni: client?.dni ?? '',
+    notes: client?.notes ?? '',
     enrolledAt: client?.enrolledAt ?? todayIso(),
     address: client?.address ?? '',
     phone: client?.phone ?? '',
@@ -66,7 +68,7 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
     return {
       value: fields[name],
       error: errors[name],
-      onChange: (event: ChangeEvent<HTMLInputElement>) => setFields((previous) => ({ ...previous, [name]: event.target.value })),
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFields((previous) => ({ ...previous, [name]: event.target.value })),
     };
   }
 
@@ -98,6 +100,8 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Nombre" required {...bind('firstName')} />
           <TextField label="Apellido" required {...bind('lastName')} />
+          <TextField label="DNI" inputMode="numeric" autoComplete="off" {...bind('dni')} />
+          <TextField label="Teléfono" type="tel" {...bind('phone')} />
           <TextField
             label="Fecha de nacimiento"
             type="date"
@@ -107,8 +111,12 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
             hint={validBirthDate ? ageLabel(fields.birthDate) : undefined}
           />
           <TextField label="Fecha de inscripción" type="date" max={todayIso()} required {...bind('enrolledAt')} />
-          <TextField label="Dirección" {...bind('address')} />
-          <TextField label="Teléfono" type="tel" {...bind('phone')} />
+          <div className="md:col-span-2">
+            <TextField label="Dirección" {...bind('address')} />
+          </div>
+          <div className="md:col-span-2">
+            <TextAreaField label="Observaciones" maxLength={1000} {...bind('notes')} />
+          </div>
         </div>
       </fieldset>
 

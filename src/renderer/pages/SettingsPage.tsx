@@ -275,6 +275,7 @@ function MirrorSection({ status, onChanged }: { status: BackupStatus; onChanged:
 
 const AUDIT_LABELS: Record<AuditAction, string> = {
   client_anonymized: 'Cliente anonimizado',
+  data_imported: 'Planilla importada',
   backup_exported: 'Backup exportado',
   backup_restored: 'Backup restaurado',
 };

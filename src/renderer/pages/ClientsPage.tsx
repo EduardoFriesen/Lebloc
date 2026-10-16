@@ -89,7 +89,7 @@ export function ClientsPage() {
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
         <div className="mb-6 flex flex-wrap items-end gap-6">
           <div className="w-full max-w-md">
-            <TextField label="Buscar" type="search" placeholder="Nombre o apellido" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <TextField label="Buscar" type="search" placeholder="Nombre, apellido o DNI" value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
           <CheckboxField label="Incluir archivados" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
           <CheckboxField label="Solo con pases" checked={onlyWithPasses} onChange={(event) => setFilter('pases', event.target.checked)} />

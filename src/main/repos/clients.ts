@@ -10,10 +10,11 @@ export type ClientSummaryRow = Omit<ClientSummary, 'waiver' | 'debtDays' | 'pass
   oldestDebtSoldAt: string | null;
 };
 
-export type ClientFields = Omit<ClientInput, 'guardians'>;
+// Imported clients may come without a birth date; the form asks for it the next time they're edited.
+export type ClientFields = Omit<ClientInput, 'guardians' | 'birthDate'> & { birthDate: string | null };
 export type ClientRow = Omit<Client, 'guardians'>;
 
-const CLIENT_COLUMNS = `id, first_name AS firstName, last_name AS lastName, birth_date AS birthDate, address, phone,
+const CLIENT_COLUMNS = `id, first_name AS firstName, last_name AS lastName, birth_date AS birthDate, dni, notes, address, phone,
   emergency_name AS emergencyName, emergency_phone AS emergencyPhone, emergency_relation AS emergencyRelation,
   enrolled_at AS enrolledAt, updated_at AS updatedAt, archived_at AS archivedAt, anonymized_at AS anonymizedAt`;
 
@@ -22,6 +23,8 @@ function clientParams(fields: ClientFields) {
     firstName: fields.firstName,
     lastName: fields.lastName,
     birthDate: fields.birthDate,
+    dni: fields.dni,
+    notes: fields.notes,
     address: fields.address,
     phone: fields.phone,
     emergencyName: fields.emergencyName,
@@ -34,9 +37,9 @@ function clientParams(fields: ClientFields) {
 export function insertClient(db: Db, fields: ClientFields, now: string): number {
   const result = db
     .prepare(
-      `INSERT INTO clients (first_name, last_name, birth_date, address, phone, emergency_name, emergency_phone,
+      `INSERT INTO clients (first_name, last_name, birth_date, dni, notes, address, phone, emergency_name, emergency_phone,
          emergency_relation, enrolled_at, updated_at)
-       VALUES (@firstName, @lastName, @birthDate, @address, @phone, @emergencyName, @emergencyPhone,
+       VALUES (@firstName, @lastName, @birthDate, @dni, @notes, @address, @phone, @emergencyName, @emergencyPhone,
          @emergencyRelation, @enrolledAt, @now)`,
     )
     .run({ ...clientParams(fields), now });
@@ -45,7 +48,8 @@ export function insertClient(db: Db, fields: ClientFields, now: string): number 
 
 export function updateClient(db: Db, id: number, fields: ClientFields, now: string): void {
   db.prepare(
-    `UPDATE clients SET first_name = @firstName, last_name = @lastName, birth_date = @birthDate, address = @address,
+    `UPDATE clients SET first_name = @firstName, last_name = @lastName, birth_date = @birthDate, dni = @dni, notes = @notes,
+       address = @address,
        phone = @phone, emergency_name = @emergencyName, emergency_phone = @emergencyPhone,
        emergency_relation = @emergencyRelation, enrolled_at = @enrolledAt, updated_at = @now
      WHERE id = @id`,
@@ -89,7 +93,8 @@ export function setArchivedAt(db: Db, id: number, archivedAt: string | null, now
 
 export function anonymizeClient(db: Db, id: number, now: string): void {
   db.prepare(
-    `UPDATE clients SET first_name = 'Cliente', last_name = 'anonimizado #' || id, birth_date = NULL, address = NULL,
+    `UPDATE clients SET first_name = 'Cliente', last_name = 'anonimizado #' || id, birth_date = NULL, dni = NULL, notes = NULL,
+       address = NULL,
        phone = NULL, emergency_name = NULL, emergency_phone = NULL, emergency_relation = NULL,
        anonymized_at = @now, updated_at = @now
      WHERE id = @id`,
@@ -136,7 +141,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
   return db
     .prepare<[Record<string, string | number | null>], ClientSummaryRow>(
       `WITH ${SALE_STATS_CTE}
-       SELECT c.id, c.first_name AS firstName, c.last_name AS lastName, c.birth_date AS birthDate,
+       SELECT c.id, c.first_name AS firstName, c.last_name AS lastName, c.birth_date AS birthDate, c.dni,
          c.archived_at AS archivedAt,
          COUNT(ss.id) AS activeSales,
          COALESCE(SUM(ss.free_passes - ss.used_free), 0) AS remainingFree,
@@ -151,7 +156,8 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          AND (@enrolledFrom IS NULL OR c.enrolled_at >= @enrolledFrom)
          AND (@search = ''
            OR instr(fold(c.first_name || ' ' || c.last_name), @search) > 0
-           OR instr(fold(c.last_name || ' ' || c.first_name), @search) > 0)
+           OR instr(fold(c.last_name || ' ' || c.first_name), @search) > 0
+           OR instr(c.dni, @search) > 0)
          AND (@attendedFrom IS NULL OR EXISTS (
            SELECT 1 FROM consumptions co JOIN sales s ON s.id = co.sale_id
            WHERE s.client_id = c.id AND co.voided_at IS NULL AND co.consumed_at >= @attendedFrom))

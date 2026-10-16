@@ -65,7 +65,8 @@ export function currentMonthIso(): string {
 }
 
 export function fullName(person: { firstName: string; lastName: string }): string {
-  return `${person.firstName} ${person.lastName}`;
+  // Imported clients and teachers may have no last name.
+  return `${person.firstName} ${person.lastName}`.trim();
 }
 
 export function ageLabel(birthDate: string | null): string {

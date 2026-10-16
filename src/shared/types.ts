@@ -23,6 +23,8 @@ export interface Client {
   firstName: string;
   lastName: string;
   birthDate: string | null;
+  dni: string | null;
+  notes: string | null;
   address: string | null;
   phone: string | null;
   emergencyName: string | null;
@@ -40,6 +42,7 @@ export interface ClientSummary {
   firstName: string;
   lastName: string;
   birthDate: string | null;
+  dni: string | null;
   archivedAt: string | null;
   activeSales: number;
   remainingFree: number;
@@ -396,7 +399,7 @@ export interface BackupStatus {
   mirrorError: string | null;
 }
 
-export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored';
+export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored' | 'data_imported';
 
 /** One traced operation on personal data (Ley 25.326). Never edited or deleted. */
 export interface AuditEntry {
@@ -405,7 +408,7 @@ export interface AuditEntry {
   action: AuditAction;
   /** The client, for an anonymization. */
   subjectId: number | null;
-  /** The file, for a backup export or restore. */
+  /** The file, for a backup export or restore; what came in, for an import. */
   detail: string | null;
 }
 

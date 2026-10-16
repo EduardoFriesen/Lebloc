@@ -310,17 +310,23 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(juan.getByText('Saldo')).toBeVisible();
 });
 
-test('the counter finds a client without typing the accents', async () => {
+test('the counter finds a client without typing the accents, or by DNI', async () => {
   await page.getByRole('link', { name: 'Clientes' }).click();
   await page.getByRole('button', { name: 'Nuevo cliente' }).click();
   await label('Nombre').fill('Lucía');
   await label('Apellido').fill('González');
+  await label('DNI').fill('27999111');
   await label('Fecha de nacimiento').fill('1992-03-04');
+  await label('Observaciones').fill('Trae su propio arnés.');
   await page.getByRole('button', { name: 'Guardar cliente' }).click();
   await expect(page.getByRole('heading', { name: 'Lucía González' })).toBeVisible();
+  await expect(page.getByText('27999111')).toBeVisible();
+  await expect(page.getByText('Trae su propio arnés.')).toBeVisible();
 
   await page.getByRole('link', { name: 'Mostrador' }).click();
   await label('Buscar cliente').fill('gonzalez lucia');
+  await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
+  await label('Buscar cliente').fill('27999');
   await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
 });
 
