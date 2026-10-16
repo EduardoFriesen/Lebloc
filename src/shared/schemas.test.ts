@@ -12,6 +12,7 @@ import {
   scheduleInput,
   settingsInput,
   shiftInput,
+  financeSummaryInput,
   staffPayoutInput,
 } from './schemas';
 
@@ -96,6 +97,14 @@ describe('schemas', () => {
     expect(reversed.success).toBe(false);
     expect(reversed.error?.issues[0]?.path).toEqual(['to']);
     expect(payslipInput.safeParse({ employeeId: 0, from: '2026-10-01', to: '2026-10-15' }).success).toBe(false);
+  });
+
+  it('narrows the finance summary to one payment method, or none for the total', () => {
+    const range = { from: '2026-10-01', to: '2026-10-31' };
+    expect(financeSummaryInput.parse(range)).toEqual(range);
+    expect(financeSummaryInput.parse({ ...range, method: 'transfer' })).toEqual({ ...range, method: 'transfer' });
+    expect(financeSummaryInput.safeParse({ ...range, method: 'card' }).success).toBe(false);
+    expect(financeSummaryInput.safeParse({ ...range, from: '2026-11-01' }).success).toBe(false);
   });
 
   it('settles a range of shifts with a pay date and a method', () => {

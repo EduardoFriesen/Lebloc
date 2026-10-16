@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { must } from '../../test/helpers';
 import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { createClient } from './clients';
 import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
-import { createEmployee, recordShift } from './employees';
+import { createEmployee, listEmployees, recordShift, settleShifts } from './employees';
 import { createExpense, voidExpense } from './expenses';
 import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
@@ -108,6 +109,48 @@ describe('finance', () => {
       });
       expect(summary.current).toEqual({ incomeCents: 4_400_000, expensesCents: 6_200_000, resultCents: -1_800_000 });
       expect(summary.expensesByCategory).toEqual([{ category: 'rent', cents: 4_000_000 }]);
+    });
+
+    it('splits by payment method, with salaries from the settlements paid that way and no kiosk stock', () => {
+      const employeeId = must(listEmployees(ctx, false, '2026-10')[0]).id;
+      settleShifts(ctx, { employeeId, ...OCTOBER, paidAt: '2026-10-05', method: 'cash' });
+
+      const cash = getFinanceSummary(ctx, { ...OCTOBER, method: 'cash' });
+      expect(cash.range).toEqual(OCTOBER);
+      expect(cash.totals).toEqual({
+        plans: 1_000_000,
+        teacher: 0,
+        kiosk: 300_000,
+        kiosk_cost: 0,
+        day_pass: 800_000,
+        shoe_rental: 300_000,
+        expenses: 0,
+        staff: 2_000_000,
+      });
+      expect(cash.expensesByCategory).toEqual([]);
+      expect(cash.series.find((point) => point.bucket === '2026-10-05')?.outflow).toBe(2_000_000);
+
+      const transfer = getFinanceSummary(ctx, { ...OCTOBER, method: 'transfer' });
+      expect(transfer.totals).toEqual({
+        plans: 2_000_000,
+        teacher: 1_000_000,
+        kiosk: 0,
+        kiosk_cost: 0,
+        day_pass: 0,
+        shoe_rental: 0,
+        expenses: 4_000_000,
+        staff: 0,
+      });
+      expect(transfer.expensesByCategory).toEqual([{ category: 'rent', cents: 4_000_000 }]);
+
+      // The total keeps counting the shift when it was worked, not its settlement on top.
+      expect(getFinanceSummary(ctx, OCTOBER).totals.staff).toBe(2_000_000);
+    });
+
+    it('compares a payment method with the same method the month before', () => {
+      const month = { from: '2026-10-01', to: '2026-10-31' };
+      expect(getFinanceSummary(ctx, { ...month, method: 'cash' }).before.incomeCents).toBe(1_000_000);
+      expect(getFinanceSummary(ctx, { ...month, method: 'transfer' }).before.incomeCents).toBe(0);
     });
 
     it('compares with the same days of the month before', () => {
