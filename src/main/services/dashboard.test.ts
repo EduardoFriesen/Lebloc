@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { SaleInput } from '../../shared/schemas';
+import { setSetting } from '../repos/settings';
 import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
@@ -88,5 +89,10 @@ describe('debtors and dashboard', () => {
       kioskTodayCents: 0,
       externalBackupFailed: false,
     });
+  });
+
+  it('warns when a backup could not leave the PC, to the pendrive or to Google Drive', () => {
+    setSetting(ctx.db, 'backup_drive_error', 'No se pudo subir el backup a Google Drive.');
+    expect(getDashboard(ctx).summary.externalBackupFailed).toBe(true);
   });
 });
