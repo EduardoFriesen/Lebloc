@@ -22,7 +22,7 @@ const SEED = `(async () => {
   };
   const teacher = await call('teachers:create', { firstName: 'Mara', lastName: 'Cumbre', address: null, phone: null, socials: [], classRateCents: 99999900, active: true, schedules: [] });
   const plan = await call('plans:create', { name: 'Pack grande', freePasses: 0, teacherPasses: 2, priceCents: 9999999900, active: true });
-  const client = await call('clients:create', { firstName: 'Ana', lastName: 'Grande', birthDate: '1990-01-01', address: null, phone: null, emergencyName: null, emergencyPhone: null, emergencyRelation: null, enrolledAt: '2020-01-01', guardians: [] });
+  const client = await call('clients:create', { firstName: 'Ana', lastName: 'Grande', birthDate: '1990-01-01', dni: null, notes: null, address: null, phone: null, emergencyName: null, emergencyPhone: null, emergencyRelation: null, enrolledAt: '2020-01-01', guardians: [] });
   const total = 9999999900 + 2 * 99999900;
   await call('sales:create', { clientId: client.id, planId: plan.id, teacherId: teacher.id, splitRule: 'proportional', soldAt: today, initialPayment: { amountCents: total, method: 'cash', paidAt: today } });
   const employee = await call('employees:create', { firstName: 'Bruno', lastName: 'Largo', dni: null, phone: null, address: null, kind: 'staff', hourlyRateCents: 9999900, active: true });
