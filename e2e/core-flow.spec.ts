@@ -230,12 +230,25 @@ test('the counter tints clients by passes left, lists who has to renew, and Clie
 
 test('a pass marked at the counter shows in today entries and can be voided there', async () => {
   await page.getByRole('link', { name: 'Mostrador' }).click();
-  await label('Buscar cliente').fill('Ana Roca');
-  await page.getByRole('button', { name: 'Pase libre para Ana Roca' }).click();
-  await expect(page.getByText('Ana Roca: pase libre registrado.')).toBeVisible();
-  await label('Buscar cliente').fill('');
-
+  const search = label('Buscar cliente');
+  const results = page.getByRole('list', { name: 'Resultados' });
   const entries = page.getByRole('table', { name: 'Ingresos de hoy' });
+
+  // The results drop down under the box; the entries table stays on the page.
+  await search.fill('Ana Roca');
+  await expect(results).toBeVisible();
+  await expect(entries).toBeVisible();
+  await search.press('Escape');
+  await expect(results).toBeHidden();
+  await search.fill('Ana Roc');
+  await expect(results).toBeVisible();
+
+  await results.getByRole('button', { name: 'Pase libre para Ana Roca' }).click();
+  await expect(page.getByText('Ana Roca: pase libre registrado.')).toBeVisible();
+  await expect(results).toBeHidden();
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+
   const freePass = entries.getByRole('row', { name: /Ana Roca\s+Libre\s/ });
   await expect(freePass).toHaveCount(1);
   await expect(freePass).toContainText(/\d{2}:\d{2}/);

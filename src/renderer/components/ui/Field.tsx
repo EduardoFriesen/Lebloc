@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, useId } from 'react';
+import { type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, useId } from 'react';
 
 const CONTROL =
   'w-full rounded-xl border border-ink/25 bg-surface px-3 py-2 text-sm text-ink aria-[invalid=true]:border-danger';
@@ -30,7 +30,12 @@ function FieldShell({ id, label, error, hint, children }: { id: string; label: s
   );
 }
 
-export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { label: string; error?: string; hint?: string };
+export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
+  label: string;
+  error?: string;
+  hint?: string;
+  ref?: Ref<HTMLInputElement>;
+};
 
 export function TextField({ label, error, hint, className = '', ...props }: TextFieldProps) {
   const id = useId();
