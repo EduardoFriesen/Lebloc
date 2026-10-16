@@ -25,6 +25,7 @@ export const ERROR_MESSAGES = {
   DATE_IN_FUTURE: 'La fecha no puede ser posterior a hoy.',
   EMPLOYEE_INACTIVE: 'El empleado está inactivo.',
   INVALID_SPREADSHEET: 'El archivo no es una planilla .xlsx que se pueda leer.',
+  MISSING_PASES_SHEET: 'La planilla no tiene la hoja "PASES".',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
