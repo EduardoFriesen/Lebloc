@@ -8,7 +8,7 @@ import { insertAudit } from './repos/audit';
 
 export const BACKUPS_TO_KEEP = 10;
 export const BACKUP_DAYS_TO_KEEP = 30;
-const BACKUP_FILE = /^lebloc-.+\.db$/;
+export const BACKUP_FILE = /^lebloc-.+\.db$/;
 const MIRROR_FOLDER = 'lebloc-backups';
 
 // The live database runs in WAL mode and the backup copies that flag. Switching the

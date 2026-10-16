@@ -30,6 +30,8 @@ export const ERROR_MESSAGES = {
   MISSING_PASES_SHEET: 'La planilla no tiene la hoja "PASES".',
   NO_PENDING_IMPORT: 'Elegí la planilla de nuevo antes de importar.',
   IMPORT_NOT_EMPTY: 'Ya hay clientes cargados: la planilla solo se importa en una base vacía. Restaurá un backup sin clientes para importarla.',
+  DRIVE_UNAVAILABLE: 'Google Drive no está disponible en esta versión de Lebloc o en esta PC.',
+  DRIVE_CONNECT_FAILED: 'No se pudo conectar con Google. Probá de nuevo.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
