@@ -21,7 +21,7 @@ Esta spec define:
 
 ### Supuestos
 - Moneda ARS, sin facturación electrónica.
-- Sin sincronización ni nube. La protección de los datos se resuelve con backups locales.
+- Sin sincronización ni nube para trabajar: la app funciona sin internet. La protección de los datos se resuelve con backups locales, que además pueden copiarse a una carpeta externa y subirse a Google Drive (opcional; ver `docs/instalacion.md`).
 
 ### Fuera de alcance de esta spec
 - **Subproyecto 2: kiosco.** Productos, costo unitario, precio sugerido, stock y ventas.
