@@ -455,6 +455,9 @@ export interface EmployeeSummary extends Employee {
   /** Non-voided shifts of the requested month. */
   monthMinutes: number;
   monthCostCents: number;
+  /** Non-voided shifts not settled yet, of any month, and the oldest one's date. */
+  pendingCents: number;
+  pendingSince: string | null;
 }
 
 export interface WorkShift {
@@ -469,15 +472,29 @@ export interface WorkShift {
   note: string | null;
   recordedAt: string;
   voidedAt: string | null;
+  /** The settlement that paid it; null while it is owed. */
+  payoutId: number | null;
 }
 
-/** What an employee earned between two dates, for a pay receipt. Nothing is recorded as paid. */
+/** One settlement: the unpaid shifts of a range, paid together. */
+export interface StaffPayout {
+  id: number;
+  employeeId: number;
+  paidAt: string;
+  amountCents: number;
+  method: PaymentMethod;
+  voidedAt: string | null;
+}
+
+/** What an employee is owed between two dates, for a pay receipt, and the settlements so far. */
 export interface Payslip {
   employee: Employee;
-  /** Non-voided shifts of the range, oldest first. */
+  /** Non-voided, unpaid shifts of the range, oldest first. */
   shifts: WorkShift[];
   totalMinutes: number;
   totalCents: number;
+  /** Every settlement of the employee, voided ones included, newest first. */
+  payouts: StaffPayout[];
 }
 
 export interface StaffStats {
@@ -488,6 +505,8 @@ export interface StaffStats {
   /** Non-voided shifts of the month, any employee. */
   monthMinutes: number;
   monthCostCents: number;
+  /** Unpaid shifts of any month and employee. */
+  pendingCents: number;
 }
 
 export interface FinanceSeriesPoint {

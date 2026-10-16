@@ -18,9 +18,25 @@ export interface ShiftTotals {
   costCents: number;
 }
 
+export interface PendingTotals {
+  employeeId: number;
+  cents: number;
+  /** Date of the oldest unpaid shift. */
+  since: string;
+}
+
+interface ShiftRange {
+  employeeId: number;
+  from: string;
+  to: string;
+}
+
+const UNPAID = 'w.voided_at IS NULL AND w.payout_id IS NULL';
+const UNPAID_IN_RANGE = `w.employee_id = @employeeId AND ${UNPAID} AND w.worked_on BETWEEN @from AND @to`;
+
 const SELECT = `SELECT w.id, w.employee_id AS employeeId, trim(e.first_name || ' ' || e.last_name) AS employeeName,
     w.worked_on AS workedOn, w.minutes, w.hourly_rate_cents AS hourlyRateCents, w.cost_cents AS costCents, w.note,
-    w.recorded_at AS recordedAt, w.voided_at AS voidedAt
+    w.recorded_at AS recordedAt, w.voided_at AS voidedAt, w.payout_id AS payoutId
   FROM work_shifts w JOIN employees e ON e.id = w.employee_id`;
 
 export function insertShift(db: Db, shift: NewShift): number {
@@ -47,14 +63,28 @@ export function listShiftsInMonth(db: Db, month: string, employeeId: number | nu
     .all({ ...monthBounds(month), employeeId });
 }
 
-/** Non-voided shifts of one employee between two dates (inclusive), oldest first. */
-export function listValidShifts(db: Db, employeeId: number, from: string, to: string): WorkShift[] {
+/** Non-voided, unpaid shifts of one employee between two dates (inclusive), oldest first. */
+export function listUnpaidShifts(db: Db, range: ShiftRange): WorkShift[] {
+  return db.prepare<[ShiftRange], WorkShift>(`${SELECT} WHERE ${UNPAID_IN_RANGE} ORDER BY w.worked_on, w.id`).all(range);
+}
+
+/** Marks the same shifts `listUnpaidShifts` returns as paid by the payout. */
+export function payShifts(db: Db, range: ShiftRange, payoutId: number): void {
+  db.prepare(`UPDATE work_shifts AS w SET payout_id = @payoutId WHERE ${UNPAID_IN_RANGE}`).run({ ...range, payoutId });
+}
+
+export function unpayShifts(db: Db, payoutId: number): void {
+  db.prepare('UPDATE work_shifts SET payout_id = NULL WHERE payout_id = ?').run(payoutId);
+}
+
+/** What is owed to each employee with unpaid shifts, of any month. */
+export function pendingTotals(db: Db): PendingTotals[] {
   return db
-    .prepare<[{ employeeId: number; from: string; to: string }], WorkShift>(
-      `${SELECT} WHERE w.employee_id = @employeeId AND w.voided_at IS NULL AND w.worked_on BETWEEN @from AND @to
-       ORDER BY w.worked_on, w.id`,
+    .prepare<[], PendingTotals>(
+      `SELECT employee_id AS employeeId, SUM(cost_cents) AS cents, MIN(worked_on) AS since
+       FROM work_shifts AS w WHERE ${UNPAID} GROUP BY employee_id`,
     )
-    .all({ employeeId, from, to });
+    .all();
 }
 
 /** Non-voided minutes and cost of the month, per employee. */

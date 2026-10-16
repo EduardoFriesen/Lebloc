@@ -24,6 +24,8 @@ export const ERROR_MESSAGES = {
   PRICE_NOT_SET: 'Configurá el precio en Planes.',
   DATE_IN_FUTURE: 'La fecha no puede ser posterior a hoy.',
   EMPLOYEE_INACTIVE: 'El empleado está inactivo.',
+  NOTHING_TO_PAY: 'No hay turnos sin pagar en ese rango.',
+  SHIFT_PAID: 'El turno ya está liquidado. Anulá la liquidación primero.',
   INVALID_SPREADSHEET: 'El archivo no es una planilla .xlsx que se pueda leer.',
   MISSING_PASES_SHEET: 'La planilla no tiene la hoja "PASES".',
   NO_PENDING_IMPORT: 'Elegí la planilla de nuevo antes de importar.',

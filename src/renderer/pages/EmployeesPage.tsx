@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import type { Employee, WorkShift } from '../../shared/types';
+import type { Employee, EmployeeSummary, WorkShift } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
@@ -39,7 +39,7 @@ export function EmployeesPage() {
   // Open shift form, with the employee it starts on (null: the first active one).
   const [shiftFor, setShiftFor] = useState<{ employeeId: number | null } | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
-  const [payslipFor, setPayslipFor] = useState<Employee | null>(null);
+  const [payslipFor, setPayslipFor] = useState<EmployeeSummary | null>(null);
 
   const employees = useAsync(() => call('employees:list', { includeInactive, month }), [includeInactive, month], {
     keepPreviousData: true,
@@ -140,6 +140,7 @@ export function EmployeesPage() {
                     <StatRow>
                       <Stat label="Horas del mes">{formatHours(employee.monthMinutes)}</Stat>
                       <Stat label="Costo del mes">{formatMoney(employee.monthCostCents)}</Stat>
+                      <Stat label="A pagar">{formatMoney(employee.pendingCents)}</Stat>
                     </StatRow>
                   </Card>
                 ))}
@@ -172,6 +173,7 @@ export function EmployeesPage() {
           { label: 'Ocasionales', value: <SummaryValue count={data.casual} /> },
           { label: 'Horas del mes', value: <SummaryValue count={formatHours(data.monthMinutes)} /> },
           { label: 'Costo del mes', value: <SummaryValue count={formatMoney(data.monthCostCents)} /> },
+          { label: 'A pagar', value: <SummaryValue count={formatMoney(data.pendingCents)} /> },
         ]}
       />
       <Dialog open={editing !== null} title={editing === 'new' ? 'Nuevo empleado' : 'Editar empleado'} onClose={() => setEditing(null)}>
@@ -200,7 +202,7 @@ export function EmployeesPage() {
         )}
       </Dialog>
       <Dialog open={payslipFor !== null} title="Liquidación de sueldo" onClose={() => setPayslipFor(null)}>
-        {payslipFor !== null && <PayslipView employee={payslipFor} month={month} onClose={() => setPayslipFor(null)} />}
+        {payslipFor !== null && <PayslipView employee={payslipFor} month={month} onChange={reload} onClose={() => setPayslipFor(null)} />}
       </Dialog>
       <ConfirmDialog
         request={pending}
@@ -247,6 +249,8 @@ function ShiftsTable({ shifts, empty, onVoid }: { shifts: WorkShift[]; empty: st
                   <span className="inline-block no-underline">
                     <Badge>Anulado</Badge>
                   </span>
+                ) : shift.payoutId !== null ? (
+                  <Badge>Pagado</Badge>
                 ) : (
                   <Button
                     variant="ghost"

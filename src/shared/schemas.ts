@@ -182,9 +182,12 @@ export const employeeInput = z.object(employeeFields);
 export const employeeUpdate = z.object({ id, ...employeeFields });
 export const employeeListInput = z.object({ includeInactive: z.boolean().default(false), month });
 export const shiftListInput = z.object({ month, employeeId: id.optional() });
-export const payslipInput = z
-  .object({ employeeId: id, from: isoDate, to: isoDate })
-  .refine((range) => range.from <= range.to, { message: 'El inicio tiene que ser anterior al fin', path: ['to'] });
+const inOrder = (range: { from: string; to: string }) => range.from <= range.to;
+const inOrderIssue = { message: 'El inicio tiene que ser anterior al fin', path: ['to'] };
+export const payslipInput = z.object({ employeeId: id, from: isoDate, to: isoDate }).refine(inOrder, inOrderIssue);
+export const staffPayoutInput = z
+  .object({ employeeId: id, from: isoDate, to: isoDate, paidAt: isoDate, method: paymentMethodSchema })
+  .refine(inOrder, inOrderIssue);
 export const planSalesInput = z.object({ month, planId: id.optional() });
 export const backupMirrorInput = z.object({ action: z.enum(['choose', 'clear']) });
 export const shiftInput = z.object({
@@ -219,4 +222,5 @@ export type EmployeeInput = z.infer<typeof employeeInput>;
 export type EmployeeUpdate = z.infer<typeof employeeUpdate>;
 export type ShiftInput = z.infer<typeof shiftInput>;
 export type PayslipInput = z.infer<typeof payslipInput>;
+export type StaffPayoutInput = z.infer<typeof staffPayoutInput>;
 export type PlanSalesInput = z.infer<typeof planSalesInput>;

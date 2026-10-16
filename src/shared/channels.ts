@@ -49,6 +49,8 @@ export const CHANNELS = [
   'employees:create',
   'employees:update',
   'employees:payslip',
+  'employees:settle',
+  'employees:voidPayout',
   'shifts:month',
   'shifts:create',
   'shifts:void',
