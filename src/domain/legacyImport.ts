@@ -389,6 +389,7 @@ export function buildImportPlan(sheets: Map<string, Rows>, today: string, since:
       const typeText = cells[layout.type]?.trim();
       const planKey = typeText ? layout.types[typeKey(typeText)] : undefined;
       if (typeText && !planKey) warn(`Tipo de pase desconocido ("${typeText}"): se importó sin pase.`);
+      else if (planKey && !startText) warn('Sin fecha de inicio: se importó sin pase.');
       else if (planKey && !startedAt) warn(`Fecha de inicio ilegible ("${startText}"): se importó sin pase.`);
       else if (planKey && startedAt && startedAt >= since) {
         const spec = PLAN_SPECS[planKey];

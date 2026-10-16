@@ -154,6 +154,7 @@ describe('buildImportPlan', () => {
         ['30333444', 'Carla Méndez', '4.07.23', '2.08', '6', 'Libre x4'],
         [undefined, 'Gabi Sol', undefined, '3.03.26', '1', 'Yoga x4'],
         [undefined, 'Hugo Rey', undefined, '3.03.26', '1'],
+        [undefined, 'Ivo Paz', undefined, undefined, '1', 'Libre x4'],
       ),
     });
     expect(result.clients.map((c) => [c.firstName, c.pass])).toEqual([
@@ -161,11 +162,13 @@ describe('buildImportPlan', () => {
       ['Carla', null],
       ['Gabi', null],
       ['Hugo', null],
+      ['Ivo', null],
     ]);
     expect(client(result, 'Dario Paz')?.waiverSignedAt).toBe('2025-10-20');
     expect(warnings(result)).toEqual([
       'PASES 3: Fecha de inicio ilegible ("2.08"): se importó sin pase.',
       'PASES 4: Tipo de pase desconocido ("Yoga x4"): se importó sin pase.',
+      'PASES 6: Sin fecha de inicio: se importó sin pase.',
     ]);
   });
 
