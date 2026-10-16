@@ -9,6 +9,7 @@ import { listWaiverAlerts } from './waivers';
 
 export function getDashboard(ctx: Context): Dashboard {
   const kiosk = kioskDaySummary(ctx.db, today(ctx));
+  const backup = getBackupStatus(ctx);
   return {
     summary: {
       ...summaryCounts(ctx.db),
@@ -16,7 +17,7 @@ export function getDashboard(ctx: Context): Dashboard {
       teacherBalanceCents: listTeacherBalances(ctx).reduce((total, balance) => total + balance.balanceCents, 0),
       kioskTodayCount: kiosk.count,
       kioskTodayCents: kiosk.cents,
-      externalBackupFailed: getBackupStatus(ctx).mirrorError !== null,
+      externalBackupFailed: backup.mirrorError !== null || backup.driveError !== null,
     },
     renewals: listRenewals(ctx),
   };

@@ -234,7 +234,7 @@ export interface DashboardSummary {
   /** Kiosk tickets sold today that are not voided. */
   kioskTodayCount: number;
   kioskTodayCents: number;
-  /** The last copy to the external backup folder failed (e.g. the pendrive is not plugged in). */
+  /** The last copy out of the PC failed: the pendrive is not plugged in, or there was no internet for Google Drive. */
   externalBackupFailed: boolean;
 }
 

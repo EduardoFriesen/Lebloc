@@ -311,7 +311,7 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
     <>
       {dashboard.summary.externalBackupFailed && (
         <Notice tone="warning">
-          No se pudo hacer la copia externa del backup. ¿Está conectado el pendrive?{' '}
+          No se pudo copiar el backup fuera de esta PC, al pendrive o a Google Drive.{' '}
           <Link className="font-semibold underline" to="/ajustes">
             Revisalo en Ajustes
           </Link>
