@@ -147,7 +147,8 @@ function StatementRow({ label, cents, strong = false }: { label: string; cents: 
   return (
     <tr className={strong ? 'bg-sunken/40 font-bold' : ''}>
       <td>{label}</td>
-      <td className={`text-right tabular-nums ${cents < 0 ? 'text-danger' : ''}`}>{formatMoney(cents)}</td>
+      {/* An empty outflow is -0, which would print as "-$ 0,00". */}
+      <td className={`text-right tabular-nums ${cents < 0 ? 'text-danger' : ''}`}>{formatMoney(cents || 0)}</td>
     </tr>
   );
 }
