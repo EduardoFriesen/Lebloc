@@ -1,14 +1,15 @@
+import { useState } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { marginPercent } from '../../../domain/finance';
 import { percentChange } from '../../../domain/periods';
-import type { FinanceSeriesPoint, FinanceSummary } from '../../../shared/types';
+import type { FinanceSeriesPoint, FinanceSummary, PaymentMethod } from '../../../shared/types';
 import { AXIS, BAR_GAP, ChartCard, COMPACT_TABLE, GRID, type LegendItem, SERIES, tooltipProps } from '../../components/charts';
 import { AsyncView } from '../../components/ui/States';
 import { tableClass } from '../../components/ui/table';
 import { call } from '../../lib/api';
-import { bucketLabel, EXPENSE_CATEGORY_LABELS, formatCompactMoney, formatMoney } from '../../lib/format';
+import { bucketLabel, EXPENSE_CATEGORY_LABELS, formatCompactMoney, formatMoney, PAYMENT_METHOD_LABELS } from '../../lib/format';
 import { useAsync } from '../../lib/useAsync';
-import { FinanceEmpty, FinanceSkeleton, KpiRow, KpiTile, SECTION_TITLE, useFinanceRange } from './shared';
+import { FinanceEmpty, FinanceSkeleton, KpiRow, KpiTile, SECTION_TITLE, SegmentedControl, useFinanceRange } from './shared';
 
 const INCOME: { key: keyof Omit<FinanceSeriesPoint, 'bucket' | 'outflow'>; label: string }[] = [
   { key: 'plans', label: 'Planes' },
@@ -23,22 +24,35 @@ const LEGEND: LegendItem[] = [
 ];
 const GRANULARITY_WORDS = { day: 'día', week: 'semana', month: 'mes' } as const;
 
+type MethodFilter = 'total' | PaymentMethod;
+const METHODS: readonly MethodFilter[] = ['total', 'cash', 'transfer'];
+const METHOD_LABELS: Record<MethodFilter, string> = { total: 'Total', ...PAYMENT_METHOD_LABELS };
+
 export function SummaryTab() {
   const range = useFinanceRange();
-  const summary = useAsync(() => call('finance:summary', range), [range.from, range.to], { keepPreviousData: true });
+  const [method, setMethod] = useState<MethodFilter>('total');
+  const summary = useAsync(() => call('finance:summary', method === 'total' ? range : { ...range, method }), [range.from, range.to, method], {
+    keepPreviousData: true,
+  });
   return (
-    <AsyncView
-      state={summary}
-      skeleton={<FinanceSkeleton />}
-      isEmpty={(data) => data.current.incomeCents === 0 && data.current.expensesCents === 0}
-      empty={<FinanceEmpty />}
-    >
-      {(data) => <SummaryView data={data} />}
-    </AsyncView>
+    <div className="flex flex-col gap-6">
+      <div className="self-start">
+        <SegmentedControl label="Medio de pago" options={METHODS} labels={METHOD_LABELS} value={method} onChange={setMethod} />
+      </div>
+      <AsyncView
+        state={summary}
+        skeleton={<FinanceSkeleton />}
+        isEmpty={(data) => data.current.incomeCents === 0 && data.current.expensesCents === 0}
+        empty={<FinanceEmpty />}
+      >
+        {(data) => <SummaryView data={data} byMethod={method !== 'total'} />}
+      </AsyncView>
+    </div>
   );
 }
 
-function SummaryView({ data }: { data: FinanceSummary }) {
+/** `byMethod`: salaries are the settlements paid that way, and the kiosk stock sold is left out. */
+function SummaryView({ data, byMethod }: { data: FinanceSummary; byMethod: boolean }) {
   const { current, before, totals, granularity } = data;
   const margin = marginPercent(current);
   const marginBefore = marginPercent(before);
@@ -129,8 +143,8 @@ function SummaryView({ data }: { data: FinanceSummary }) {
             {data.expensesByCategory.map((row) => (
               <StatementRow key={row.category} label={EXPENSE_CATEGORY_LABELS[row.category]} cents={-row.cents} />
             ))}
-            <StatementRow label="Sueldos" cents={-totals.staff} />
-            <StatementRow label="Mercadería vendida del kiosco" cents={-totals.kiosk_cost} />
+            <StatementRow label={byMethod ? 'Sueldos liquidados' : 'Sueldos'} cents={-totals.staff} />
+            {!byMethod && <StatementRow label="Mercadería vendida del kiosco" cents={-totals.kiosk_cost} />}
             <StatementRow label="Total egresos" cents={-current.expensesCents} strong />
             <StatementRow label="Resultado" cents={current.resultCents} strong />
           </tbody>
@@ -138,6 +152,12 @@ function SummaryView({ data }: { data: FinanceSummary }) {
         <p className="text-sm text-ink-soft">
           Cobrado para profesores: <strong className="text-ink">{formatMoney(totals.teacher)}</strong>. Es de los profesores, no es ingreso del local.
         </p>
+        {byMethod && (
+          <p className="text-sm text-ink-soft">
+            Los sueldos son las liquidaciones pagadas con este medio en el período. La mercadería vendida del kiosco no tiene medio de pago:
+            solo cuenta en Total.
+          </p>
+        )}
       </section>
     </div>
   );

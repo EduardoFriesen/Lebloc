@@ -160,6 +160,8 @@ export const financeRangeInput = z
     message: 'El período no puede pasar de 3 años',
     path: ['from'],
   });
+/** No method means the total, with salaries as shifts worked; a method counts salaries as the settlements paid that way. */
+export const financeSummaryInput = financeRangeInput.safeExtend({ method: paymentMethodSchema.optional() });
 export const expenseInput = z.object({
   category: expenseCategorySchema,
   description: optionalText(200),
@@ -222,5 +224,6 @@ export type EmployeeInput = z.infer<typeof employeeInput>;
 export type EmployeeUpdate = z.infer<typeof employeeUpdate>;
 export type ShiftInput = z.infer<typeof shiftInput>;
 export type PayslipInput = z.infer<typeof payslipInput>;
+export type FinanceSummaryInput = z.infer<typeof financeSummaryInput>;
 export type StaffPayoutInput = z.infer<typeof staffPayoutInput>;
 export type PlanSalesInput = z.infer<typeof planSalesInput>;

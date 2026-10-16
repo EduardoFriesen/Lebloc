@@ -1,5 +1,6 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
+import type { FinanceSummaryInput } from '../../shared/schemas';
 import type { FinanceClients, FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
 import type { Context } from '../context';
 import * as repo from '../repos/finance';
@@ -9,10 +10,10 @@ import { listTeacherBalances } from './payouts';
 const OUTFLOW = new Set<MoneySource>(['expenses', 'staff', 'kiosk_cost']);
 const SERIES_FIELDS = ['plans', 'kiosk', 'day_pass', 'shoe_rental', 'outflow'] as const;
 
-export function getFinanceSummary(ctx: Context, range: DateRange): FinanceSummary {
+export function getFinanceSummary(ctx: Context, { method, ...range }: FinanceSummaryInput): FinanceSummary {
   const previous = previousRange(range);
   const granularity = granularityFor(range);
-  const rows = repo.moneyByDay(ctx.db, range);
+  const rows = repo.moneyByDay(ctx.db, range, method);
   const totals = sumBySource(rows);
   const daily = rows.map((row) => ({
     date: row.date,
@@ -27,9 +28,9 @@ export function getFinanceSummary(ctx: Context, range: DateRange): FinanceSummar
     previous,
     granularity,
     current: balanceOf(totals),
-    before: balanceOf(sumBySource(repo.moneyByDay(ctx.db, previous))),
+    before: balanceOf(sumBySource(repo.moneyByDay(ctx.db, previous, method))),
     totals,
-    expensesByCategory: repo.expensesByCategory(ctx.db, range),
+    expensesByCategory: repo.expensesByCategory(ctx.db, range, method),
     series: bucketize(range, granularity, daily, SERIES_FIELDS),
   };
 }

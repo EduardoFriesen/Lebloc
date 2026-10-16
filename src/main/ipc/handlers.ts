@@ -109,7 +109,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'shifts:create': (input) => recordShift(ctx, input),
     'shifts:void': ({ id }) => voidShift(ctx, id),
     'staff:stats': ({ month }) => getStaffStats(ctx, month),
-    'finance:summary': (range) => getFinanceSummary(ctx, range),
+    'finance:summary': (input) => getFinanceSummary(ctx, input),
     'finance:sales': (range) => getFinanceSales(ctx, range),
     'finance:traffic': (range) => getFinanceTraffic(ctx, range),
     'finance:teachers': (range) => getFinanceTeachers(ctx, range),

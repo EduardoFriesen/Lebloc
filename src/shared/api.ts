@@ -60,7 +60,7 @@ export const apiSchemas = {
   'shifts:create': schemas.shiftInput,
   'shifts:void': schemas.idInput,
   'staff:stats': schemas.monthInput,
-  'finance:summary': schemas.financeRangeInput,
+  'finance:summary': schemas.financeSummaryInput,
   'finance:sales': schemas.financeRangeInput,
   'finance:traffic': schemas.financeRangeInput,
   'finance:teachers': schemas.financeRangeInput,
