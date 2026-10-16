@@ -75,6 +75,8 @@ export const apiSchemas = {
   'backup:status': schemas.emptyInput,
   'backup:mirror': schemas.backupMirrorInput,
   'audit:list': schemas.emptyInput,
+  'import:pick': schemas.emptyInput,
+  'import:run': schemas.emptyInput,
 } satisfies Record<Channel, z.ZodType>;
 
 export interface ApiOutputs {
@@ -149,6 +151,8 @@ export interface ApiOutputs {
   'backup:status': T.BackupStatus;
   'backup:mirror': T.BackupStatus;
   'audit:list': T.AuditEntry[];
+  'import:pick': T.ImportPick;
+  'import:run': T.ImportSummary;
 }
 
 export type ApiInput<C extends Channel> = z.input<(typeof apiSchemas)[C]>;

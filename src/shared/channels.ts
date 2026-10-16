@@ -70,6 +70,8 @@ export const CHANNELS = [
   'backup:status',
   'backup:mirror',
   'audit:list',
+  'import:pick',
+  'import:run',
 ] as const;
 
 export type Channel = (typeof CHANNELS)[number];

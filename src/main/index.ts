@@ -15,6 +15,7 @@ import { mirrorBackup, restoreKeepingMirror } from './services/backups';
 if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USER_DATA);
 
 const BACKUP_FILTERS = [{ name: 'Base de datos de Lebloc', extensions: ['db'] }];
+const SPREADSHEET_FILTERS = [{ name: 'Planilla', extensions: ['xlsx'] }];
 // Closing waits this long at most for the last backup and its external copy.
 const QUIT_BACKUP_CAP_MS = 15_000;
 
@@ -88,6 +89,10 @@ function createBackupOps(ctx: Context, holder: DatabaseHolder, backupDir: string
       return result.canceled ? null : (result.filePaths[0] ?? null);
     },
     backupNow: () => createBackup(holder.db, backupDir, new Date()),
+    async pickSpreadsheet() {
+      const result = await showOpen({ title: 'Importar planilla', properties: ['openFile'], filters: SPREADSHEET_FILTERS });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
+    },
   };
 }
 

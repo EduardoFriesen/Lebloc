@@ -1,10 +1,11 @@
 import type { Balance, MoneySource, SourceTotals } from '../domain/finance';
+import type { ImportSummary, ImportWarning } from '../domain/legacyImport';
 import type { PassKind, PassStatus } from '../domain/passes';
 import type { DateRange, Granularity } from '../domain/periods';
 import type { SplitRule } from '../domain/sale';
 import type { WaiverState, WaiverStatus } from '../domain/waiver';
 
-export type { Balance, DateRange, Granularity, MoneySource, PassStatus, SourceTotals, WaiverState, WaiverStatus };
+export type { Balance, DateRange, Granularity, ImportSummary, ImportWarning, MoneySource, PassStatus, SourceTotals, WaiverState, WaiverStatus };
 
 export type PaymentMethod = 'cash' | 'transfer';
 
@@ -595,3 +596,8 @@ export interface FinanceClients {
   debtorCount: number;
   debtTotalCents: number;
 }
+
+/** What a spreadsheet would bring in, before importing it. */
+export type ImportPreview = ImportSummary & { file: string };
+
+export type ImportPick = { status: 'cancelled' } | { status: 'ready'; preview: ImportPreview };

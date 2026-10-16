@@ -18,6 +18,7 @@ import { createEmployee, getPayslip, getStaffStats, listEmployees, listShifts, r
 import { createExpense, getExpenseMonth, voidExpense } from '../services/expenses';
 import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
+import { pickImport, runImport } from '../services/legacyImport';
 import { registerPayment, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
 import { getDayEntries, getDayMovements } from '../services/counter';
@@ -35,6 +36,8 @@ import type { Handlers } from './execute';
 export interface BackupOps extends MirrorOps {
   exportBackup(): Promise<BackupOutcome>;
   restoreBackup(): Promise<BackupOutcome>;
+  /** The native dialog to choose the spreadsheet to import; null when it is cancelled. */
+  pickSpreadsheet(): Promise<string | null>;
 }
 
 export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
@@ -110,5 +113,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'backup:status': () => getBackupStatus(ctx),
     'backup:mirror': ({ action }) => changeBackupMirror(ctx, action, backup),
     'audit:list': () => listAuditLog(ctx),
+    'import:pick': () => pickImport(ctx, backup),
+    'import:run': () => runImport(ctx, backup),
   };
 }

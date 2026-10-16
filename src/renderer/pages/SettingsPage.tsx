@@ -2,6 +2,7 @@ import { type FormEvent, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { settingsInput } from '../../shared/schemas';
 import { Button } from '../components/ui/Button';
+import { Stat, StatRow } from '../components/ui/Card';
 import { type ConfirmRequest, ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
@@ -10,8 +11,8 @@ import { PageBar, usePage } from '../components/ui/Pager';
 import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { FillerRows, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
-import type { AuditAction, AuditEntry, BackupStatus, Settings } from '../../shared/types';
-import { formatDateTime } from '../lib/format';
+import type { AuditAction, AuditEntry, BackupStatus, ImportPreview, Settings } from '../../shared/types';
+import { formatDateTime, formatMoney } from '../lib/format';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { type FontSize, loadPreferences, type Preferences, savePreferences, type ThemePref } from '../lib/preferences';
 import { type AsyncResult, useAsync } from '../lib/useAsync';
@@ -26,6 +27,7 @@ export function SettingsPage() {
         <AppearancePanel />
         <AsyncView state={settings}>{(data) => <SettingsForm initial={data} />}</AsyncView>
         <BackupPanel onExported={audit.reload} />
+        <ImportPanel onImported={audit.reload} />
         <AuditPanel state={audit} />
       </div>
     </section>
@@ -224,6 +226,103 @@ function BackupPanel({ onExported }: { onExported: () => void }) {
         </Button>
       </div>
       <ConfirmDialog request={restoreRequest} onDone={() => setRestoreRequest(null)} onClose={() => setRestoreRequest(null)} />
+    </div>
+  );
+}
+
+/** Brings in the local's spreadsheet once, into an empty database: choose the file, check the summary, import. */
+function ImportPanel({ onImported }: { onImported: () => void }) {
+  const headingId = useId();
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+
+  async function pick() {
+    setPicking(true);
+    setNotice(null);
+    try {
+      const outcome = await call('import:pick', {});
+      if (outcome.status === 'ready') setPreview(outcome.preview);
+    } catch (caught) {
+      setPreview(null);
+      setNotice({ tone: 'error', text: errorMessage(caught) });
+    } finally {
+      setPicking(false);
+    }
+  }
+
+  function askToImport(ready: ImportPreview) {
+    setConfirm({
+      title: 'Importar planilla',
+      message: `Se cargan ${ready.clients} clientes, ${ready.teachers} profes y ${ready.passes} pases de ${ready.file}. Antes se guarda un backup automático.`,
+      confirmLabel: 'Importar',
+      action: async () => {
+        const result = await call('import:run', {});
+        setPreview(null);
+        setNotice({ tone: 'success', text: `Listo: se importaron ${result.clients} clientes y ${result.passes} pases.` });
+        onImported();
+      },
+    });
+  }
+
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
+      <h2 id={headingId} className="font-display text-2xl font-semibold">
+        Importar planilla
+      </h2>
+      <p className="text-sm text-ink-soft">
+        Trae los clientes, los profes y los pases de la planilla del local (hojas PASES, Pagos Pases y Escuelita). Los pases que
+        arrancaron desde el 1/1/2026 entran con lo que les queda y su deuda según los cobros. Solo se importa en una base sin
+        clientes, y antes se guarda un backup.
+      </p>
+      {picking ? <SkeletonRows rows={3} /> : preview && <ImportSummaryView preview={preview} />}
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" disabled={picking} onClick={() => void pick()}>
+          {preview ? 'Elegir otra planilla' : 'Elegir planilla…'}
+        </Button>
+        {preview && !picking && <Button onClick={() => askToImport(preview)}>Importar</Button>}
+      </div>
+      <ConfirmDialog request={confirm} onDone={() => setConfirm(null)} onClose={() => setConfirm(null)} />
+    </section>
+  );
+}
+
+function ImportSummaryView({ preview }: { preview: ImportPreview }) {
+  const listId = useId();
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm">
+        Planilla: <strong>{preview.file}</strong>
+      </p>
+      <StatRow>
+        <Stat label={`Clientes (PASES ${preview.fromPases} · Escuelita ${preview.fromSchool})`}>{preview.clients}</Stat>
+        <Stat label="Profes">{preview.teachers}</Stat>
+        <Stat label="Pases desde 2026">{preview.passes}</Stat>
+        <Stat label="Deudores">{preview.debtors}</Stat>
+        <Stat label="Deuda total">{formatMoney(preview.debtCents)}</Stat>
+      </StatRow>
+      {preview.warnings.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 id={listId} className="font-display text-lg font-semibold">
+            Para revisar ({preview.warnings.length})
+          </h3>
+          <p className="text-sm text-ink-soft">Se importan igual; si algo está mal, corregilo en la planilla y elegila de nuevo.</p>
+          <ul aria-labelledby={listId} className="max-h-72 overflow-y-auto rounded-xl border border-ink/15 text-sm">
+            {preview.warnings.map((warning, index) => (
+              <li key={index} className="border-b border-ink/10 px-3 py-2 last:border-b-0">
+                <span className="text-ink-soft">
+                  {warning.sheet}
+                  {warning.row > 0 && ` · fila ${warning.row}`}
+                  {warning.name && ` · ${warning.name}`}
+                </span>
+                <span className="block">{warning.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

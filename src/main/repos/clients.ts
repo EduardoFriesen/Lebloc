@@ -56,6 +56,10 @@ export function updateClient(db: Db, id: number, fields: ClientFields, now: stri
   ).run({ ...clientParams(fields), now, id });
 }
 
+export function countClients(db: Db): number {
+  return db.prepare<[], { count: number }>('SELECT COUNT(*) AS count FROM clients').get()?.count ?? 0;
+}
+
 export function findClientRow(db: Db, id: number): ClientRow | undefined {
   return db.prepare<[number], ClientRow>(`SELECT ${CLIENT_COLUMNS} FROM clients WHERE id = ?`).get(id);
 }

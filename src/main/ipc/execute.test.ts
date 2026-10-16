@@ -10,6 +10,7 @@ const backup: BackupOps = {
   restoreBackup: async () => ({ status: 'cancelled' }),
   pickFolder: async () => null,
   backupNow: async () => '',
+  pickSpreadsheet: async () => null,
 };
 
 describe('execute', () => {

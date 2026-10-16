@@ -26,6 +26,8 @@ export const ERROR_MESSAGES = {
   EMPLOYEE_INACTIVE: 'El empleado está inactivo.',
   INVALID_SPREADSHEET: 'El archivo no es una planilla .xlsx que se pueda leer.',
   MISSING_PASES_SHEET: 'La planilla no tiene la hoja "PASES".',
+  NO_PENDING_IMPORT: 'Elegí la planilla de nuevo antes de importar.',
+  IMPORT_NOT_EMPTY: 'Ya hay clientes cargados: la planilla solo se importa en una base vacía. Restaurá un backup sin clientes para importarla.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
