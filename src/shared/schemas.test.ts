@@ -12,6 +12,7 @@ import {
   scheduleInput,
   settingsInput,
   shiftInput,
+  staffPayoutInput,
 } from './schemas';
 
 const client = {
@@ -95,6 +96,14 @@ describe('schemas', () => {
     expect(reversed.success).toBe(false);
     expect(reversed.error?.issues[0]?.path).toEqual(['to']);
     expect(payslipInput.safeParse({ employeeId: 0, from: '2026-10-01', to: '2026-10-15' }).success).toBe(false);
+  });
+
+  it('settles a range of shifts with a pay date and a method', () => {
+    const payout = { employeeId: 1, from: '2026-10-01', to: '2026-10-31', paidAt: '2026-10-05', method: 'cash' };
+    expect(staffPayoutInput.safeParse(payout).success).toBe(true);
+    expect(staffPayoutInput.safeParse({ ...payout, from: '2026-11-01' }).error?.issues[0]?.path).toEqual(['to']);
+    expect(staffPayoutInput.safeParse({ ...payout, method: 'card' }).success).toBe(false);
+    expect(staffPayoutInput.safeParse({ ...payout, paidAt: '05/10/2026' }).success).toBe(false);
   });
 
   it('filters plan sales by month and an optional plan', () => {

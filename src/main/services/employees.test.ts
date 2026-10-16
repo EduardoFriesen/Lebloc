@@ -2,7 +2,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { EmployeeInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
-import { createEmployee, getPayslip, getStaffStats, listEmployees, listShifts, recordShift, updateEmployee, voidShift } from './employees';
+import {
+  createEmployee,
+  getPayslip,
+  getStaffStats,
+  listEmployees,
+  listShifts,
+  recordShift,
+  settleShifts,
+  updateEmployee,
+  voidShift,
+  voidStaffPayout,
+} from './employees';
 
 const lucia: EmployeeInput = {
   firstName: 'Lucía',
@@ -39,6 +50,7 @@ describe('employees and shifts', () => {
       note: null,
       recordedAt: ctx.clock.now().toISOString(),
       voidedAt: null,
+      payoutId: null,
     });
   });
 
@@ -78,7 +90,14 @@ describe('employees and shifts', () => {
     ]);
     expect(listEmployees(ctx, true, '2026-10')).toHaveLength(3);
     expect(listShifts(ctx, '2026-10', marcosId)).toHaveLength(1);
-    expect(getStaffStats(ctx, '2026-10')).toEqual({ active: 2, staff: 1, casual: 1, monthMinutes: 390, monthCostCents: 2_850_000 });
+    expect(getStaffStats(ctx, '2026-10')).toEqual({
+      active: 2,
+      staff: 1,
+      casual: 1,
+      monthMinutes: 390,
+      monthCostCents: 2_850_000,
+      pendingCents: 3_350_000,
+    });
   });
 
   describe('payslip', () => {
@@ -109,6 +128,70 @@ describe('employees and shifts', () => {
     it('comes back empty for a range without shifts and fails on unknown employees', () => {
       expect(getPayslip(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-31' })).toMatchObject({ shifts: [], totalMinutes: 0, totalCents: 0 });
       expectDomainError(() => getPayslip(ctx, { employeeId: 999, from: '2026-10-01', to: '2026-10-31' }), 'NOT_FOUND');
+    });
+  });
+
+  describe('settling', () => {
+    const settle = (overrides: Partial<{ employeeId: number; from: string; to: string; paidAt: string }> = {}) =>
+      settleShifts(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-31', paidAt: '2026-10-05', method: 'cash', ...overrides });
+    const owed = () => listEmployees(ctx, true, '2026-10').find((employee) => employee.id === luciaId);
+    const october = () => getPayslip(ctx, { employeeId: luciaId, from: '2026-10-01', to: '2026-10-31' });
+
+    it("pays the range's unpaid shifts, so they stop being owed", () => {
+      shift({ workedOn: '2026-09-30', minutes: 60 });
+      const paid = shift();
+      voidShift(ctx, shift({ minutes: 600 }).id);
+      expect(owed()).toMatchObject({ pendingCents: 500_000 + 2_250_000, pendingSince: '2026-09-30' });
+
+      const payout = settle();
+
+      expect(payout).toEqual({ id: expect.any(Number), employeeId: luciaId, paidAt: '2026-10-05', amountCents: 2_250_000, method: 'cash', voidedAt: null });
+      expect(owed()).toMatchObject({ pendingCents: 500_000, pendingSince: '2026-09-30', monthCostCents: 2_250_000 });
+      expect(listShifts(ctx, '2026-10', luciaId).find((row) => row.id === paid.id)?.payoutId).toBe(payout.id);
+      expect(october()).toMatchObject({ shifts: [], totalMinutes: 0, totalCents: 0, payouts: [payout] });
+      expect(getStaffStats(ctx, '2026-10').pendingCents).toBe(500_000);
+    });
+
+    it('leaves nothing owed once every shift is paid', () => {
+      shift({ workedOn: '2026-09-30', minutes: 60 });
+      shift();
+      settle({ from: '2026-09-30' });
+      expect(owed()).toMatchObject({ pendingCents: 0, pendingSince: null });
+    });
+
+    it('never pays a shift twice, nor a range without unpaid shifts', () => {
+      shift();
+      settle();
+      expectDomainError(() => settle(), 'NOTHING_TO_PAY');
+      expectDomainError(() => settle({ from: '2026-09-01', to: '2026-09-30' }), 'NOTHING_TO_PAY');
+    });
+
+    it('rejects future pay dates and unknown employees without paying', () => {
+      shift();
+      expectDomainError(() => settle({ paidAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+      expectDomainError(() => settle({ employeeId: 999 }), 'NOT_FOUND');
+      expect(owed()?.pendingCents).toBe(2_250_000);
+    });
+
+    it('voids a settlement once and owes its shifts again', () => {
+      shift();
+      const payout = settle();
+      const voided = voidStaffPayout(ctx, payout.id);
+      expect(voided).toEqual({ ...payout, voidedAt: ctx.clock.now().toISOString() });
+      expect(owed()?.pendingCents).toBe(2_250_000);
+      expectDomainError(() => voidStaffPayout(ctx, payout.id), 'ALREADY_VOIDED');
+      expectDomainError(() => voidStaffPayout(ctx, 999), 'NOT_FOUND');
+
+      const again = settle();
+      expect(october().payouts).toEqual([again, voided]);
+    });
+
+    it('keeps a paid shift from being voided', () => {
+      const { id } = shift();
+      const payout = settle();
+      expectDomainError(() => voidShift(ctx, id), 'SHIFT_PAID');
+      voidStaffPayout(ctx, payout.id);
+      expect(voidShift(ctx, id).voidedAt).not.toBeNull();
     });
   });
 

@@ -67,7 +67,7 @@ test("show an employee's payslip for a range of dates", async () => {
   await page.getByRole('button', { name: 'Liquidar sueldo de Lucía Paz' }).click();
   const slip = page.getByRole('dialog');
   await expect(slip.getByRole('heading', { name: 'Liquidación de sueldo' })).toBeVisible();
-  await expect(slip).toContainText(/Horas trabajadas\s*4,5 h/);
+  await expect(slip).toContainText(/Horas a pagar\s*4,5 h/);
   await expect(slip).toContainText(/Total a pagar\s*\$\s22\.500,00/);
   await expect(slip.getByRole('table', { name: 'Turnos de la liquidación' }).getByRole('row', { name: /4,5 h/ })).toBeVisible();
 
@@ -75,7 +75,30 @@ test("show an employee's payslip for a range of dates", async () => {
   await expect(slip.getByText('El inicio tiene que ser anterior al fin')).toBeVisible();
   await slip.getByLabel('Desde', { exact: true }).fill('2020-01-01');
   await slip.getByLabel('Hasta', { exact: true }).fill('2020-01-31');
-  await expect(slip.getByText('No tiene turnos entre el 01/01/2020 y el 31/01/2020.')).toBeVisible();
+  await expect(slip.getByText('No tiene turnos sin pagar entre el 01/01/2020 y el 31/01/2020.')).toBeVisible();
   await slip.getByRole('button', { name: 'Cerrar' }).click();
   await expect(slip).toBeHidden();
+});
+
+test('settle the hours owed to an employee and void the settlement', async () => {
+  await expect(summary()).toContainText(/A pagar\s*\$\s22\.500,00/);
+  await page.getByRole('button', { name: 'Liquidar sueldo de Lucía Paz' }).click();
+  const slip = page.getByRole('dialog', { name: 'Liquidación de sueldo' });
+  await label('Medio de pago').selectOption('transfer');
+  await slip.getByRole('button', { name: 'Confirmar liquidación' }).click();
+  await expect(slip.getByText(/No tiene turnos sin pagar/)).toBeVisible();
+  await expect(slip.getByRole('row', { name: /Transferencia.*22\.500,00/ })).toBeVisible();
+  await slip.getByRole('button', { name: 'Cerrar' }).click();
+
+  await expect(summary()).toContainText(/A pagar\s*\$\s0,00/);
+  await expect(page.getByRole('row', { name: /Lucía Paz.*4,5 h.*Pagado/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Anular turno de Lucía Paz/ })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Liquidar sueldo de Lucía Paz' }).click();
+  await slip.getByRole('button', { name: /^Anular liquidación del/ }).click();
+  await page.getByRole('dialog', { name: 'Anular liquidación' }).getByRole('button', { name: 'Anular liquidación' }).click();
+  await expect(slip).toContainText(/Total a pagar\s*\$\s22\.500,00/);
+  await expect(slip.getByRole('row', { name: /Anulada/ })).toBeVisible();
+  await slip.getByRole('button', { name: 'Cerrar' }).click();
+  await expect(summary()).toContainText(/A pagar\s*\$\s22\.500,00/);
 });
