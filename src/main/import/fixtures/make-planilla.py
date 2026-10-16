@@ -27,7 +27,7 @@ SHEETS = {
          'Pago Profe', 'Total Profe', 'TOTAL', 'Observaciones', None, None, None, None, 'Tipo Pase', 'Precio Pase', 'Precio Profe'],
         ['3.11.25', '30111222', 'Ana Roca', 'Libre x 8', 1, 51000, 'Efectivo', 51000, None, 0, 0, 51000, None, None, None, None, None, 'Libre x 4', 43000, 0],
         ['10.01.26', '30111222', 'Ana Roca', 'Libre x 8', 1, 51000, 'Transferencia', 51000, None, 0, 0, 51000, None, None, None, None, None, 'Libre x 8', 51000, 0],
-        [None, None, 'bruno sierra', 'c/Profe x 4', 1, 43000, 'Efectivo', 43000, 'Fran', 7000, 7000, 50000, None, None, None, None, None, 'Libre x 12', 65000, 0],
+        ['5.02.26', None, 'bruno sierra', 'c/Profe x 4', 1, 43000, 'Efectivo', 43000, 'Fran', 7000, 7000, 50000, None, None, None, None, None, 'Libre x 12', 65000, 0],
         ['3.03', None, 'Toto', 'x DIA', 1, 17000, 'Mercado Pago', 17000, None, 0, 0, ('error', '#N/A'), None, None, None, None, None, 'c/Profe x 4', 43000, 27000],
         ['3.08.26', None, 'Juli Soto', 'Escuelita x4', 1, 43000, 'Transferencia', 43000, 'Pipi', 27000, 27000, 70000, None, None, None, None, None, 'c/Profe x 8', 51000, 34000],
         ['2.09.26', '30666777', 'Facu Gil', 'Libre x 4', 1, 43000, 'Debito', 43000, None, 0, 0, 50000, 'mas pedulas', None, None, None, None, 'c/Profe x 12', 65000, 38000],
