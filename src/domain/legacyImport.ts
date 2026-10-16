@@ -1,3 +1,4 @@
+import { formatMoney } from '../shared/money';
 import { fold } from '../shared/text';
 import { parseIsoDate } from './dates';
 import { DomainError } from './errors';
@@ -260,6 +261,8 @@ function readPrices(payments: Rows | undefined): Map<string, Price> {
 interface PaymentRow extends LegacyPayment {
   dni: string;
   name: string;
+  /** What the pass cost when the row shows a price typed over the list one; null at list price. */
+  pricedCents: number | null;
   taken: boolean;
 }
 
@@ -270,10 +273,14 @@ function readPayments(payments: Rows | undefined, prices: Map<string, Price>): P
     if (row === 1) continue;
     if (cells.A) date = paymentDate(cells.A, date);
     if (!cells.C || !date) continue;
-    const pass = cents(cells.H);
+    const quantity = Number(cells.E) > 0 ? Number(cells.E) : 1;
     const listed = prices.get(typeKey(cells.D ?? ''));
-    // TOTAL, else pass plus teacher, else the listed price: older rows lost their formulas (#N/A, #VALUE!).
-    const amountCents = cents(cells.L) ?? (pass === null ? null : pass + (cents(cells.K) ?? 0)) ?? (listed ? listed.local + listed.teacher : null);
+    const unit = cents(cells.F);
+    const typed = cents(cells.H);
+    // Rows lose their formulas (#N/A, #VALUE!, or blank in the newest ones): the missing parts come from the table.
+    const local = typed ?? (listed ? listed.local * quantity : null);
+    const teacherPart = cents(cells.K) ?? (listed ? listed.teacher * quantity : 0);
+    const amountCents = cents(cells.L) ?? (local === null ? null : local + teacherPart);
     if (!amountCents) continue;
     found.push({
       paidAt: date,
@@ -281,6 +288,8 @@ function readPayments(payments: Rows | undefined, prices: Map<string, Price>): P
       method: fold(cells.G ?? '').trim() === 'efectivo' ? 'cash' : 'transfer',
       dni: cells.B?.trim() ?? '',
       name: personKey(cells.C),
+      // "Total Pase" typed over unit × quantity: sold at another price (an event, a discount), not owed.
+      pricedCents: typed !== null && unit !== null && typed !== unit * quantity ? typed + teacherPart : null,
       taken: false,
     });
   }
@@ -304,13 +313,21 @@ function parseUsed(text: string | undefined, size: number, warn: Warn): number {
   return size;
 }
 
-/** The payments of this person from a week before the pass on, by DNI first and then by name, each used once. */
-function takePayments(pool: PaymentRow[], dni: string | null, name: string, startedAt: string, today: string, totalCents: number, warn: Warn) {
+/**
+ * The payments of this person from a week before the pass on, by DNI first and then by name, each used once, and
+ * what the pass cost: the table price, or the one typed in its payment row.
+ */
+function takePayments(pool: PaymentRow[], dni: string | null, name: string, startedAt: string, today: string, listedCents: number, warn: Warn) {
   const from = shiftDays(startedAt, -PAID_AHEAD_DAYS);
   const open = pool.filter((payment) => !payment.taken && payment.paidAt >= from && payment.paidAt <= today);
   const byDni = dni ? open.filter((payment) => payment.dni === dni) : [];
   const byName = open.filter((payment) => !byDni.includes(payment) && payment.name === name);
   const found = [...byDni, ...byName].sort((a, b) => a.paidAt.localeCompare(b.paidAt));
+  const priced = found.find((payment) => payment.pricedCents !== null)?.pricedCents ?? null;
+  const totalCents = priced ?? listedCents;
+  if (priced !== null && priced !== listedCents) {
+    warn(`Se cobró ${formatMoney(priced)} en vez de ${formatMoney(listedCents)} de la tabla: se tomó lo cobrado como precio.`);
+  }
   const payments: LegacyPayment[] = [];
   let left = totalCents;
   for (const payment of found) {
@@ -319,9 +336,11 @@ function takePayments(pool: PaymentRow[], dni: string | null, name: string, star
     if (amountCents > 0) payments.push({ paidAt: payment.paidAt, amountCents, method: payment.method });
     left -= amountCents;
   }
+  const paid = totalCents - left;
   if (found.reduce((sum, payment) => sum + payment.amountCents, 0) > totalCents) warn('Cobros por encima del precio del pase: se cargó hasta el precio.');
   if (found.length === 0 && totalCents > 0) warn('Sin cobros en Pagos Pases: quedó con la deuda total.');
-  return payments;
+  else if (paid < totalCents) warn(`Pagó ${formatMoney(paid)} de ${formatMoney(totalCents)}: quedó debiendo ${formatMoney(left)}.`);
+  return { payments, totalCents };
 }
 
 export function buildImportPlan(sheets: Map<string, Rows>, today: string, since: string): ImportPlan {
@@ -375,7 +394,7 @@ export function buildImportPlan(sheets: Map<string, Rows>, today: string, since:
         const spec = PLAN_SPECS[planKey];
         usedPlans.add(planKey);
         const price = prices.get(spec.price);
-        const totalCents = (price?.local ?? 0) + (spec.teacher > 0 ? (price?.teacher ?? 0) : 0);
+        const listedCents = (price?.local ?? 0) + (spec.teacher > 0 ? (price?.teacher ?? 0) : 0);
         let passTeacher: string | null = null;
         if (spec.teacher > 0) {
           const name = 'fixed' in layout.teacher ? layout.teacher.fixed : named;
@@ -383,7 +402,7 @@ export function buildImportPlan(sheets: Map<string, Rows>, today: string, since:
           passTeacher = name ? teacher(name) : teacher(UNASSIGNED);
           if (name) activeTeachers.add(personKey(name));
         }
-        const payments = takePayments(pool, dni, personKey(fullName), startedAt, today, totalCents, warn);
+        const { payments, totalCents } = takePayments(pool, dni, personKey(fullName), startedAt, today, listedCents, warn);
         pass = {
           planKey,
           teacher: passTeacher,
