@@ -31,7 +31,7 @@ const BALANCE_SELECT = `WITH ${SALE_STATS_CTE},
     WHERE ss.teacher_id IS NOT NULL
     GROUP BY ss.teacher_id
   )
-  SELECT t.id AS teacherId, t.first_name || ' ' || t.last_name AS teacherName,
+  SELECT t.id AS teacherId, trim(t.first_name || ' ' || t.last_name) AS teacherName,
     COALESCE((SELECT SUM(p.teacher_cents) FROM payments p JOIN sales s ON s.id = p.sale_id
               WHERE s.teacher_id = t.id AND p.voided_at IS NULL), 0) AS earnedCents,
     COALESCE((SELECT SUM(tp.amount_cents) FROM teacher_payouts tp
@@ -86,7 +86,7 @@ export function listTeacherShares(db: Db, teacherId: number): TeacherShare[] {
   return db
     .prepare<[number], TeacherShare>(
       `SELECT p.id AS paymentId, s.id AS saleId, p.paid_at AS paidAt,
-         c.first_name || ' ' || c.last_name AS clientName, s.plan_name AS planName, p.teacher_cents AS teacherCents
+         trim(c.first_name || ' ' || c.last_name) AS clientName, s.plan_name AS planName, p.teacher_cents AS teacherCents
        FROM payments p
        JOIN sales s ON s.id = p.sale_id
        JOIN clients c ON c.id = s.client_id

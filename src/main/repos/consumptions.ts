@@ -51,7 +51,7 @@ export function listConsumptionsSince(db: Db, from: string): ConsumptionEntryRow
          SELECT client_id, SUM(free_passes - used_free) AS free_left, SUM(teacher_passes - used_teacher) AS teacher_left
          FROM sale_stats GROUP BY client_id
        )
-       SELECT c.id AS consumptionId, cl.id AS clientId, cl.first_name || ' ' || cl.last_name AS clientName,
+       SELECT c.id AS consumptionId, cl.id AS clientId, trim(cl.first_name || ' ' || cl.last_name) AS clientName,
          c.kind AS passKind, c.consumed_at AS recordedAt,
          COALESCE(l.free_left, 0) AS remainingFree, COALESCE(l.teacher_left, 0) AS remainingTeacher
        FROM consumptions c JOIN sales s ON s.id = c.sale_id JOIN clients cl ON cl.id = s.client_id

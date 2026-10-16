@@ -70,7 +70,7 @@ type PlanMovement = Extract<DayMovement, { kind: 'plan' }>;
 export function listPaymentsOn(db: Db, date: string): PlanMovement[] {
   return db
     .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }>(
-      `SELECT p.id AS paymentId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
+      `SELECT p.id AS paymentId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
          s.voided_at AS saleVoidedAt, p.recorded_at AS recordedAt,
          COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents

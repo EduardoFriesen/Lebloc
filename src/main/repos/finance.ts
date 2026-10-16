@@ -133,7 +133,7 @@ export function teacherActivity(db: Db, range: DateRange): TeacherActivityRow[] 
          SELECT s.teacher_id, s.client_id FROM consumptions c JOIN sales s ON s.id = c.sale_id
          WHERE c.voided_at IS NULL AND c.kind = 'teacher' AND date(c.consumed_at, 'localtime') BETWEEN @from AND @to
        )
-       SELECT t.id AS teacherId, t.first_name || ' ' || t.last_name AS name, t.active,
+       SELECT t.id AS teacherId, trim(t.first_name || ' ' || t.last_name) AS name, t.active,
          (SELECT COUNT(*) FROM classes WHERE teacher_id = t.id) AS classes,
          (SELECT COUNT(DISTINCT client_id) FROM classes WHERE teacher_id = t.id) AS students,
          (SELECT COALESCE(SUM(p.teacher_cents), 0) FROM payments p JOIN sales s ON s.id = p.sale_id
@@ -183,7 +183,7 @@ export function lapsedClients(db: Db, range: DateRange, before: DateRange): Laps
          SELECT s.client_id, date(c.consumed_at, 'localtime') AS day FROM consumptions c JOIN sales s ON s.id = c.sale_id
          WHERE c.voided_at IS NULL
        )
-       SELECT cl.id AS clientId, cl.first_name || ' ' || cl.last_name AS name, MAX(v.day) AS lastVisit
+       SELECT cl.id AS clientId, trim(cl.first_name || ' ' || cl.last_name) AS name, MAX(v.day) AS lastVisit
        FROM visits v JOIN clients cl ON cl.id = v.client_id
        WHERE cl.archived_at IS NULL AND v.day BETWEEN @beforeFrom AND @beforeTo
          AND NOT EXISTS (SELECT 1 FROM visits w WHERE w.client_id = cl.id AND w.day BETWEEN @from AND @to)

@@ -20,8 +20,8 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
   return db
     .prepare<[{ planId: number | null; teacherId: number | null; from: string }], EnrollmentRow>(
       `WITH ${SALE_STATS_CTE}
-       SELECT ss.id AS saleId, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
-         ss.plan_name AS planName, t.first_name || ' ' || t.last_name AS teacherName, ss.sold_at AS soldAt,
+       SELECT ss.id AS saleId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
+         ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.sold_at AS soldAt,
          ss.free_passes - ss.used_free AS remainingFree, ss.teacher_passes - ss.used_teacher AS remainingTeacher,
          ss.total_cents - ss.paid_cents AS debtCents
        FROM sale_stats ss
@@ -40,8 +40,8 @@ export function listPlanSales(db: Db, filter: { from: string; to: string; planId
   return db
     .prepare<[{ from: string; to: string; planId: number | null }], PlanSale>(
       `WITH ${SALE_STATS_CTE}
-       SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName,
-         ss.plan_name AS planName, t.first_name || ' ' || t.last_name AS teacherName, ss.total_cents AS totalCents,
+       SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
+         ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.total_cents AS totalCents,
          ss.total_cents - ss.paid_cents AS debtCents
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id

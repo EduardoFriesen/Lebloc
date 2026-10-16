@@ -18,7 +18,7 @@ export interface ShiftTotals {
   costCents: number;
 }
 
-const SELECT = `SELECT w.id, w.employee_id AS employeeId, e.first_name || ' ' || e.last_name AS employeeName,
+const SELECT = `SELECT w.id, w.employee_id AS employeeId, trim(e.first_name || ' ' || e.last_name) AS employeeName,
     w.worked_on AS workedOn, w.minutes, w.hourly_rate_cents AS hourlyRateCents, w.cost_cents AS costCents, w.note,
     w.recorded_at AS recordedAt, w.voided_at AS voidedAt
   FROM work_shifts w JOIN employees e ON e.id = w.employee_id`;

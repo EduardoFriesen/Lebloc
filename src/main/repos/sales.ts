@@ -9,7 +9,7 @@ type SaleRow = Omit<Sale, 'debtCents' | 'remainingFree' | 'remainingTeacher'> & 
 const SALE_SELECT = `SELECT s.id, s.client_id AS clientId, s.sold_at AS soldAt, s.plan_id AS planId, s.plan_name AS planName,
     s.free_passes AS freePasses, s.teacher_passes AS teacherPasses, s.local_price_cents AS localPriceCents,
     s.teacher_id AS teacherId,
-    CASE WHEN t.id IS NULL THEN NULL ELSE t.first_name || ' ' || t.last_name END AS teacherName,
+    CASE WHEN t.id IS NULL THEN NULL ELSE trim(t.first_name || ' ' || t.last_name) END AS teacherName,
     s.teacher_rate_cents AS teacherRateCents, s.teacher_surcharge_cents AS teacherSurchargeCents,
     s.total_cents AS totalCents, s.split_rule AS splitRule, s.voided_at AS voidedAt,
     COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paidCents,

@@ -38,7 +38,7 @@ export function voidWaiver(db: Db, id: number, now: string): void {
 export function listActiveClientWaivers(db: Db): ClientWaiverRow[] {
   return db
     .prepare<[], ClientWaiverRow>(
-      `SELECT c.id AS clientId, c.first_name || ' ' || c.last_name AS clientName, ${LAST_SIGNED_AT_SQL} AS signedAt
+      `SELECT c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName, ${LAST_SIGNED_AT_SQL} AS signedAt
        FROM clients c
        WHERE c.archived_at IS NULL
        ORDER BY c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE`,
