@@ -24,6 +24,7 @@ export const ERROR_MESSAGES = {
   PRICE_NOT_SET: 'Configurá el precio en Planes.',
   DATE_IN_FUTURE: 'La fecha no puede ser posterior a hoy.',
   EMPLOYEE_INACTIVE: 'El empleado está inactivo.',
+  INVALID_SPREADSHEET: 'El archivo no es una planilla .xlsx que se pueda leer.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
