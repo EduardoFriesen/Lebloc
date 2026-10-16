@@ -10,6 +10,9 @@ const backup: BackupOps = {
   restoreBackup: async () => ({ status: 'cancelled' }),
   pickFolder: async () => null,
   backupNow: async () => '',
+  connectDrive: async () => '',
+  disconnectDrive: async () => undefined,
+  uploadToDrive: async () => undefined,
   pickSpreadsheet: async () => null,
 };
 

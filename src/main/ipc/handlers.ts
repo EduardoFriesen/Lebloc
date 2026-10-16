@@ -2,7 +2,7 @@ import type { BackupOutcome } from '../../shared/types';
 import type { Context } from '../context';
 import { getClientAccount } from '../services/account';
 import { listAuditLog } from '../services/audit';
-import { changeBackupMirror, getBackupStatus, type MirrorOps } from '../services/backups';
+import { changeBackupDrive, changeBackupMirror, type DriveOps, getBackupStatus, type MirrorOps } from '../services/backups';
 import {
   anonymizeClient,
   archiveClient,
@@ -43,8 +43,8 @@ import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../servi
 import { signWaiver, voidWaiver } from '../services/waivers';
 import type { Handlers } from './execute';
 
-/** What only the main process can do: native dialogs and the database file itself. */
-export interface BackupOps extends MirrorOps {
+/** What only the main process can do: native dialogs, the database file itself and the Google sign-in. */
+export interface BackupOps extends MirrorOps, DriveOps {
   exportBackup(): Promise<BackupOutcome>;
   restoreBackup(): Promise<BackupOutcome>;
   /** The native dialog to choose the spreadsheet to import; null when it is cancelled. */
@@ -125,6 +125,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'backup:restore': () => backup.restoreBackup(),
     'backup:status': () => getBackupStatus(ctx),
     'backup:mirror': ({ action }) => changeBackupMirror(ctx, action, backup),
+    'backup:drive': ({ action }) => changeBackupDrive(ctx, action, backup),
     'audit:list': () => listAuditLog(ctx),
     'import:pick': () => pickImport(ctx, backup),
     'import:run': () => runImport(ctx, backup),

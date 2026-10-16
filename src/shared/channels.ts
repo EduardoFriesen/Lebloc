@@ -71,6 +71,7 @@ export const CHANNELS = [
   'backup:restore',
   'backup:status',
   'backup:mirror',
+  'backup:drive',
   'audit:list',
   'import:pick',
   'import:run',

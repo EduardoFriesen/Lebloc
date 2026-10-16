@@ -192,6 +192,7 @@ export const staffPayoutInput = z
   .refine(inOrder, inOrderIssue);
 export const planSalesInput = z.object({ month, planId: id.optional() });
 export const backupMirrorInput = z.object({ action: z.enum(['choose', 'clear']) });
+export const backupDriveInput = z.object({ action: z.enum(['connect', 'disconnect']) });
 export const shiftInput = z.object({
   employeeId: id,
   workedOn: isoDate,

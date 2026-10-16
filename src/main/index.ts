@@ -1,22 +1,26 @@
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, Menu, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, type OpenDialogOptions, safeStorage, type SaveDialogOptions, shell } from 'electron';
 import log from 'electron-log/main';
 import { toIsoDate } from '../domain/dates';
+import { DomainError } from '../domain/errors';
 import { createBackup, exportBackup } from './backup';
 import { type Context, systemClock } from './context';
 import { DatabaseHolder } from './db/holder';
+import { accessToken, accountEmail, authorize, DriveAuthError, type GoogleClient, revoke, uploadBackup } from './drive';
 import { type BackupOps, createHandlers } from './ipc/handlers';
 import { registerIpc } from './ipc/register';
-import { mirrorBackup, restoreKeepingExternal } from './services/backups';
+import { driveBackup, type DriveOps, mirrorBackup, restoreKeepingExternal } from './services/backups';
 
 // E2E tests point userData at a temp dir so they never touch real data.
 if (process.env.LEBLOC_USER_DATA) app.setPath('userData', process.env.LEBLOC_USER_DATA);
 
 const BACKUP_FILTERS = [{ name: 'Base de datos de Lebloc', extensions: ['db'] }];
 const SPREADSHEET_FILTERS = [{ name: 'Planilla', extensions: ['xlsx'] }];
-// Closing waits this long at most for the last backup and its external copy.
+// Closing waits this long at most for the last backup and its copies out of the PC. An upload cut short leaves nothing
+// in Drive, and the next opening uploads again.
 const QUIT_BACKUP_CAP_MS = 15_000;
 
 // Exact page the app loads; the only sender IPC trusts.
@@ -61,8 +65,49 @@ function showOpen(options: OpenDialogOptions) {
   return mainWindow ? dialog.showOpenDialog(mainWindow, options) : dialog.showOpenDialog(options);
 }
 
-function createBackupOps(ctx: Context, holder: DatabaseHolder, backupDir: string): BackupOps {
+/** Lebloc's OAuth client, from the build. Without it, or without a way to encrypt the token, there is no Drive. */
+function googleClient(): GoogleClient {
+  const id = import.meta.env.MAIN_VITE_GOOGLE_CLIENT_ID;
+  const secret = import.meta.env.MAIN_VITE_GOOGLE_CLIENT_SECRET;
+  if (!id || !secret || !safeStorage.isEncryptionAvailable()) throw new DomainError('DRIVE_UNAVAILABLE');
+  return { id, secret };
+}
+
+/**
+ * The refresh token lives in its own file, encrypted for this Windows user (DPAPI): outside the database, so it never
+ * travels inside a backup, not even the ones uploaded to Drive.
+ */
+function createDriveOps(tokenFile: string): Omit<DriveOps, 'backupNow'> {
+  const readToken = async () => {
+    try {
+      return safeStorage.decryptString(await readFile(tokenFile));
+    } catch {
+      throw new DriveAuthError();
+    }
+  };
   return {
+    async connectDrive() {
+      const client = googleClient();
+      const refreshToken = await authorize(client, (url) => shell.openExternal(url));
+      const email = await accountEmail(await accessToken(client, refreshToken));
+      await writeFile(tokenFile, safeStorage.encryptString(refreshToken));
+      return email;
+    },
+    async disconnectDrive() {
+      const token = await readToken().catch(() => null);
+      if (token) await revoke(token);
+      await rm(tokenFile, { force: true });
+    },
+    async uploadToDrive(file) {
+      const client = googleClient();
+      await uploadBackup(await accessToken(client, await readToken()), file);
+    },
+  };
+}
+
+function createBackupOps(ctx: Context, holder: DatabaseHolder, backupDir: string, tokenFile: string): BackupOps {
+  return {
+    ...createDriveOps(tokenFile),
     async exportBackup() {
       const result = await showSave({
         title: 'Exportar backup',
@@ -114,10 +159,10 @@ async function start(): Promise<void> {
     clock: systemClock,
   };
   const logError = (error: unknown) => log.error(error);
-  const backups = createBackupOps(ctx, holder, backupDir);
+  const backups = createBackupOps(ctx, holder, backupDir, join(userData, 'google-drive.token'));
   const copyOutside = (file: string) =>
-    mirrorBackup(ctx, file).then((error) => {
-      if (error) logError(error);
+    Promise.all([mirrorBackup(ctx, file), driveBackup(ctx, file, backups)]).then((errors) => {
+      for (const error of errors) if (error) logError(error);
     });
   registerIpc(ipcMain, createHandlers(ctx, backups), logError, APP_URL);
 
@@ -126,7 +171,7 @@ async function start(): Promise<void> {
     if (quitting) return;
     quitting = true;
     event.preventDefault();
-    // A last backup and its external copy on the way out, capped so closing never hangs on a slow folder.
+    // A last backup and its copies on the way out, capped so closing never hangs on a slow folder or connection.
     void Promise.race([backups.backupNow().then(copyOutside), delay(QUIT_BACKUP_CAP_MS)])
       .catch(logError)
       .finally(() => {
@@ -137,7 +182,7 @@ async function start(): Promise<void> {
   // Electron's default menu is in English and offers Reload and DevTools: only development keeps it.
   if (!process.env.ELECTRON_RENDERER_URL) Menu.setApplicationMenu(null);
   createWindow();
-  // The external copy waits for the window: a slow or missing folder must not hold the app back.
+  // The copies out of the PC wait for the window: a slow folder or connection must not hold the app back.
   void copyOutside(startupBackup);
 }
 

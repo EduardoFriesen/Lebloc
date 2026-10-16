@@ -76,6 +76,7 @@ export const apiSchemas = {
   'backup:restore': schemas.emptyInput,
   'backup:status': schemas.emptyInput,
   'backup:mirror': schemas.backupMirrorInput,
+  'backup:drive': schemas.backupDriveInput,
   'audit:list': schemas.emptyInput,
   'import:pick': schemas.emptyInput,
   'import:run': schemas.emptyInput,
@@ -154,6 +155,7 @@ export interface ApiOutputs {
   'backup:restore': T.BackupOutcome;
   'backup:status': T.BackupStatus;
   'backup:mirror': T.BackupStatus;
+  'backup:drive': T.BackupStatus;
   'audit:list': T.AuditEntry[];
   'import:pick': T.ImportPick;
   'import:run': T.ImportSummary;
