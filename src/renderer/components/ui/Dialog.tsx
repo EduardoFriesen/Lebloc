@@ -26,9 +26,12 @@ export function Dialog({ open, title, onClose, dismissible = true, wide = false,
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      onClose={onClose}
+      // React bubbles close/cancel up the component tree, so a dialog opened inside this one would close it too.
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
       onCancel={(event) => {
-        if (!dismissible) event.preventDefault();
+        if (event.target === event.currentTarget && !dismissible) event.preventDefault();
       }}
       className={`m-auto w-full ${wide ? 'max-w-4xl' : 'max-w-xl'} rounded-3xl border-t-4 border-accent bg-canvas p-0 text-ink shadow-2xl backdrop:bg-dusk/60`}
     >
