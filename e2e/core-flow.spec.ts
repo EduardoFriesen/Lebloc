@@ -349,7 +349,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
     app.evaluate(({ dialog }, filePath) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] });
     }, folder);
-  const warning = page.getByRole('complementary', { name: 'Alertas' }).getByText(/No se pudo hacer la copia externa/);
+  const warning = page.getByRole('complementary', { name: 'Alertas' }).getByText(/No se pudo copiar el backup fuera de esta PC/);
 
   await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await pick(join(userData, 'pendrive-desenchufado'));
