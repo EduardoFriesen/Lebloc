@@ -113,6 +113,23 @@ describe('migrations', () => {
     expect(() => db.prepare('DELETE FROM audit_log').run()).toThrow(/append-only/);
   });
 
+  it('lets the audit log record connecting and disconnecting Google Drive, keeping earlier entries and the append-only triggers', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 9).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 9');
+    db.prepare("INSERT INTO audit_log (at, action) VALUES ('2026-10-05T15:00:00.000Z', 'data_imported')").run();
+    migrate(db);
+    db.prepare("INSERT INTO audit_log (at, action, detail) VALUES ('2026-10-16T15:00:00.000Z', 'drive_connected', 'local@gmail.com')").run();
+    db.prepare("INSERT INTO audit_log (at, action, detail) VALUES ('2026-10-16T16:00:00.000Z', 'drive_disconnected', 'local@gmail.com')").run();
+    expect(db.prepare('SELECT action FROM audit_log ORDER BY id').all()).toEqual([
+      { action: 'data_imported' },
+      { action: 'drive_connected' },
+      { action: 'drive_disconnected' },
+    ]);
+    expect(() => db.prepare("UPDATE audit_log SET detail = 'otro'").run()).toThrow(/append-only/);
+    expect(() => db.prepare('DELETE FROM audit_log').run()).toThrow(/append-only/);
+  });
+
   it('seeds the low passes threshold', () => {
     const db = openDatabase(':memory:');
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });
