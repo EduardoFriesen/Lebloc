@@ -64,6 +64,20 @@ describe('clients service', () => {
     expect(updated.updatedAt).toBe(later.toISOString());
   });
 
+  it('keeps the DNI and the notes, and updates them', () => {
+    const client = createClient(ctx, { ...adultClient, dni: '30111222', notes: 'Escala los martes' });
+    expect(getClient(ctx, client.id)).toMatchObject({ dni: '30111222', notes: 'Escala los martes' });
+    const updated = updateClient(ctx, { ...adultClient, id: client.id, dni: '30111223', notes: null });
+    expect(updated).toMatchObject({ dni: '30111223', notes: null });
+  });
+
+  it('finds a client by DNI', () => {
+    const ana = createClient(ctx, { ...adultClient, dni: '30111222' });
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
+    const found = listClients(ctx, { search: '3011', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(found.map((c) => [c.id, c.dni])).toEqual([[ana.id, '30111222']]);
+  });
+
   it('searches by name in either order and hides archived clients by default', () => {
     const ana = createClient(ctx, adultClient);
     createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
@@ -201,7 +215,7 @@ describe('clients service', () => {
   });
 
   it('anonymizes only archived clients, wiping personal data and guardians', () => {
-    const client = createClient(ctx, minorClient);
+    const client = createClient(ctx, { ...minorClient, dni: '45000111', notes: 'Alergia al látex' });
     expectDomainError(() => anonymizeClient(ctx, client.id), 'CLIENT_NOT_ARCHIVED');
     archiveClient(ctx, client.id);
     const anonymized = anonymizeClient(ctx, client.id);
@@ -209,6 +223,8 @@ describe('clients service', () => {
       firstName: 'Cliente',
       lastName: `anonimizado #${client.id}`,
       birthDate: null,
+      dni: null,
+      notes: null,
       phone: null,
       emergencyName: null,
       guardians: [],

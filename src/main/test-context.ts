@@ -29,6 +29,8 @@ export const adultClient: ClientInput = {
   firstName: 'Ana',
   lastName: 'Roca',
   birthDate: '1990-05-10',
+  dni: null,
+  notes: null,
   address: null,
   phone: '1155550000',
   emergencyName: 'Luis Roca',

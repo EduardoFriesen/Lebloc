@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { openDatabase } from './connection';
 import { MIGRATIONS, migrate } from './migrations';
@@ -98,6 +99,18 @@ describe('migrations', () => {
     expect(() => db.prepare("UPDATE audit_log SET detail = 'otro'").run()).toThrow(/append-only/);
     expect(() => db.prepare('DELETE FROM audit_log').run()).toThrow(/append-only/);
     expect(() => db.prepare("INSERT INTO audit_log (at, action) VALUES ('x', 'client_deleted')").run()).toThrow(/CHECK/);
+  });
+
+  it('lets the audit log record imports, keeping earlier entries and the append-only triggers', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 7).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 7');
+    db.prepare("INSERT INTO audit_log (at, action) VALUES ('2026-10-05T15:00:00.000Z', 'backup_exported')").run();
+    migrate(db);
+    db.prepare("INSERT INTO audit_log (at, action, detail) VALUES ('2026-10-15T15:00:00.000Z', 'data_imported', '3 clientes')").run();
+    expect(db.prepare('SELECT action FROM audit_log ORDER BY id').all()).toEqual([{ action: 'backup_exported' }, { action: 'data_imported' }]);
+    expect(() => db.prepare("UPDATE audit_log SET detail = 'otro'").run()).toThrow(/append-only/);
+    expect(() => db.prepare('DELETE FROM audit_log').run()).toThrow(/append-only/);
   });
 
   it('seeds the low passes threshold', () => {
