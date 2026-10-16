@@ -377,6 +377,8 @@ const AUDIT_LABELS: Record<AuditAction, string> = {
   data_imported: 'Planilla importada',
   backup_exported: 'Backup exportado',
   backup_restored: 'Backup restaurado',
+  drive_connected: 'Google Drive conectado',
+  drive_disconnected: 'Google Drive desconectado',
 };
 const AUDIT_PAGE_SIZE = 5;
 

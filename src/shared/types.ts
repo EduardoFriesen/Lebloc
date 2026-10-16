@@ -400,7 +400,7 @@ export interface BackupStatus {
   mirrorError: string | null;
 }
 
-export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored' | 'data_imported';
+export type AuditAction = 'client_anonymized' | 'backup_exported' | 'backup_restored' | 'data_imported' | 'drive_connected' | 'drive_disconnected';
 
 /** One traced operation on personal data (Ley 25.326). Never edited or deleted. */
 export interface AuditEntry {
