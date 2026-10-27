@@ -6,7 +6,7 @@ import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mix
 import { archiveClient, createClient } from './clients';
 import { getPayment, registerPayment, voidPayment } from './payments';
 import { createPlan, updatePlan } from './plans';
-import { getSale, sellPlan, voidSale } from './sales';
+import { getSale, sellPlan, setSaleExpiry, voidSale } from './sales';
 import { createTeacher, updateTeacher } from './teachers';
 
 describe('sales and payments', () => {
@@ -129,6 +129,26 @@ describe('sales and payments', () => {
     expect(getSale(ctx, sale.id)).toMatchObject({ expired: false, remainingFree: 8 });
     ctx.clock.set(new Date(2026, 9, 11, 9, 0));
     expect(getSale(ctx, sale.id)).toMatchObject({ expired: true, remainingFree: 0, remainingTeacher: 0, debtCents: 2_000_000 });
+  });
+
+  it('moves the expiry of a sale, bringing back the passes of an expired one', () => {
+    const sale = sellPlan(ctx, saleOf({ expiresAt: '2026-10-10' }));
+    ctx.clock.set(new Date(2026, 9, 12, 9, 0));
+    expect(getSale(ctx, sale.id)).toMatchObject({ expired: true, remainingFree: 0 });
+    expect(setSaleExpiry(ctx, { saleId: sale.id, expiresAt: '2026-10-14' })).toMatchObject({ expiresAt: '2026-10-14', expired: false, remainingFree: 8 });
+    // Also earlier, to fix a typo, but never before the sale.
+    expect(setSaleExpiry(ctx, { saleId: sale.id, expiresAt: '2026-10-05' })).toMatchObject({ expiresAt: '2026-10-05', expired: true });
+    expectDomainError(() => setSaleExpiry(ctx, { saleId: sale.id, expiresAt: '2026-10-04' }), 'EXPIRY_BEFORE_SALE');
+  });
+
+  it('keeps the expiry of voided sales and of archived clients', () => {
+    const voided = sellPlan(ctx, saleOf({}));
+    voidSale(ctx, voided.id);
+    expectDomainError(() => setSaleExpiry(ctx, { saleId: voided.id, expiresAt: '2026-12-01' }), 'SALE_VOIDED');
+    const archived = sellPlan(ctx, saleOf({}));
+    archiveClient(ctx, clientId);
+    expectDomainError(() => setSaleExpiry(ctx, { saleId: archived.id, expiresAt: '2026-12-01' }), 'CLIENT_ARCHIVED');
+    expectDomainError(() => setSaleExpiry(ctx, { saleId: 999, expiresAt: '2026-12-01' }), 'NOT_FOUND');
   });
 
   it('rejects payments above the debt and payments on voided sales', () => {

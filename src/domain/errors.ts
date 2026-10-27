@@ -6,6 +6,7 @@ export const ERROR_MESSAGES = {
   SALE_HAS_ACTIVE_PAYMENTS: 'La venta tiene pagos activos. Anulalos primero.',
   SALE_HAS_ACTIVE_CONSUMPTIONS: 'La venta tiene consumos activos. Anulalos primero.',
   SALE_VOIDED: 'La venta está anulada.',
+  EXPIRY_BEFORE_SALE: 'El vencimiento no puede ser anterior a la venta.',
   NO_PASSES_AVAILABLE: 'El cliente no tiene pases disponibles de ese tipo.',
   MINOR_REQUIRES_GUARDIAN: 'Un cliente menor de edad necesita al menos un tutor.',
   TEACHER_REQUIRED: 'Este plan incluye clases con profesor: elegí un profesor.',

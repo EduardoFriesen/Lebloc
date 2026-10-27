@@ -24,6 +24,7 @@ export const CHANNELS = [
   'plans:stats',
   'sales:create',
   'sales:void',
+  'sales:setExpiry',
   'payments:create',
   'payments:void',
   'consumptions:create',

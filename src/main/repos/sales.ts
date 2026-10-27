@@ -80,6 +80,10 @@ export function countActiveMovements(db: Db, saleId: number): { payments: number
   return counts ?? { payments: 0, consumptions: 0 };
 }
 
+export function updateExpiry(db: Db, id: number, expiresAt: string): void {
+  db.prepare('UPDATE sales SET expires_at = ? WHERE id = ?').run(expiresAt, id);
+}
+
 export function voidSale(db: Db, id: number, now: string): void {
   db.prepare('UPDATE sales SET voided_at = ? WHERE id = ?').run(now, id);
 }

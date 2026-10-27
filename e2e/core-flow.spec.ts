@@ -120,6 +120,16 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await expect(page.getByText('Saldada')).toBeVisible();
   await expect(page.getByText(`Vence el ${day}/${month}/${year}`).first()).toBeVisible();
 
+  // A strike closed the gym: the expiry moves on, from the client's file.
+  expiry.setDate(expiry.getDate() + 5);
+  const moved = [expiry.getFullYear(), String(expiry.getMonth() + 1).padStart(2, '0'), String(expiry.getDate()).padStart(2, '0')];
+  await page.getByRole('button', { name: 'Cambiar vencimiento' }).click();
+  await expect(dialog.getByLabel('Nuevo vencimiento')).toHaveValue(`${year}-${month}-${day}`);
+  await dialog.getByLabel('Nuevo vencimiento').fill(moved.join('-'));
+  await dialog.getByRole('button', { name: 'Guardar vencimiento' }).click();
+  await expect(page.getByText('Vencimiento actualizado.')).toBeVisible();
+  await expect(page.getByText(`Vence el ${moved.reverse().join('/')}`).first()).toBeVisible();
+
   await page.getByRole('button', { name: 'Consumir libre' }).click();
   await page.getByRole('button', { name: 'Renovar' }).click();
   await expect(dialog.getByRole('heading', { name: 'Renovar plan' })).toBeVisible();

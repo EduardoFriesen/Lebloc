@@ -36,7 +36,7 @@ import { getDayEntries, getDayMovements } from '../services/counter';
 import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
-import { sellPlan, voidSale } from '../services/sales';
+import { sellPlan, setSaleExpiry, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { getClientStats, getPlanStats, getTeacherStats } from '../services/stats';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
@@ -78,6 +78,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'plans:stats': () => getPlanStats(ctx),
     'sales:create': (input) => sellPlan(ctx, input),
     'sales:void': ({ id }) => voidSale(ctx, id),
+    'sales:setExpiry': (input) => setSaleExpiry(ctx, input),
     'payments:create': (input) => registerPayment(ctx, input),
     'payments:void': ({ id }) => voidPayment(ctx, id),
     'consumptions:create': (input) => consume(ctx, input),

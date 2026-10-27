@@ -29,6 +29,7 @@ export const apiSchemas = {
   'plans:stats': schemas.emptyInput,
   'sales:create': schemas.saleInput,
   'sales:void': schemas.idInput,
+  'sales:setExpiry': schemas.saleExpiryInput,
   'payments:create': schemas.paymentInput,
   'payments:void': schemas.idInput,
   'consumptions:create': schemas.consumptionInput,
@@ -108,6 +109,7 @@ export interface ApiOutputs {
   'plans:stats': T.PlanStats;
   'sales:create': T.Sale;
   'sales:void': T.Sale;
+  'sales:setExpiry': T.Sale;
   'payments:create': T.Payment;
   'payments:void': T.Payment;
   'consumptions:create': T.Consumption;

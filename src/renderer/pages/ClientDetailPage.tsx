@@ -26,7 +26,7 @@ import {
   todayIso,
   waiverLabel,
 } from '../lib/format';
-import { waiverInput } from '../../shared/schemas';
+import { saleExpiryInput, waiverInput } from '../../shared/schemas';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { ClientForm } from './ClientForm';
@@ -51,6 +51,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
+  const [expiringSale, setExpiringSale] = useState<Sale | null>(null);
   const [signing, setSigning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
@@ -159,6 +160,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
             disabled={archived}
             onPay={setPayingSale}
             onRenew={(sale) => setSelling({ renewFrom: sale })}
+            onChangeExpiry={setExpiringSale}
             onVoidPayment={(payment) =>
               setPending({
                 title: 'Anular pago',
@@ -226,6 +228,19 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
               reload();
             }}
             onCancel={() => setSigning(false)}
+          />
+        )}
+      </Dialog>
+      <Dialog open={expiringSale !== null} title="Cambiar vencimiento" onClose={() => setExpiringSale(null)}>
+        {expiringSale && (
+          <ExpiryForm
+            sale={expiringSale}
+            onDone={() => {
+              setExpiringSale(null);
+              setNotice({ tone: 'success', text: 'Vencimiento actualizado.' });
+              reload();
+            }}
+            onCancel={() => setExpiringSale(null)}
           />
         )}
       </Dialog>
@@ -304,6 +319,7 @@ interface SalesPanelProps {
   disabled: boolean;
   onPay: (sale: Sale) => void;
   onRenew: (sale: Sale) => void;
+  onChangeExpiry: (sale: Sale) => void;
   onVoidPayment: (payment: Payment) => void;
   onVoidSale: (sale: Sale) => void;
 }
@@ -335,7 +351,7 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
 // Smaller than other tables: there is one per sale.
 const PAYMENTS_PAGE_SIZE = 5;
 
-function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
+function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
   const voided = sale.voidedAt !== null;
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
@@ -416,6 +432,9 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
               Renovar
             </Button>
           )}
+          <Button variant="secondary" onClick={() => onChangeExpiry(sale)}>
+            Cambiar vencimiento
+          </Button>
           {lastActive && (
             <Button variant="ghost" onClick={() => onVoidPayment(lastActive)}>
               Anular último pago
@@ -664,6 +683,59 @@ function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: 
         </Button>
         <Button type="submit" disabled={busy}>
           Registrar firma
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Moves the sale's expiry: a strike or a holiday closed the gym, or it was typed wrong. Works on expired sales too. */
+function ExpiryForm({ sale, onDone, onCancel }: { sale: Sale; onDone: () => void; onCancel: () => void }) {
+  const [expiresAt, setExpiresAt] = useState(sale.expiresAt);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = saleExpiryInput.safeParse({ saleId: sale.id, expiresAt });
+    if (!parsed.success) {
+      setErrors(toFieldErrors(parsed.error));
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    setServerError(null);
+    try {
+      await call('sales:setExpiry', parsed.data);
+      onDone();
+    } catch (caught) {
+      setServerError(errorMessage(caught));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      <p className="text-sm">
+        {sale.planName} del {formatDate(sale.soldAt)}: {sale.expired ? 'venció' : 'vence'} el {formatDate(sale.expiresAt)}.
+      </p>
+      <TextField
+        label="Nuevo vencimiento"
+        type="date"
+        min={sale.soldAt}
+        value={expiresAt}
+        onChange={(event) => setExpiresAt(event.target.value)}
+        error={errors.expiresAt}
+        hint="Si ya venció, al correr la fecha recupera los pases que le quedaban."
+      />
+      {serverError && <Notice tone="error">{serverError}</Notice>}
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={busy}>
+          Guardar vencimiento
         </Button>
       </div>
     </form>

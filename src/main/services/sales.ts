@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
 import { assertSaleVoidable } from '../../domain/ledger';
 import { buildSaleSnapshot } from '../../domain/sale';
-import type { SaleInput } from '../../shared/schemas';
+import type { SaleExpiryInput, SaleInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as salesRepo from '../repos/sales';
@@ -26,6 +26,18 @@ export function sellPlan(ctx: Context, input: SaleInput): Sale {
     const saleId = salesRepo.insertSale(ctx.db, input.clientId, { soldAt: input.soldAt, expiresAt: input.expiresAt }, snapshot);
     if (input.initialPayment) registerPayment(ctx, { saleId, ...input.initialPayment });
     return getSale(ctx, saleId);
+  })();
+}
+
+/** Moves when the passes expire (a strike, a holiday, a typo): any day from the sale on, even after it expired. */
+export function setSaleExpiry(ctx: Context, input: SaleExpiryInput): Sale {
+  return ctx.db.transaction(() => {
+    const sale = getSale(ctx, input.saleId);
+    if (sale.voidedAt) throw new DomainError('SALE_VOIDED');
+    requireActiveClient(ctx, sale.clientId);
+    if (input.expiresAt < sale.soldAt) throw new DomainError('EXPIRY_BEFORE_SALE');
+    salesRepo.updateExpiry(ctx.db, sale.id, input.expiresAt);
+    return getSale(ctx, sale.id);
   })();
 }
 
