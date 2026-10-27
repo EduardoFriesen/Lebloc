@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
 import type { PlanInput, PlanSalesInput, PlanUpdate } from '../../shared/schemas';
 import type { Enrollment, Plan, PlanSale } from '../../shared/types';
-import type { Context } from '../context';
+import { type Context, today } from '../context';
 import { monthBounds } from '../repos/expenses';
 import * as repo from '../repos/plans';
 import * as saleStats from '../repos/saleStats';
@@ -34,5 +34,5 @@ export function getPlanEnrollments(ctx: Context, planId: number): Enrollment[] {
 
 export function listPlanSales(ctx: Context, { month, planId }: PlanSalesInput): PlanSale[] {
   if (planId !== undefined) getPlan(ctx, planId);
-  return saleStats.listPlanSales(ctx.db, { ...monthBounds(month), planId: planId ?? null });
+  return saleStats.listPlanSales(ctx.db, { ...monthBounds(month), planId: planId ?? null, today: today(ctx) });
 }

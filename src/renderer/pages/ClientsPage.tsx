@@ -179,7 +179,7 @@ function ClientCards({ clients }: { clients: ClientSummary[] }) {
               (client.passStatus !== 'ok' || client.debtCents > 0 || client.waiver.state !== 'valid' || client.archivedAt) && (
                 <>
                   {client.archivedAt && <Badge>Archivado</Badge>}
-                  {!client.archivedAt && <PassBadge status={client.passStatus} />}
+                  {!client.archivedAt && <PassBadge status={client.passStatus} expiresAt={client.expiresAt} />}
                   {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
                   {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
                 </>

@@ -46,7 +46,7 @@ function EnrollmentStrip({ enrollment, context }: { enrollment: Enrollment; cont
       }
       badges={
         <>
-          <PassBadge status={enrollment.passStatus} />
+          <PassBadge status={enrollment.passStatus} expiresAt={enrollment.expiresAt} />
           {enrollment.debtCents > 0 && <Badge tone="debt">Debe {formatMoney(enrollment.debtCents)}</Badge>}
         </>
       }

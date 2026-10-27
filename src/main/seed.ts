@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { defaultExpiry } from '../domain/passes';
 import { toIsoDate } from '../domain/dates';
 import type { PassKind } from '../domain/passes';
 import type { ClientInput, PlanInput, SaleInput, TeacherInput } from '../shared/schemas';
@@ -56,6 +57,11 @@ export function seedDatabase(db: Db, now: Date): void {
     return toIsoDate(current);
   }
 
+  /** The date `daysAgo` days before `now` (negative: after it), without moving the clock. */
+  function dayIso(daysAgo: number): string {
+    return toIsoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo));
+  }
+
   function client(enrolledDaysAgo: number, input: Pick<ClientInput, 'firstName' | 'lastName' | 'birthDate'> & Partial<ClientInput>) {
     const enrolledAt = at(enrolledDaysAgo, 11);
     return createClient(ctx, {
@@ -74,7 +80,7 @@ export function seedDatabase(db: Db, now: Date): void {
 
   function sell(clientId: number, planId: number, daysAgo: number, extra: Partial<SaleInput> = {}) {
     const soldAt = at(daysAgo, 17);
-    return sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, initialPayment: null, ...extra });
+    return sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt: defaultExpiry(soldAt), initialPayment: null, ...extra });
   }
 
   function pay(saleId: number, amountCents: number, method: PaymentMethod, daysAgo: number) {
@@ -107,7 +113,7 @@ export function seedDatabase(db: Db, now: Date): void {
 
   db.transaction(() => {
     at(160, 9);
-    updateSettings(ctx, { lowPassesThreshold: 2, waiverValidityMonths: 12 });
+    updateSettings(ctx, { lowPassesThreshold: 2, expiryWarningDays: 7, waiverValidityMonths: 12 });
 
     // Profesores
     const martinaInput: TeacherInput = {
@@ -181,13 +187,13 @@ export function seedDatabase(db: Db, now: Date): void {
     // Hernán: compró, usó todo y después se archivó.
     const hernan = client(140, { firstName: 'Hernán', lastName: 'Quiroga', birthDate: '1980-08-08', phone: '11 4000-0114' });
     sign(hernan, 140);
-    sellPaid(hernan, pack8, 138, 'cash');
+    sellPaid(hernan, pack8, 138, 'cash', { expiresAt: dayIso(80) });
     climb(hernan, 'free', [137, 130, 123, 116, 109, 102, 95, 88]);
 
     // Ana: agotó un plan mixto y lo renovó.
     const ana = client(150, { firstName: 'Ana', lastName: 'Roca', birthDate: '1990-05-10', dni: '33456789', notes: 'Viene martes y jueves después del trabajo.', address: 'Mitre 845', phone: '11 4000-0101', emergencyName: 'Luis Roca', emergencyPhone: '11 4000-0102', emergencyRelation: 'Hermano' });
     sign(ana, 150);
-    sellPaid(ana, mixto, 140, 'cash', { teacherId: martina });
+    sellPaid(ana, mixto, 140, 'cash', { teacherId: martina, expiresAt: dayIso(50) });
     climb(ana, 'teacher', [138, 131, 124, 117]);
     climb(ana, 'free', [135, 120, 98, 61]);
     sellPaid(ana, mixto, 45, 'transfer', { teacherId: martina });
@@ -205,7 +211,7 @@ export function seedDatabase(db: Db, now: Date): void {
     // Pedro: compró la promo de verano (después se desactivó el plan) y la agotó.
     const pedro = client(125, { firstName: 'Pedro', lastName: 'Almada', birthDate: '1985-03-19', phone: '11 4000-0112' });
     sign(pedro, 125);
-    sellPaid(pedro, promo, 118, 'cash');
+    sellPaid(pedro, promo, 118, 'cash', { expiresAt: dayIso(58) });
     climb(pedro, 'free', [117, 112, 108, 101, 96, 89, 83, 77, 70, 62]);
 
     // Rocío: plan mixto con Diego, que después dejó de dar clases.
@@ -218,7 +224,7 @@ export function seedDatabase(db: Db, now: Date): void {
     // Camila: usó su pack completo y no renovó (0 pases).
     const camila = client(100, { firstName: 'Camila', lastName: 'Ibáñez', birthDate: '1990-03-03', phone: '11 4000-0123' });
     sign(camila, 100);
-    sellPaid(camila, pack8, 100, 'cash');
+    sellPaid(camila, pack8, 100, 'cash', { expiresAt: dayIso(40) });
     climb(camila, 'free', [99, 92, 85, 78, 71, 64, 57, 50]);
 
     // Gonzalo: la ficha se cargó por error y se anuló, así que le falta.
@@ -226,7 +232,7 @@ export function seedDatabase(db: Db, now: Date): void {
     const wrongWaiver = sign(gonzalo, 88);
     at(87, 10);
     voidWaiver(ctx, wrongWaiver.id);
-    sellPaid(gonzalo, pack12, 88, 'transfer');
+    sellPaid(gonzalo, pack12, 88, 'transfer', { expiresAt: dayIso(15) });
     climb(gonzalo, 'free', [86, 70, 55, 41, 20]);
 
     // Termina el verano: la promo se desactiva.
@@ -248,7 +254,7 @@ export function seedDatabase(db: Db, now: Date): void {
     // Julieta: un consumo se marcó por error y se anuló.
     const julieta = client(70, { firstName: 'Julieta', lastName: 'Navarro', birthDate: '2000-06-11', phone: '11 4000-0111', emergencyName: 'Sergio Navarro', emergencyPhone: '11 4000-0132', emergencyRelation: 'Padre' });
     sign(julieta, 70);
-    sellPaid(julieta, pack12, 65, 'transfer');
+    sellPaid(julieta, pack12, 65, 'transfer', { expiresAt: dayIso(10) });
     const [, mistaken] = climb(julieta, 'free', [63, 63, 56, 49, 42, 35, 28, 14], null);
     if (mistaken) {
       at(63, 21);
@@ -298,7 +304,8 @@ export function seedDatabase(db: Db, now: Date): void {
     climb(lucas, 'teacher', [33, 31, 26, 24, 19]);
 
     // Mateo sigue viniendo.
-    sellPaid(mateo, pack8, 50, 'cash');
+    // Le quedan 3 pases que vencen en 4 días: el mostrador avisa.
+    sellPaid(mateo, pack8, 50, 'cash', { expiresAt: dayIso(-4) });
     climb(mateo, 'free', [48, 41, 34, 27, 6]);
 
     // Valentina: primero se le paga al local; pagó una parte.
@@ -361,8 +368,8 @@ export function seedDatabase(db: Db, now: Date): void {
     payoutPart(facundo, 0.5, 'transfer', 6, 'Mitad del saldo');
     payoutPart(sol, 1, 'cash', 3, null);
 
-    // Hoy ya vinieron varios: llenan "Ingresos de hoy" en el Mostrador.
-    [ana, carla, julieta, mateo, nicolas, sofia].forEach((clientId, index) => {
+    // Hoy ya vinieron varios con pases vigentes: llenan "Ingresos de hoy" en el Mostrador.
+    [luz, carla, bruno, mateo, nicolas].forEach((clientId, index) => {
       at(0, Math.min(9 + index, now.getHours()));
       consume(ctx, { clientId, kind: 'free', note: null });
     });

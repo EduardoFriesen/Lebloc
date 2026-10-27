@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { SaleInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { getClientAccount } from './account';
 import { archiveClient, createClient } from './clients';
 import { consume, voidConsumption } from './consumptions';
@@ -32,6 +32,7 @@ describe('consumptions and client account', () => {
       teacherId: null,
       splitRule: 'proportional',
       soldAt: '2026-10-05',
+      expiresAt: FAR_EXPIRY,
       initialPayment: null,
       ...overrides,
     };
@@ -53,6 +54,16 @@ describe('consumptions and client account', () => {
     voidSale(ctx, voided.id);
     const active = sellPlan(ctx, saleOf({ soldAt: '2026-09-01' }));
     expect(useFree().saleId).toBe(active.id);
+  });
+
+  it('skips expired sales: their passes are lost, but the expiry day still counts', () => {
+    const expired = sellPlan(ctx, saleOf({ soldAt: '2026-09-01', expiresAt: '2026-10-04' }));
+    const lastDay = sellPlan(ctx, saleOf({ soldAt: '2026-09-05', expiresAt: '2026-10-05' }));
+    expect(useFree().saleId).toBe(lastDay.id);
+    voidSale(ctx, sellPlan(ctx, saleOf({})).id);
+    ctx.clock.set(new Date(2026, 9, 6, 9, 0));
+    expectDomainError(useFree, 'NO_PASSES_AVAILABLE');
+    expect(getSale(ctx, expired.id).remainingFree).toBe(0);
   });
 
   it('fails when no passes of the requested kind remain', () => {
@@ -107,10 +118,11 @@ describe('consumptions and client account', () => {
   });
 
   it('reads and updates the low-passes threshold', () => {
-    expect(getSettings(ctx)).toEqual({ lowPassesThreshold: 2, waiverValidityMonths: 12 });
+    expect(getSettings(ctx)).toEqual({ lowPassesThreshold: 2, expiryWarningDays: 7, waiverValidityMonths: 12 });
     sellPlan(ctx, saleOf({}));
     expect(getClientAccount(ctx, clientId).lowOnPasses).toBe(false);
-    expect(updateSettings(ctx, { lowPassesThreshold: 8, waiverValidityMonths: 6 })).toEqual({ lowPassesThreshold: 8, waiverValidityMonths: 6 });
+    const changed = { lowPassesThreshold: 8, expiryWarningDays: 3, waiverValidityMonths: 6 };
+    expect(updateSettings(ctx, changed)).toEqual(changed);
     expect(getClientAccount(ctx, clientId).lowOnPasses).toBe(true);
   });
 });

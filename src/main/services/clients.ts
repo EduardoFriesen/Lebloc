@@ -23,14 +23,14 @@ export function requireActiveClient(ctx: Context, id: number): Client {
   return client;
 }
 
-function summaries(ctx: Context, filters: repo.ClientSummaryFilters): ClientSummary[] {
+function summaries(ctx: Context, filters: Omit<repo.ClientSummaryFilters, 'today'>): ClientSummary[] {
   const statusOf = waiverStatusResolver(ctx);
-  const { lowPassesThreshold } = getSettings(ctx);
+  const settings = getSettings(ctx);
   const now = today(ctx);
-  return repo.listClientSummaries(ctx.db, filters).map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
+  return repo.listClientSummaries(ctx.db, { ...filters, today: now }).map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
     ...summary,
     debtDays: oldestDebtSoldAt === null ? null : daysBetween(oldestDebtSoldAt, now),
-    passStatus: passStatus(summary.remainingFree + summary.remainingTeacher, lowPassesThreshold),
+    passStatus: passStatus(summary.remainingFree + summary.remainingTeacher, summary.expiresAt, now, settings),
     waiver: statusOf(waiverSignedAt),
   }));
 }

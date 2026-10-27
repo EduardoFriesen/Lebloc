@@ -2,7 +2,7 @@ import { DomainError } from '../../domain/errors';
 import { pickSaleForConsumption } from '../../domain/passes';
 import type { ConsumptionInput } from '../../shared/schemas';
 import type { Consumption } from '../../shared/types';
-import { type Context, nowIso } from '../context';
+import { type Context, nowIso, today } from '../context';
 import * as consumptionsRepo from '../repos/consumptions';
 import { listSalesForClient } from '../repos/sales';
 import { requireActiveClient } from './clients';
@@ -16,7 +16,7 @@ export function getConsumption(ctx: Context, id: number): Consumption {
 export function consume(ctx: Context, input: ConsumptionInput): Consumption {
   return ctx.db.transaction(() => {
     requireActiveClient(ctx, input.clientId);
-    const availability = listSalesForClient(ctx.db, input.clientId)
+    const availability = listSalesForClient(ctx.db, input.clientId, today(ctx))
       .filter((sale) => !sale.voidedAt)
       .map((sale) => ({
         saleId: sale.id,

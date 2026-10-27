@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { allocatePayment } from '../../domain/allocation';
 import type { SaleInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { getPayment, registerPayment, voidPayment } from './payments';
 import { createPlan, updatePlan } from './plans';
@@ -31,6 +31,7 @@ describe('sales and payments', () => {
       teacherId: null,
       splitRule: 'proportional',
       soldAt: '2026-10-05',
+      expiresAt: FAR_EXPIRY,
       initialPayment: null,
       ...overrides,
     };
@@ -119,6 +120,15 @@ describe('sales and payments', () => {
     const sale = sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId }));
     updatePlan(ctx, { ...mixedPlan, id: mixedPlanId, priceCents: 9_000_000, teacherAmountCents: 4_000_000 });
     expect(getSale(ctx, sale.id)).toMatchObject({ localPriceCents: 2_000_000, teacherSurchargeCents: 1_000_000, totalCents: 3_000_000 });
+  });
+
+  it('keeps the expiry chosen at sale time and, past it, loses the passes left but not the debt', () => {
+    const sale = sellPlan(ctx, saleOf({ expiresAt: '2026-10-10' }));
+    expect(sale).toMatchObject({ expiresAt: '2026-10-10', expired: false, remainingFree: 8 });
+    ctx.clock.set(new Date(2026, 9, 10, 21, 0));
+    expect(getSale(ctx, sale.id)).toMatchObject({ expired: false, remainingFree: 8 });
+    ctx.clock.set(new Date(2026, 9, 11, 9, 0));
+    expect(getSale(ctx, sale.id)).toMatchObject({ expired: true, remainingFree: 0, remainingTeacher: 0, debtCents: 2_000_000 });
   });
 
   it('rejects payments above the debt and payments on voided sales', () => {

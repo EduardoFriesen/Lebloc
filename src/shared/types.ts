@@ -51,6 +51,8 @@ export interface ClientSummary {
   debtCents: number;
   /** Days since the oldest sale that still has debt; null when the client owes nothing. */
   debtDays: number | null;
+  /** Last day any of the passes left can be used; null without passes left. */
+  expiresAt: string | null;
   passStatus: PassStatus;
   waiver: WaiverStatus;
 }
@@ -103,6 +105,9 @@ export interface Sale {
   totalCents: number;
   splitRule: SplitRule;
   voidedAt: string | null;
+  /** Last day the passes can be used; after it the ones left are lost (remaining shows 0). */
+  expiresAt: string;
+  expired: boolean;
   paidCents: number;
   debtCents: number;
   remainingFree: number;
@@ -137,6 +142,9 @@ export interface ClientAccount {
   remainingFree: number;
   remainingTeacher: number;
   debtCents: number;
+  /** Last day any of the passes left can be used; null without passes left. */
+  expiresAt: string | null;
+  /** Few passes left, or they all expire within the warning days. */
   lowOnPasses: boolean;
   waivers: WaiverSignature[];
   waiver: WaiverStatus;
@@ -205,6 +213,7 @@ export interface Enrollment {
   remainingFree: number;
   remainingTeacher: number;
   debtCents: number;
+  expiresAt: string;
   passStatus: PassStatus;
 }
 
@@ -370,6 +379,7 @@ export type DayEntry =
       recordedAt: string;
       remainingFree: number;
       remainingTeacher: number;
+      expiresAt: string | null;
       passStatus: PassStatus;
     }
   | { kind: 'walk_in'; sale: CounterSale };
@@ -384,6 +394,8 @@ export interface DayMovements {
 
 export interface Settings {
   lowPassesThreshold: number;
+  /** Warn this many days before the passes left expire. */
+  expiryWarningDays: number;
   waiverValidityMonths: number;
 }
 

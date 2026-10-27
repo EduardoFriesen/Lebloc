@@ -139,6 +139,8 @@ export interface ClientSummaryFilters {
   enrolledFrom?: string;
   /** ISO timestamp: only clients with an active consumption since then. */
   attendedFrom?: string;
+  /** ISO date: passes of sales that expired before it are lost. */
+  today: string;
 }
 
 export function listClientSummaries(db: Db, filters: ClientSummaryFilters): ClientSummaryRow[] {
@@ -148,8 +150,9 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
        SELECT c.id, c.first_name AS firstName, c.last_name AS lastName, c.birth_date AS birthDate, c.dni,
          c.archived_at AS archivedAt,
          COUNT(ss.id) AS activeSales,
-         COALESCE(SUM(ss.free_passes - ss.used_free), 0) AS remainingFree,
-         COALESCE(SUM(ss.teacher_passes - ss.used_teacher), 0) AS remainingTeacher,
+         COALESCE(SUM(ss.left_free), 0) AS remainingFree,
+         COALESCE(SUM(ss.left_teacher), 0) AS remainingTeacher,
+         MAX(CASE WHEN ss.left_free + ss.left_teacher > 0 THEN ss.expires_at END) AS expiresAt,
          COALESCE(SUM(ss.total_cents - ss.paid_cents), 0) AS debtCents,
          MIN(CASE WHEN ss.total_cents - ss.paid_cents > 0 THEN ss.sold_at END) AS oldestDebtSoldAt,
          ${LAST_SIGNED_AT_SQL} AS waiverSignedAt
@@ -180,5 +183,6 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
       bornAfter: filters.bornAfter ?? null,
       enrolledFrom: filters.enrolledFrom ?? null,
       attendedFrom: filters.attendedFrom ?? null,
+      today: filters.today,
     });
 }

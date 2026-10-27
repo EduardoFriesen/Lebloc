@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ClientListInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, createTestContext, freePlan, minorClient, TEST_NOW, type TestContext } from '../test-context';
+import { adultClient, createTestContext, FAR_EXPIRY, freePlan, minorClient, TEST_NOW, type TestContext } from '../test-context';
 import {
   anonymizeClient,
   archiveClient,
@@ -12,6 +12,7 @@ import {
   unarchiveClient,
   updateClient,
 } from './clients';
+import { getClientAccount } from './account';
 import { consume } from './consumptions';
 import { registerPayment } from './payments';
 import { createPlan } from './plans';
@@ -133,7 +134,7 @@ describe('clients service', () => {
   it('lists only debtors on request, oldest unpaid sale first, with days since that sale', () => {
     const planId = createPlan(ctx, freePlan).id;
     const sell = (clientId: number, soldAt: string) =>
-      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, initialPayment: null });
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt: FAR_EXPIRY, initialPayment: null });
     const payInFull = (sale: { id: number; totalCents: number }) =>
       registerPayment(ctx, { saleId: sale.id, amountCents: sale.totalCents, method: 'cash', paidAt: '2026-09-01' });
     const ana = createClient(ctx, adultClient).id;
@@ -156,7 +157,7 @@ describe('clients service', () => {
   it('lists only clients with passes left on request', () => {
     const planId = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1 }).id;
     const sell = (clientId: number) =>
-      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null });
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null });
     const ana = createClient(ctx, adultClient).id;
     const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
     createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' });
@@ -166,6 +167,30 @@ describe('clients service', () => {
 
     const withPasses = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: true, onlyPendingWaiver: false });
     expect(withPasses.map((client) => client.firstName)).toEqual(['Ana']);
+  });
+
+  it('counts expired passes as lost and warns when the passes left expire soon', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string, expiresAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt, initialPayment: null });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
+    sell(ana, '2026-09-01', '2026-10-04');
+    sell(bruno, '2026-09-10', '2026-10-12');
+    // Carla's first sale expires soon, but the passes of the second one last: she is fine.
+    sell(carla, '2026-09-10', '2026-10-08');
+    sell(carla, '2026-10-01', '2026-11-01');
+
+    const base = { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false };
+    const byName = new Map(listClients(ctx, base).map((client) => [client.firstName, client]));
+    expect(byName.get('Ana')).toMatchObject({ remainingFree: 0, passStatus: 'none', expiresAt: null });
+    expect(byName.get('Bruno')).toMatchObject({ remainingFree: 8, passStatus: 'expiring', expiresAt: '2026-10-12' });
+    expect(byName.get('Carla')).toMatchObject({ remainingFree: 16, passStatus: 'ok', expiresAt: '2026-11-01' });
+    expect(listClients(ctx, { ...base, onlyWithPasses: true }).map((client) => client.firstName)).toEqual(['Carla', 'Bruno']);
+    expect(getClientAccount(ctx, ana)).toMatchObject({ remainingFree: 0, lowOnPasses: true, expiresAt: null });
+    expect(getClientAccount(ctx, bruno)).toMatchObject({ remainingFree: 8, lowOnPasses: true, expiresAt: '2026-10-12' });
+    expect(getClientAccount(ctx, carla)).toMatchObject({ lowOnPasses: false, expiresAt: '2026-11-01' });
   });
 
   it('lists only clients whose waiver is missing or expired on request', () => {
@@ -185,7 +210,7 @@ describe('clients service', () => {
   it('lists only clients without passes, minors, this month enrollments or archived on request', () => {
     const planId = createPlan(ctx, freePlan).id;
     const ana = createClient(ctx, adultClient).id;
-    sellPlan(ctx, { clientId: ana, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null });
+    sellPlan(ctx, { clientId: ana, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null });
     createClient(ctx, { ...minorClient, enrolledAt: '2026-09-15' });
     createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra', enrolledAt: '2026-08-01' });
     archiveClient(ctx, createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id);
@@ -242,7 +267,7 @@ describe('clients service', () => {
     function clientWith(firstName: string, passes: number): number {
       const planId = createPlan(ctx, { name: `Pack ${passes}`, freePasses: passes, teacherPasses: 0, priceCents: 0, teacherAmountCents: 0, active: true }).id;
       const clientId = createClient(ctx, { ...adultClient, firstName, lastName: 'Test' }).id;
-      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-08-01', initialPayment: null });
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-08-01', expiresAt: FAR_EXPIRY, initialPayment: null });
       return clientId;
     }
 
@@ -268,6 +293,17 @@ describe('clients service', () => {
         ['Mara', 'none'],
         ['Luis', 'low'],
       ]);
+    });
+
+    it('lists who has to renew because their passes expire soon', () => {
+      const pia = clientWith('Pía', 8);
+      climbAt(pia, new Date(2026, 9, 2, 18, 0));
+      expect(listRenewals(ctx)).toEqual([]);
+      const quim = createClient(ctx, { ...adultClient, firstName: 'Quim', lastName: 'Test' }).id;
+      const planId = createPlan(ctx, freePlan).id;
+      sellPlan(ctx, { clientId: quim, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: '2026-10-09', initialPayment: null });
+      climbAt(quim, new Date(2026, 9, 3, 18, 0));
+      expect(listRenewals(ctx).map((client) => [client.firstName, client.passStatus, client.expiresAt])).toEqual([['Quim', 'expiring', '2026-10-09']]);
     });
   });
 });

@@ -1,6 +1,6 @@
-import { isLowOnPasses } from '../../domain/passes';
+import { passStatus } from '../../domain/passes';
 import type { ClientAccount } from '../../shared/types';
-import type { Context } from '../context';
+import { type Context, today } from '../context';
 import { listConsumptionsForClient } from '../repos/consumptions';
 import { listPaymentsForClient } from '../repos/payments';
 import { listSalesForClient } from '../repos/sales';
@@ -15,11 +15,13 @@ function sum(values: readonly number[]): number {
 
 export function getClientAccount(ctx: Context, clientId: number): ClientAccount {
   const client = getClient(ctx, clientId);
-  const sales = listSalesForClient(ctx.db, clientId);
+  const now = today(ctx);
+  const sales = listSalesForClient(ctx.db, clientId, now);
   const active = sales.filter((sale) => !sale.voidedAt);
   const remainingFree = sum(active.map((sale) => sale.remainingFree));
   const remainingTeacher = sum(active.map((sale) => sale.remainingTeacher));
-  const { lowPassesThreshold } = getSettings(ctx);
+  // ISO dates sort as text: the last expiry among sales with passes left.
+  const expiresAt = active.filter((sale) => sale.remainingFree + sale.remainingTeacher > 0).map((sale) => sale.expiresAt).sort().at(-1) ?? null;
   const waivers = listWaiversForClient(ctx.db, clientId);
   const lastSignedAt = waivers.find((waiver) => !waiver.voidedAt)?.signedAt ?? null;
   return {
@@ -30,7 +32,8 @@ export function getClientAccount(ctx: Context, clientId: number): ClientAccount 
     remainingFree,
     remainingTeacher,
     debtCents: sum(active.map((sale) => sale.debtCents)),
-    lowOnPasses: active.length > 0 && isLowOnPasses(remainingFree + remainingTeacher, lowPassesThreshold),
+    expiresAt,
+    lowOnPasses: active.length > 0 && passStatus(remainingFree + remainingTeacher, expiresAt, now, getSettings(ctx)) !== 'ok',
     waivers,
     waiver: waiverStatusResolver(ctx)(lastSignedAt),
   };

@@ -1,28 +1,35 @@
 import type { Enrollment, PlanSale } from '../../shared/types';
 import type { Db } from '../db/connection';
 
-// Aggregates per non-voided sale. Use as `WITH ${SALE_STATS_CTE} SELECT ... FROM sale_stats`.
+// Aggregates per non-voided sale. Use as `WITH ${SALE_STATS_CTE} SELECT ... FROM sale_stats`, binding @today (ISO
+// date). left_free and left_teacher are the passes that can still be used: none once the sale expired.
 export const SALE_STATS_CTE = `sale_stats AS (
-  SELECT
-    s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.plan_name, s.free_passes, s.teacher_passes, s.total_cents,
-    COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paid_cents,
-    (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'free') AS used_free,
-    (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'teacher') AS used_teacher
-  FROM sales s
-  WHERE s.voided_at IS NULL
+  SELECT *,
+    CASE WHEN expires_at < @today THEN 0 ELSE free_passes - used_free END AS left_free,
+    CASE WHEN expires_at < @today THEN 0 ELSE teacher_passes - used_teacher END AS left_teacher
+  FROM (
+    SELECT
+      s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.expires_at, s.plan_name, s.free_passes, s.teacher_passes,
+      s.total_cents,
+      COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paid_cents,
+      (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'free') AS used_free,
+      (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'teacher') AS used_teacher
+    FROM sales s
+    WHERE s.voided_at IS NULL
+  )
 )`;
 
 export type EnrollmentRow = Omit<Enrollment, 'passStatus'>;
 
 /** Active sales sold on or after `from` (ISO date) of one plan or one teacher, for active clients, newest first. */
-export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherId?: number; from: string }): EnrollmentRow[] {
+export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherId?: number; from: string; today: string }): EnrollmentRow[] {
   return db
-    .prepare<[{ planId: number | null; teacherId: number | null; from: string }], EnrollmentRow>(
+    .prepare<[{ planId: number | null; teacherId: number | null; from: string; today: string }], EnrollmentRow>(
       `WITH ${SALE_STATS_CTE}
        SELECT ss.id AS saleId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.sold_at AS soldAt,
-         ss.free_passes - ss.used_free AS remainingFree, ss.teacher_passes - ss.used_teacher AS remainingTeacher,
-         ss.total_cents - ss.paid_cents AS debtCents
+         ss.left_free AS remainingFree, ss.left_teacher AS remainingTeacher,
+         ss.total_cents - ss.paid_cents AS debtCents, ss.expires_at AS expiresAt
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id
        LEFT JOIN teachers t ON t.id = ss.teacher_id
@@ -31,13 +38,13 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
          AND (@teacherId IS NULL OR ss.teacher_id = @teacherId)
        ORDER BY ss.sold_at DESC, ss.id DESC`,
     )
-    .all({ planId: filter.planId ?? null, teacherId: filter.teacherId ?? null, from: filter.from });
+    .all({ planId: filter.planId ?? null, teacherId: filter.teacherId ?? null, from: filter.from, today: filter.today });
 }
 
 /** Non-voided sales between two dates (inclusive), of one plan or all, archived clients included, newest first. */
-export function listPlanSales(db: Db, filter: { from: string; to: string; planId: number | null }): PlanSale[] {
+export function listPlanSales(db: Db, filter: { from: string; to: string; planId: number | null; today: string }): PlanSale[] {
   return db
-    .prepare<[{ from: string; to: string; planId: number | null }], PlanSale>(
+    .prepare<[{ from: string; to: string; planId: number | null; today: string }], PlanSale>(
       `WITH ${SALE_STATS_CTE}
        SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.total_cents AS totalCents,
@@ -57,14 +64,14 @@ export interface SummaryCounts {
   debtTotalCents: number;
 }
 
-/** Active (not archived) clients with passes left, and those who owe, with the total owed. */
-export function summaryCounts(db: Db): SummaryCounts {
+/** Active (not archived) clients with passes left to use, and those who owe, with the total owed. */
+export function summaryCounts(db: Db, today: string): SummaryCounts {
   return db
-    .prepare<[], SummaryCounts>(
+    .prepare<[{ today: string }], SummaryCounts>(
       `WITH ${SALE_STATS_CTE},
        per_client AS (
          SELECT ss.client_id,
-           SUM(ss.free_passes - ss.used_free + ss.teacher_passes - ss.used_teacher) AS passes,
+           SUM(ss.left_free + ss.left_teacher) AS passes,
            SUM(ss.total_cents - ss.paid_cents) AS debt
          FROM sale_stats ss
          JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
@@ -75,7 +82,7 @@ export function summaryCounts(db: Db): SummaryCounts {
          COALESCE(SUM(CASE WHEN debt > 0 THEN debt END), 0) AS debtTotalCents
        FROM per_client`,
     )
-    .get() as SummaryCounts;
+    .get({ today }) as SummaryCounts;
 }
 
 /** Non-voided sales sold on or after `from` (ISO date), and their local price (no teacher surcharge). */

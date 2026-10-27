@@ -110,6 +110,7 @@ function Segmented<T extends string>({ legend, name, value, options, onChange }:
 
 function SettingsForm({ initial }: { initial: Settings }) {
   const [threshold, setThreshold] = useState(String(initial.lowPassesThreshold));
+  const [warningDays, setWarningDays] = useState(String(initial.expiryWarningDays));
   const [waiverMonths, setWaiverMonths] = useState(String(initial.waiverValidityMonths));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<NoticeState | null>(null);
@@ -117,7 +118,11 @@ function SettingsForm({ initial }: { initial: Settings }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const parsed = settingsInput.safeParse({ lowPassesThreshold: Number(threshold), waiverValidityMonths: Number(waiverMonths) });
+    const parsed = settingsInput.safeParse({
+      lowPassesThreshold: Number(threshold),
+      expiryWarningDays: Number(warningDays),
+      waiverValidityMonths: Number(waiverMonths),
+    });
     if (!parsed.success) {
       setErrors(toFieldErrors(parsed.error));
       return;
@@ -136,7 +141,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-warm">
-      <h2 className="font-display text-2xl font-semibold">Aviso de pocos pases</h2>
+      <h2 className="font-display text-2xl font-semibold">Aviso de pases</h2>
       <TextField
         label="Avisar cuando queden pases"
         type="number"
@@ -146,6 +151,16 @@ function SettingsForm({ initial }: { initial: Settings }) {
         onChange={(event) => setThreshold(event.target.value)}
         error={errors.lowPassesThreshold}
         hint="Se avisa cuando a un cliente le quedan esta cantidad de pases o menos."
+      />
+      <TextField
+        label="Avisar días antes del vencimiento"
+        type="number"
+        min={0}
+        max={60}
+        value={warningDays}
+        onChange={(event) => setWarningDays(event.target.value)}
+        error={errors.expiryWarningDays}
+        hint="Se avisa cuando los pases que le quedan a un cliente vencen dentro de esta cantidad de días."
       />
       <h2 className="font-display text-2xl font-semibold">Ficha firmada</h2>
       <TextField

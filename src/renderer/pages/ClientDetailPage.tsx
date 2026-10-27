@@ -275,10 +275,11 @@ function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps)
       <div className="flex flex-col gap-1 text-sm">
         <p>Libres restantes: {account.remainingFree}</p>
         <p>Con profesor restantes: {account.remainingTeacher}</p>
+        {account.expiresAt && <p>Vencen el {formatDate(account.expiresAt)}</p>}
       </div>
       {account.lowOnPasses && (
         <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-night">
-          Quedan pocos pases: ofrecé renovar el plan.
+          Quedan pocos pases o están por vencer: ofrecé renovar el plan.
         </p>
       )}
       {account.debtCents > 0 && <p className="font-semibold text-peach">Deuda total {formatMoney(account.debtCents)}</p>}
@@ -358,7 +359,7 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
           <dd>{formatMoney(sale.localPriceCents)}</dd>
         </div>
         <div>
-          <dt className="text-ink-soft">Recargo profesor</dt>
+          <dt className="text-ink-soft">Para el profesor</dt>
           <dd>{formatMoney(sale.teacherSurchargeCents)}</dd>
         </div>
         <div>
@@ -371,7 +372,8 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onVoidPayment, onV
         </div>
       </dl>
       <p className="text-sm">
-        Pases: {sale.remainingFree} libres · {sale.remainingTeacher} con profesor
+        Pases: {sale.remainingFree} libres · {sale.remainingTeacher} con profesor ·{' '}
+        {sale.expired ? <span className="font-semibold text-danger">Vencido el {formatDate(sale.expiresAt)}</span> : `Vence el ${formatDate(sale.expiresAt)}`}
       </p>
       {!voided &&
         (sale.debtCents > 0 ? (

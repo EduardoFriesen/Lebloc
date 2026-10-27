@@ -1,4 +1,5 @@
 import { daysBetween, toIsoDate } from '../domain/dates';
+import { defaultExpiry } from '../domain/passes';
 import type { ExpenseCategory, PaymentMethod } from '../shared/types';
 import type { Context } from './context';
 import { createClient, listClients } from './services/clients';
@@ -119,7 +120,8 @@ export function seedVolume(ctx: Context, at: SeedClock, now: Date, refs: { plans
     for (let purchase = rng.int(1, 3); purchase > 0 && day >= 1; purchase -= 1) {
       const plan = pickPlan();
       const teacherId = plan.teacher > 0 ? rng.pick(refs.teachers) : null;
-      const sale = sellPlan(ctx, { clientId, planId: plan.id, teacherId, splitRule: 'proportional', soldAt: at(day, 17), initialPayment: null });
+      const soldAt = at(day, 17);
+      const sale = sellPlan(ctx, { clientId, planId: plan.id, teacherId, splitRule: 'proportional', soldAt, expiresAt: defaultExpiry(soldAt), initialPayment: null });
       const paying = rng.next();
       if (paying < 0.75) {
         registerPayment(ctx, { saleId: sale.id, amountCents: sale.totalCents, method: method(), paidAt: at(day, 17, rng.int(0, 59)) });
@@ -139,9 +141,10 @@ export function seedVolume(ctx: Context, at: SeedClock, now: Date, refs: { plans
       for (let use = 0; use < uses; use += 1) {
         day -= rng.int(1, 6);
         if (day < 1) break;
+        // Se le vencieron los que le quedaban.
+        if (at(day, rng.int(9, 21), rng.int(0, 59)) > sale.expiresAt) break;
         const kind = left.free > 0 && (left.teacher === 0 || rng.next() < 0.5) ? 'free' : 'teacher';
         left[kind] -= 1;
-        at(day, rng.int(9, 21), rng.int(0, 59));
         consume(ctx, { clientId, kind, note: null });
       }
       day -= rng.int(1, 10);

@@ -225,7 +225,7 @@ function ResultRow({ client, busy, onConsume }: Pick<SearchResultsProps, 'busy' 
           <span>
             Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
           </span>
-          <PassBadge status={client.passStatus} />
+          <PassBadge status={client.passStatus} expiresAt={client.expiresAt} />
           {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
           {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
         </p>
@@ -338,7 +338,7 @@ function RenewalStrip({ client }: { client: ClientSummary }) {
       to={`/clientes/${client.id}`}
       title={fullName(client)}
       subtitle={`Libres: ${client.remainingFree} · Con profesor: ${client.remainingTeacher}`}
-      badges={<PassBadge status={client.passStatus} />}
+      badges={<PassBadge status={client.passStatus} expiresAt={client.expiresAt} />}
     />
   );
 }

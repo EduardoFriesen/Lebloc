@@ -40,26 +40,28 @@ export interface ConsumptionEntryRow {
   recordedAt: string;
   remainingFree: number;
   remainingTeacher: number;
+  expiresAt: string | null;
 }
 
-/** Active consumptions since `from` (ISO timestamp), with the client's passes left now, newest first. */
-export function listConsumptionsSince(db: Db, from: string): ConsumptionEntryRow[] {
+/** Active consumptions since `from` (ISO timestamp), with the client's passes left today, newest first. */
+export function listConsumptionsSince(db: Db, from: string, today: string): ConsumptionEntryRow[] {
   return db
-    .prepare<[string], ConsumptionEntryRow>(
+    .prepare<[{ from: string; today: string }], ConsumptionEntryRow>(
       `WITH ${SALE_STATS_CTE},
        client_left AS (
-         SELECT client_id, SUM(free_passes - used_free) AS free_left, SUM(teacher_passes - used_teacher) AS teacher_left
+         SELECT client_id, SUM(left_free) AS free_left, SUM(left_teacher) AS teacher_left,
+           MAX(CASE WHEN left_free + left_teacher > 0 THEN expires_at END) AS expires_at
          FROM sale_stats GROUP BY client_id
        )
        SELECT c.id AS consumptionId, cl.id AS clientId, trim(cl.first_name || ' ' || cl.last_name) AS clientName,
          c.kind AS passKind, c.consumed_at AS recordedAt,
-         COALESCE(l.free_left, 0) AS remainingFree, COALESCE(l.teacher_left, 0) AS remainingTeacher
+         COALESCE(l.free_left, 0) AS remainingFree, COALESCE(l.teacher_left, 0) AS remainingTeacher, l.expires_at AS expiresAt
        FROM consumptions c JOIN sales s ON s.id = c.sale_id JOIN clients cl ON cl.id = s.client_id
        LEFT JOIN client_left l ON l.client_id = cl.id
-       WHERE c.voided_at IS NULL AND c.consumed_at >= ?
+       WHERE c.voided_at IS NULL AND c.consumed_at >= @from
        ORDER BY c.consumed_at DESC, c.id DESC`,
     )
-    .all(from);
+    .all({ from, today });
 }
 
 export function voidConsumption(db: Db, id: number, now: string): void {

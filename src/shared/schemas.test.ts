@@ -9,6 +9,7 @@ import {
   payslipInput,
   planInput,
   planSalesInput,
+  saleInput,
   scheduleInput,
   settingsInput,
   shiftInput,
@@ -136,8 +137,23 @@ describe('schemas', () => {
   });
 
   it('accepts a waiver validity between 1 and 120 months', () => {
-    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 0 }).success).toBe(false);
-    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 121 }).success).toBe(false);
-    expect(settingsInput.safeParse({ lowPassesThreshold: 2, waiverValidityMonths: 12 }).success).toBe(true);
+    const settings = { lowPassesThreshold: 2, expiryWarningDays: 7 };
+    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 0 }).success).toBe(false);
+    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 121 }).success).toBe(false);
+    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 12 }).success).toBe(true);
+  });
+
+  it('accepts warning about expiry from 0 to 60 days ahead', () => {
+    const settings = { lowPassesThreshold: 2, waiverValidityMonths: 12 };
+    expect(settingsInput.safeParse({ ...settings, expiryWarningDays: 0 }).success).toBe(true);
+    expect(settingsInput.safeParse({ ...settings, expiryWarningDays: 61 }).success).toBe(false);
+  });
+
+  it('rejects a sale that expires before it was sold, pointing at expiresAt', () => {
+    const sale = { clientId: 1, planId: 1, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-27', initialPayment: null };
+    expect(saleInput.safeParse({ ...sale, expiresAt: '2026-10-27' }).success).toBe(true);
+    const early = saleInput.safeParse({ ...sale, expiresAt: '2026-10-26' });
+    expect(early.success).toBe(false);
+    expect(early.error?.issues[0]?.path).toEqual(['expiresAt']);
   });
 });

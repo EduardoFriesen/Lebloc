@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { SaleInput } from '../../shared/schemas';
-import { adultClient, basicTeacher, createTestContext, freePlan, minorClient, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, minorClient, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { getTeacherAccount } from './payouts';
@@ -20,7 +20,7 @@ describe('summary stats', () => {
   });
 
   function saleOf(overrides: Partial<SaleInput> & Pick<SaleInput, 'clientId'>): SaleInput {
-    return { planId: freePlanId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-05', initialPayment: null, ...overrides };
+    return { planId: freePlanId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-05', expiresAt: FAR_EXPIRY, initialPayment: null, ...overrides };
   }
 
   it('counts active and archived clients, passes, debt, pending waivers, minors and this month enrollments', () => {
@@ -45,6 +45,16 @@ describe('summary stats', () => {
       minors: 1,
       newThisMonth: 1,
     });
+  });
+
+  it('counts clients whose passes expired as without passes, and leaves expired classes out of the classes to give', () => {
+    const juanId = createTeacher(ctx, basicTeacher).id;
+    const mixedId = createPlan(ctx, mixedPlan).id;
+    const anaId = createClient(ctx, adultClient).id;
+    sellPlan(ctx, saleOf({ clientId: anaId, planId: mixedId, teacherId: juanId, soldAt: '2026-09-01', expiresAt: '2026-10-01' }));
+    expect(getClientStats(ctx)).toMatchObject({ withPasses: 0, withoutPasses: 1, debtorCount: 1 });
+    expect(getTeacherStats(ctx)).toMatchObject({ pendingClasses: 0 });
+    expect(getTeacherAccount(ctx, juanId)).toMatchObject({ pendingClasses: 0 });
   });
 
   it('counts active and inactive teachers, what the local owes them and the classes left to give', () => {

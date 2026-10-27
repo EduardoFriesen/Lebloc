@@ -24,7 +24,7 @@ describe('signed waivers', () => {
   });
 
   it('uses the configured validity in months', () => {
-    updateSettings(ctx, { lowPassesThreshold: 2, waiverValidityMonths: 1 });
+    updateSettings(ctx, { lowPassesThreshold: 2, expiryWarningDays: 7, waiverValidityMonths: 1 });
     signWaiver(ctx, { clientId: anaId, signedAt: '2026-08-05' });
     expect(getClientAccount(ctx, anaId).waiver).toMatchObject({ state: 'expired', expiresAt: '2026-09-05' });
   });

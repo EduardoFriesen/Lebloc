@@ -2,7 +2,7 @@ import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
 import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
 import type { FinanceSummaryInput } from '../../shared/schemas';
 import type { FinanceClients, FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
-import type { Context } from '../context';
+import { type Context, today } from '../context';
 import * as repo from '../repos/finance';
 import { summaryCounts } from '../repos/saleStats';
 import { listTeacherBalances } from './payouts';
@@ -92,7 +92,7 @@ export function getFinanceClients(ctx: Context, range: DateRange): FinanceClient
   const previous = previousRange(range);
   const granularity = granularityFor(range);
   const sales = repo.purchases(ctx.db, range).map((sale) => ({ date: sale.date, first: sale.renewal ? 0 : 1, renewal: sale.renewal ? 1 : 0 }));
-  const { debtorCount, debtTotalCents } = summaryCounts(ctx.db);
+  const { debtorCount, debtTotalCents } = summaryCounts(ctx.db, today(ctx));
   return {
     granularity,
     previous,

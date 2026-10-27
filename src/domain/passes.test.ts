@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectDomainError } from '../test/helpers';
-import { isLowOnPasses, passStatus, pickSaleForConsumption, remainingPasses, totalPasses, type SaleAvailability } from './passes';
+import { defaultExpiry, isExpired, isLowOnPasses, passStatus, pickSaleForConsumption, remainingPasses, totalPasses, type SaleAvailability } from './passes';
 
 describe('remainingPasses', () => {
   it('subtracts used passes per kind', () => {
@@ -35,13 +35,36 @@ describe('pickSaleForConsumption', () => {
   });
 });
 
+describe('pass expiry', () => {
+  it('expires a month after the sale by default, on the last day when the month is shorter', () => {
+    expect(defaultExpiry('2026-10-27')).toBe('2026-11-27');
+    expect(defaultExpiry('2027-01-31')).toBe('2027-02-28');
+  });
+
+  it('can still be used on the expiry day', () => {
+    expect(isExpired('2026-11-27', '2026-11-27')).toBe(false);
+    expect(isExpired('2026-11-27', '2026-11-28')).toBe(true);
+  });
+});
+
 describe('passStatus', () => {
+  const today = '2026-10-27';
+  const later = '2026-12-31';
+  const warnings = { lowPassesThreshold: 2, expiryWarningDays: 7 };
+
   it('is none with zero passes, low up to the threshold and ok above it', () => {
-    expect(passStatus(0, 2)).toBe('none');
-    expect(passStatus(1, 2)).toBe('low');
-    expect(passStatus(2, 2)).toBe('low');
-    expect(passStatus(3, 2)).toBe('ok');
-    expect(passStatus(0, 0)).toBe('none');
-    expect(passStatus(1, 0)).toBe('ok');
+    expect(passStatus(0, null, today, warnings)).toBe('none');
+    expect(passStatus(1, later, today, warnings)).toBe('low');
+    expect(passStatus(2, later, today, warnings)).toBe('low');
+    expect(passStatus(3, later, today, warnings)).toBe('ok');
+    expect(passStatus(1, later, today, { ...warnings, lowPassesThreshold: 0 })).toBe('ok');
+  });
+
+  it('is expiring when the passes left expire within the warning days, even if they are few', () => {
+    expect(passStatus(8, '2026-11-03', today, warnings)).toBe('expiring');
+    expect(passStatus(8, '2026-10-27', today, warnings)).toBe('expiring');
+    expect(passStatus(1, '2026-11-03', today, warnings)).toBe('expiring');
+    expect(passStatus(8, '2026-11-04', today, warnings)).toBe('ok');
+    expect(passStatus(8, '2026-11-03', today, { ...warnings, expiryWarningDays: 0 })).toBe('ok');
   });
 });

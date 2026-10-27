@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { SaleInput } from '../../shared/schemas';
 import { setSetting } from '../repos/settings';
-import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { getDashboard } from './dashboard';
@@ -30,6 +30,7 @@ describe('debtors and dashboard', () => {
       teacherId: null,
       splitRule: 'proportional',
       soldAt: '2026-10-05',
+      expiresAt: FAR_EXPIRY,
       initialPayment: null,
       ...overrides,
     };

@@ -21,10 +21,10 @@ export interface BalanceRow {
 const PAYOUT_COLUMNS = `id, teacher_id AS teacherId, paid_at AS paidAt, amount_cents AS amountCents, method, note,
   voided_at AS voidedAt`;
 
-// Pending: teacher passes of non-voided sales to active clients that were not used yet.
+// Pending: teacher passes of non-voided sales to active clients that were not used yet and haven't expired.
 const BALANCE_SELECT = `WITH ${SALE_STATS_CTE},
   pending AS (
-    SELECT ss.teacher_id, SUM(ss.teacher_passes - ss.used_teacher) AS classes
+    SELECT ss.teacher_id, SUM(ss.left_teacher) AS classes
     FROM sale_stats ss JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
     WHERE ss.teacher_id IS NOT NULL
     GROUP BY ss.teacher_id
@@ -70,14 +70,14 @@ export function voidPayout(db: Db, id: number, now: string): void {
   db.prepare('UPDATE teacher_payouts SET voided_at = ? WHERE id = ?').run(now, id);
 }
 
-export function listBalanceRows(db: Db): BalanceRow[] {
+export function listBalanceRows(db: Db, today: string): BalanceRow[] {
   return db
-    .prepare<[], BalanceRow>(`${BALANCE_SELECT} ORDER BY t.last_name COLLATE NOCASE, t.first_name COLLATE NOCASE`)
-    .all();
+    .prepare<[{ today: string }], BalanceRow>(`${BALANCE_SELECT} ORDER BY t.last_name COLLATE NOCASE, t.first_name COLLATE NOCASE`)
+    .all({ today });
 }
 
-export function findBalanceRow(db: Db, teacherId: number): BalanceRow | undefined {
-  return db.prepare<[number], BalanceRow>(`${BALANCE_SELECT} WHERE t.id = ?`).get(teacherId);
+export function findBalanceRow(db: Db, teacherId: number, today: string): BalanceRow | undefined {
+  return db.prepare<[{ teacherId: number; today: string }], BalanceRow>(`${BALANCE_SELECT} WHERE t.id = @teacherId`).get({ teacherId, today });
 }
 
 export function listTeacherShares(db: Db, teacherId: number): TeacherShare[] {

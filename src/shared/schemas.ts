@@ -118,13 +118,18 @@ export const saleInput = z.object({
   teacherId: id.nullable(),
   splitRule: splitRuleSchema,
   soldAt: isoDate,
+  expiresAt: isoDate,
   initialPayment: z.object(newPaymentFields).nullable(),
+}).refine((sale) => sale.expiresAt >= sale.soldAt, {
+  message: 'El vencimiento no puede ser anterior a la venta',
+  path: ['expiresAt'],
 });
 export const paymentInput = z.object({ saleId: id, ...newPaymentFields });
 export const consumptionInput = z.object({ clientId: id, kind: passKindSchema, note: optionalText(200) });
 export const payoutInput = z.object({ teacherId: id, ...newPaymentFields, note: optionalText(200) });
 export const settingsInput = z.object({
   lowPassesThreshold: z.number().int().min(0).max(100),
+  expiryWarningDays: z.number().int().min(0).max(60),
   waiverValidityMonths: z.number().int().min(1).max(120),
 });
 export const waiverInput = z.object({ clientId: id, signedAt: isoDate });

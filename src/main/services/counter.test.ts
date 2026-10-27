@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { adultClient, createTestContext, freePlan, type TestContext } from '../test-context';
+import { adultClient, createTestContext, FAR_EXPIRY, freePlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume, voidConsumption } from './consumptions';
 import { getDayEntries, getDayMovements } from './counter';
@@ -20,7 +20,7 @@ describe('counter day movements', () => {
     ctx = createTestContext();
     clientId = createClient(ctx, adultClient).id;
     const planId = createPlan(ctx, freePlan).id;
-    saleId = sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null }).id;
+    saleId = sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null }).id;
     productId = createProduct(ctx, { name: 'Agua', packSize: 6, packCostCents: 300_000, markupPercent: 50, priceCents: 100_000, active: true }).id;
   });
 
@@ -97,7 +97,7 @@ describe('counter day entries', () => {
     ctx = createTestContext();
     clientId = createClient(ctx, adultClient).id;
     const planId = createPlan(ctx, freePlan).id;
-    sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', initialPayment: null });
+    sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null });
     updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
   });
 
@@ -122,6 +122,7 @@ describe('counter day entries', () => {
         recordedAt: first.consumedAt,
         remainingFree: 7,
         remainingTeacher: 0,
+        expiresAt: FAR_EXPIRY,
         passStatus: 'ok',
       },
     ]);

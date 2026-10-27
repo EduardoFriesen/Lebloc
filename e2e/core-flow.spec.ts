@@ -110,8 +110,15 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pase suelto' });
   await expect(dialog.getByLabel('Pago completo')).toBeChecked();
+  // A month by default; the admin can pick another day.
+  await expect(dialog.getByLabel('Vence el')).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate() + 40);
+  const [year, month, day] = [expiry.getFullYear(), String(expiry.getMonth() + 1).padStart(2, '0'), String(expiry.getDate()).padStart(2, '0')];
+  await dialog.getByLabel('Vence el').fill(`${year}-${month}-${day}`);
   await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
   await expect(page.getByText('Saldada')).toBeVisible();
+  await expect(page.getByText(`Vence el ${day}/${month}/${year}`).first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Consumir libre' }).click();
   await page.getByRole('button', { name: 'Renovar' }).click();

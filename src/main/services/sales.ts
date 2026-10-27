@@ -3,7 +3,7 @@ import { assertSaleVoidable } from '../../domain/ledger';
 import { buildSaleSnapshot } from '../../domain/sale';
 import type { SaleInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
-import { assertNotFuture, type Context, nowIso } from '../context';
+import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as salesRepo from '../repos/sales';
 import { requireActiveClient } from './clients';
 import { registerPayment } from './payments';
@@ -11,7 +11,7 @@ import { getPlan } from './plans';
 import { getTeacher } from './teachers';
 
 export function getSale(ctx: Context, id: number): Sale {
-  const sale = salesRepo.findSale(ctx.db, id);
+  const sale = salesRepo.findSale(ctx.db, id, today(ctx));
   if (!sale) throw new DomainError('NOT_FOUND');
   return sale;
 }
@@ -23,7 +23,7 @@ export function sellPlan(ctx: Context, input: SaleInput): Sale {
     const plan = getPlan(ctx, input.planId);
     const teacher = input.teacherId === null ? null : getTeacher(ctx, input.teacherId);
     const snapshot = buildSaleSnapshot(plan, teacher, input.splitRule);
-    const saleId = salesRepo.insertSale(ctx.db, input.clientId, input.soldAt, snapshot);
+    const saleId = salesRepo.insertSale(ctx.db, input.clientId, { soldAt: input.soldAt, expiresAt: input.expiresAt }, snapshot);
     if (input.initialPayment) registerPayment(ctx, { saleId, ...input.initialPayment });
     return getSale(ctx, saleId);
   })();

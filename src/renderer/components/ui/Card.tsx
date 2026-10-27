@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { PassStatus } from '../../../shared/types';
+import { formatDate } from '../../lib/format';
 
 /**
  * Stretches a link or button over its nearest `relative` ancestor, so tapping anywhere on the card
@@ -29,7 +30,7 @@ type CardProps = CardTarget & {
   actions?: ReactNode;
   /** Archived or inactive items. */
   muted?: boolean;
-  /** Tints the card by how many passes are left: mustard when low, brick when none. */
+  /** Tints the card by the passes left: mustard when few or about to expire, brick when none. */
   tone?: PassStatus;
   /** Thin full-width row: title and details on the left, actions on the right. */
   strip?: boolean;
@@ -39,6 +40,7 @@ type CardProps = CardTarget & {
 const TONE_CLASSES: Record<PassStatus, string> = {
   ok: 'bg-surface',
   low: 'border-l-4 border-ochre bg-[color-mix(in_srgb,var(--color-ochre)_15%,var(--color-surface))]',
+  expiring: 'border-l-4 border-ochre bg-[color-mix(in_srgb,var(--color-ochre)_15%,var(--color-surface))]',
   none: 'border-l-4 border-danger bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-surface))]',
 };
 
@@ -105,9 +107,10 @@ export function Stat({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-/** "Pocos pases" / "Sin pases" message that goes with the card tone; nothing when there are enough. */
-export function PassBadge({ status }: { status: PassStatus }) {
+/** "Pocos pases" / "Vence el 27/11" / "Sin pases" message that goes with the card tone; nothing when all is fine. */
+export function PassBadge({ status, expiresAt }: { status: PassStatus; expiresAt: string | null }) {
   if (status === 'low') return <Badge tone="warning">Pocos pases</Badge>;
+  if (status === 'expiring' && expiresAt) return <Badge tone="warning">Vence el {formatDate(expiresAt).slice(0, 5)}</Badge>;
   if (status === 'none') return <Badge tone="danger">Sin pases</Badge>;
   return null;
 }

@@ -11,7 +11,7 @@ import { listWaiverAlerts } from './waivers';
 
 export function getClientStats(ctx: Context): ClientStats {
   const counts = clientCounts(ctx.db, { from: monthStart(ctx.clock.now()), bornAfter: minorBirthCutoff(today(ctx)) });
-  const { activeClients, debtorCount, debtTotalCents } = summaryCounts(ctx.db);
+  const { activeClients, debtorCount, debtTotalCents } = summaryCounts(ctx.db, today(ctx));
   return {
     ...counts,
     withPasses: activeClients,

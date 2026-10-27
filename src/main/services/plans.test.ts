@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { registerPayment } from './payments';
@@ -50,7 +50,7 @@ describe('plans service', () => {
       const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
       const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Vía' }).id;
       const sell = (clientId: number, planId: number, soldAt: string) =>
-        sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, initialPayment: null });
+        sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt: FAR_EXPIRY, initialPayment: null });
 
       const anaSale = sell(ana, plan.id, '2026-10-02');
       registerPayment(ctx, { saleId: anaSale.id, amountCents: 500_000, method: 'cash', paidAt: '2026-10-02' });
@@ -72,6 +72,7 @@ describe('plans service', () => {
           remainingFree: 7,
           remainingTeacher: 0,
           debtCents: 1_500_000,
+          expiresAt: FAR_EXPIRY,
           passStatus: 'ok',
         },
       ]);
@@ -90,7 +91,7 @@ describe('plans service', () => {
       const ana = createClient(ctx, adultClient).id;
       const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
       const sell = (clientId: number, planId: number, soldAt: string, teacher: number | null = null) =>
-        sellPlan(ctx, { clientId, planId, teacherId: teacher, splitRule: 'proportional', soldAt, initialPayment: null });
+        sellPlan(ctx, { clientId, planId, teacherId: teacher, splitRule: 'proportional', soldAt, expiresAt: FAR_EXPIRY, initialPayment: null });
 
       const anaSale = sell(ana, pack.id, '2026-10-01');
       registerPayment(ctx, { saleId: anaSale.id, amountCents: 500_000, method: 'cash', paidAt: '2026-10-02' });

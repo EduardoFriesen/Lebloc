@@ -3,6 +3,8 @@ import type { Clock, Context } from './context';
 import { openDatabase } from './db/connection';
 
 export const TEST_NOW = new Date(2026, 9, 5, 12, 0, 0);
+/** For sales whose expiry doesn't matter to the test: far enough that it never expires nor warns. */
+export const FAR_EXPIRY = '2099-12-31';
 
 export interface MutableClock extends Clock {
   set(date: Date): void;

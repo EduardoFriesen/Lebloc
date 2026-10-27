@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
+import { addMonths, toIsoDate } from '../../domain/dates';
 import { openDatabase } from './connection';
 import { MIGRATIONS, migrate } from './migrations';
 
@@ -155,6 +156,38 @@ describe('migrations', () => {
     expect(columns('teachers')).not.toContain('class_rate_cents');
     expect(columns('sales')).not.toContain('teacher_rate_cents');
     expect(() => db.prepare('UPDATE plans SET teacher_amount_cents = -1').run()).toThrow(/CHECK/);
+  });
+
+  it('gives existing sales a month from the update to use their passes, and requires an expiry on new ones', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 11).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 11');
+    db.exec(`
+      INSERT INTO plans (id, name, free_passes, teacher_passes, price_cents) VALUES (1, 'Pack 8', 8, 0, 2000000);
+      INSERT INTO clients (id, first_name, last_name, enrolled_at, updated_at) VALUES (1, 'Ana', 'Roca', '2026-01-01', 'x');
+      INSERT INTO sales (client_id, plan_id, sold_at, plan_name, free_passes, teacher_passes, local_price_cents,
+        teacher_surcharge_cents, total_cents, split_rule)
+      VALUES (1, 1, '2026-01-05', 'Pack 8', 8, 0, 2000000, 0, 2000000, 'proportional');
+    `);
+    migrate(db);
+    expect(db.prepare('SELECT expires_at AS expiresAt FROM sales').get()).toEqual({ expiresAt: addMonths(toIsoDate(new Date()), 1) });
+    const sale = db.prepare(
+      `INSERT INTO sales (client_id, plan_id, sold_at, plan_name, free_passes, teacher_passes, local_price_cents,
+         teacher_surcharge_cents, total_cents, split_rule, expires_at)
+       VALUES (1, 1, '2026-10-05', 'Pack 8', 8, 0, 2000000, 0, 2000000, 'proportional', ?)`,
+    );
+    expect(() => sale.run('2026-10-04')).toThrow(/expires_at/);
+    sale.run('2026-10-05');
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO sales (client_id, plan_id, sold_at, plan_name, free_passes, teacher_passes, local_price_cents,
+             teacher_surcharge_cents, total_cents, split_rule)
+           VALUES (1, 1, '2026-10-05', 'Pack 8', 8, 0, 2000000, 0, 2000000, 'proportional')`,
+        )
+        .run(),
+    ).toThrow(/expires_at/);
+    expect(() => db.prepare("UPDATE sales SET expires_at = '2026-01-01' WHERE sold_at = '2026-10-05'").run()).toThrow(/expires_at/);
   });
 
   it('refuses a database created by a newer app version', () => {

@@ -31,13 +31,14 @@ export function getDayMovements(ctx: Context): DayMovements {
 
 /** Who came in today: client passes (with what they have left) and walk-in day passes, newest first. */
 export function getDayEntries(ctx: Context): DayEntry[] {
-  const { lowPassesThreshold } = getSettings(ctx);
-  const passes = listConsumptionsSince(ctx.db, attendanceWindows(ctx.clock.now()).todayStart.toISOString()).map((row) => ({
+  const settings = getSettings(ctx);
+  const date = today(ctx);
+  const passes = listConsumptionsSince(ctx.db, attendanceWindows(ctx.clock.now()).todayStart.toISOString(), date).map((row) => ({
     kind: 'pass' as const,
     ...row,
-    passStatus: passStatus(row.remainingFree + row.remainingTeacher, lowPassesThreshold),
+    passStatus: passStatus(row.remainingFree + row.remainingTeacher, row.expiresAt, date, settings),
   }));
-  const walkIns = listCounterSales(ctx, today(ctx))
+  const walkIns = listCounterSales(ctx, date)
     .filter((sale) => !sale.voidedAt && sale.kind === 'day_pass')
     .map((sale) => ({ kind: 'walk_in' as const, sale }));
   const time = (entry: DayEntry) => (entry.kind === 'pass' ? entry.recordedAt : entry.sale.recordedAt);

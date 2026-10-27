@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { defaultExpiry } from '../../domain/passes';
 import { buildSaleSnapshot, SPLIT_RULES, type SaleSnapshot, type SplitRule } from '../../domain/sale';
 import { parseMoneyInput } from '../../shared/money';
 import { saleInput } from '../../shared/schemas';
@@ -12,6 +13,9 @@ import { call } from '../lib/api';
 import { formatMoney, fullName, SPLIT_RULE_LABELS, todayIso } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+
+// While typing, a date input reports '' or a partial value: only whole dates move the expiry.
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface SellPlanFormProps {
   clientId: number;
@@ -98,6 +102,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
   const [teacherId, setTeacherId] = useState(String(renewTeacher?.id ?? ''));
   const [splitRule, setSplitRule] = useState<SplitRule>(renewFrom?.splitRule ?? 'proportional');
   const [soldAt, setSoldAt] = useState(todayIso());
+  const [expiresAt, setExpiresAt] = useState(defaultExpiry(todayIso()));
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('full');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -111,6 +116,12 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
   const teacher = needsTeacher ? (teachers.find((candidate) => candidate.id === Number(teacherId)) ?? null) : null;
   const preview = previewSale(plan, teacher, splitRule);
 
+  // The expiry follows the sale date while it is still the default month; a date picked by hand stays.
+  function changeSoldAt(next: string) {
+    if (ISO_DATE.test(soldAt) && ISO_DATE.test(next) && expiresAt === defaultExpiry(soldAt)) setExpiresAt(defaultExpiry(next));
+    setSoldAt(next);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const totalCents = preview && 'snapshot' in preview ? preview.snapshot.totalCents : 0;
@@ -123,6 +134,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
       teacherId: teacher?.id ?? null,
       splitRule: needsTeacher ? splitRule : 'proportional',
       soldAt,
+      expiresAt,
       initialPayment: withPayment ? { amountCents: amountCents ?? -1, method, paidAt } : null,
     });
     if (!parsed.success || invalidAmount) {
@@ -184,7 +196,18 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
         </>
       )}
 
-      <TextField label="Fecha de venta" type="date" max={todayIso()} value={soldAt} onChange={(event) => setSoldAt(event.target.value)} error={errors.soldAt} />
+      <div className="grid grid-cols-2 gap-4">
+        <TextField label="Fecha de venta" type="date" max={todayIso()} value={soldAt} onChange={(event) => changeSoldAt(event.target.value)} error={errors.soldAt} />
+        <TextField
+          label="Vence el"
+          type="date"
+          min={soldAt}
+          value={expiresAt}
+          onChange={(event) => setExpiresAt(event.target.value)}
+          error={errors.expiresAt}
+          hint="Después de esa fecha pierde los pases que le queden."
+        />
+      </div>
 
       {preview && ('error' in preview ? <Notice tone="warning">{preview.error}</Notice> : <SaleBreakdown snapshot={preview.snapshot} />)}
 

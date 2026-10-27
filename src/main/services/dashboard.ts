@@ -12,7 +12,7 @@ export function getDashboard(ctx: Context): Dashboard {
   const backup = getBackupStatus(ctx);
   return {
     summary: {
-      ...summaryCounts(ctx.db),
+      ...summaryCounts(ctx.db, today(ctx)),
       pendingWaivers: listWaiverAlerts(ctx).length,
       teacherBalanceCents: listTeacherBalances(ctx).reduce((total, balance) => total + balance.balanceCents, 0),
       kioskTodayCount: kiosk.count,

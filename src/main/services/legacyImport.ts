@@ -3,6 +3,7 @@ import { basename } from 'node:path';
 import { parseIsoDate } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import { buildImportPlan, type ImportPlan, type ImportSummary, type LegacyPlan, summarizeImport } from '../../domain/legacyImport';
+import { defaultExpiry } from '../../domain/passes';
 import { fold } from '../../shared/text';
 import type { ImportPick, ImportPreview } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
@@ -81,7 +82,8 @@ function applyImport(ctx: Context, plan: ImportPlan, file: string): void {
     if (!spec || !planId) throw new Error(`Plan ${pass.planKey} missing from the import plan`);
     // The teacher's part comes from the spreadsheet's table; a typed price keeps it.
     const surchargeCents = Math.min(spec.surchargeCents, pass.totalCents);
-    const saleId = insertSale(ctx.db, clientId, pass.startedAt, {
+    // Like the sales already there when expiry came in: a month from the import to use what is left.
+    const saleId = insertSale(ctx.db, clientId, { soldAt: pass.startedAt, expiresAt: defaultExpiry(today(ctx)) }, {
       planId,
       planName: spec.name,
       freePasses: spec.freePasses,

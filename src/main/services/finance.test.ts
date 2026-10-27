@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { must } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { createClient } from './clients';
 import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
@@ -33,7 +33,7 @@ function scenario(ctx: TestContext) {
   createTeacher(ctx, { ...basicTeacher, firstName: 'Leo', active: false });
   const mixedId = createPlan(ctx, mixedPlan).id;
   const freeId = createPlan(ctx, freePlan).id;
-  const sale = { teacherId: null, splitRule: 'proportional' as const, initialPayment: null };
+  const sale = { teacherId: null, splitRule: 'proportional' as const, expiresAt: FAR_EXPIRY, initialPayment: null };
 
   sellPlan(ctx, { ...sale, clientId: betoId, planId: freeId, soldAt: '2026-09-02' });
   ctx.clock.set(new Date(2026, 8, 3, 18, 0));
@@ -46,6 +46,7 @@ function scenario(ctx: TestContext) {
     clientId: anaId,
     planId: freeId,
     soldAt: '2026-09-20',
+    expiresAt: FAR_EXPIRY,
     initialPayment: { amountCents: 1_000_000, method: 'cash', paidAt: '2026-09-20' },
   });
   registerPayment(ctx, { saleId: september.id, amountCents: 1_000_000, method: 'cash', paidAt: '2026-10-02' });
@@ -55,6 +56,7 @@ function scenario(ctx: TestContext) {
     planId: mixedId,
     teacherId,
     soldAt: '2026-10-03',
+    expiresAt: FAR_EXPIRY,
     initialPayment: { amountCents: 3_000_000, method: 'transfer', paidAt: '2026-10-03' },
   });
   ctx.clock.set(new Date(2026, 9, 3, 23, 30));

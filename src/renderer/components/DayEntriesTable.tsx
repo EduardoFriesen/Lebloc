@@ -54,7 +54,7 @@ function EntryRow({ entry, onVoid }: { entry: DayEntry; onVoid: (request: Confir
       <td>
         <span className="flex flex-wrap items-center gap-2">
           Libres: {entry.remainingFree} · Con profesor: {entry.remainingTeacher}
-          <PassBadge status={entry.passStatus} />
+          <PassBadge status={entry.passStatus} expiresAt={entry.expiresAt} />
         </span>
       </td>
       <td>

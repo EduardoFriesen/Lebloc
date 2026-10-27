@@ -3,7 +3,7 @@ import { DomainError } from '../../domain/errors';
 import { assertPaymentVoidable } from '../../domain/ledger';
 import type { PaymentInput } from '../../shared/schemas';
 import type { Payment } from '../../shared/types';
-import { assertNotFuture, type Context, nowIso } from '../context';
+import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as paymentsRepo from '../repos/payments';
 import * as salesRepo from '../repos/sales';
 
@@ -16,7 +16,7 @@ export function getPayment(ctx: Context, id: number): Payment {
 export function registerPayment(ctx: Context, input: PaymentInput): Payment {
   return ctx.db.transaction(() => {
     assertNotFuture(ctx, input.paidAt);
-    const sale = salesRepo.findSale(ctx.db, input.saleId);
+    const sale = salesRepo.findSale(ctx.db, input.saleId, today(ctx));
     if (!sale) throw new DomainError('NOT_FOUND');
     if (sale.voidedAt) throw new DomainError('SALE_VOIDED');
     const allocated = paymentsRepo.activeAllocationTotals(ctx.db, sale.id);

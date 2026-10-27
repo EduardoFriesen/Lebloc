@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError, must } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, mixedPlan, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume, voidConsumption } from './consumptions';
 import { voidPayment } from './payments';
@@ -27,6 +27,7 @@ describe('teacher ledger', () => {
       teacherId,
       splitRule: 'proportional',
       soldAt: '2026-10-05',
+      expiresAt: FAR_EXPIRY,
       initialPayment: { amountCents: 1_500_000, method: 'cash', paidAt: '2026-10-05' },
     }).id;
   });
@@ -59,7 +60,7 @@ describe('teacher ledger', () => {
 
   it('leaves voided sales and archived clients out of the classes left to give', () => {
     const carlaId = createClient(ctx, { ...adultClient, firstName: 'Carla' }).id;
-    const voided = sellPlan(ctx, { clientId: carlaId, planId, teacherId, splitRule: 'proportional', soldAt: '2026-10-05', initialPayment: null });
+    const voided = sellPlan(ctx, { clientId: carlaId, planId, teacherId, splitRule: 'proportional', soldAt: '2026-10-05', expiresAt: FAR_EXPIRY, initialPayment: null });
     voidSale(ctx, voided.id);
     archiveClient(ctx, clientId);
     expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 0 });
@@ -102,7 +103,7 @@ describe('teacher ledger', () => {
     const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
     const planId = createPlan(ctx, { ...mixedPlan, name: 'Otro pack' }).id;
     const sale = (teacher: number, soldAt: string) =>
-      sellPlan(ctx, { clientId: bruno, planId, teacherId: teacher, splitRule: 'proportional', soldAt, initialPayment: null });
+      sellPlan(ctx, { clientId: bruno, planId, teacherId: teacher, splitRule: 'proportional', soldAt, expiresAt: FAR_EXPIRY, initialPayment: null });
     sale(eva, '2026-10-04');
     sale(teacherId, '2026-09-28');
 

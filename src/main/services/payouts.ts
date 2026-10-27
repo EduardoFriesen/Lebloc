@@ -2,7 +2,7 @@ import { DomainError } from '../../domain/errors';
 import { assertPayoutFits, teacherBalance } from '../../domain/ledger';
 import type { PayoutInput } from '../../shared/schemas';
 import type { TeacherAccount, TeacherBalance, TeacherPayout } from '../../shared/types';
-import { assertNotFuture, type Context, nowIso } from '../context';
+import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as repo from '../repos/payouts';
 import { listEnrollments } from './enrollments';
 import { getTeacher } from './teachers';
@@ -12,13 +12,13 @@ function toBalance(row: repo.BalanceRow): TeacherBalance {
 }
 
 function getBalance(ctx: Context, teacherId: number): TeacherBalance {
-  const row = repo.findBalanceRow(ctx.db, teacherId);
+  const row = repo.findBalanceRow(ctx.db, teacherId, today(ctx));
   if (!row) throw new DomainError('NOT_FOUND');
   return toBalance(row);
 }
 
 export function listTeacherBalances(ctx: Context): TeacherBalance[] {
-  return repo.listBalanceRows(ctx.db).map(toBalance);
+  return repo.listBalanceRows(ctx.db, today(ctx)).map(toBalance);
 }
 
 export function getTeacherAccount(ctx: Context, teacherId: number): TeacherAccount {
