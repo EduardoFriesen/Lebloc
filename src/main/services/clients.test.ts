@@ -240,7 +240,7 @@ describe('clients service', () => {
   describe('counter lists', () => {
     // TEST_NOW is Monday 5/10/2026 12:00 local time.
     function clientWith(firstName: string, passes: number): number {
-      const planId = createPlan(ctx, { name: `Pack ${passes}`, freePasses: passes, teacherPasses: 0, priceCents: 0, active: true }).id;
+      const planId = createPlan(ctx, { name: `Pack ${passes}`, freePasses: passes, teacherPasses: 0, priceCents: 0, teacherAmountCents: 0, active: true }).id;
       const clientId = createClient(ctx, { ...adultClient, firstName, lastName: 'Test' }).id;
       sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-08-01', initialPayment: null });
       return clientId;

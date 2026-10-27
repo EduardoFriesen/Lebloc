@@ -144,7 +144,7 @@ export function visits(db: Db, range: DateRange): VisitRow[] {
 }
 
 // Today's balance and pending classes come from the teacher balances, not from this range query.
-type TeacherActivityRow = Omit<TeacherActivity, 'balanceCents' | 'pendingClasses' | 'pendingCents' | 'active'> & { active: number };
+type TeacherActivityRow = Omit<TeacherActivity, 'balanceCents' | 'pendingClasses' | 'active'> & { active: number };
 
 export function teacherActivity(db: Db, range: DateRange): TeacherActivityRow[] {
   return db

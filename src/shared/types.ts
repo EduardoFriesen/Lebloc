@@ -73,7 +73,6 @@ export interface Teacher {
   address: string | null;
   phone: string | null;
   socials: Social[];
-  classRateCents: number;
   active: boolean;
   schedules: TeacherSchedule[];
 }
@@ -84,6 +83,8 @@ export interface Plan {
   freePasses: number;
   teacherPasses: number;
   priceCents: number;
+  /** What the teacher gets for all the plan's teacher passes, charged on top of the price. */
+  teacherAmountCents: number;
   active: boolean;
 }
 
@@ -98,7 +99,6 @@ export interface Sale {
   localPriceCents: number;
   teacherId: number | null;
   teacherName: string | null;
-  teacherRateCents: number;
   teacherSurchargeCents: number;
   totalCents: number;
   splitRule: SplitRule;
@@ -182,9 +182,8 @@ export interface TeacherBalance {
   earnedCents: number;
   paidOutCents: number;
   balanceCents: number;
-  /** Classes sold to active clients and not given yet, and what they are worth at each sale's rate. Not owed until clients pay. */
+  /** Classes sold to active clients and not given yet. */
   pendingClasses: number;
-  pendingCents: number;
 }
 
 export interface TeacherAccount extends TeacherBalance {
@@ -262,9 +261,8 @@ export interface TeacherStats {
   /** What the local owes its teachers: positive balances only. */
   owedCents: number;
   owedTeachers: number;
-  /** Teacher passes sold to active clients and not yet given, and what they are worth. */
+  /** Teacher passes sold to active clients and not yet given. */
   pendingClasses: number;
-  pendingCents: number;
 }
 
 /** Headline numbers beside the plan list. */
@@ -593,9 +591,8 @@ export interface TeacherActivity {
   paidOutCents: number;
   /** What the local owes the teacher today, whatever the range. */
   balanceCents: number;
-  /** Classes left to give today and their value, whatever the range. */
+  /** Classes left to give today, whatever the range. */
   pendingClasses: number;
-  pendingCents: number;
 }
 
 export interface LapsedClient {

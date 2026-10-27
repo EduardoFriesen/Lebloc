@@ -16,17 +16,15 @@ export interface BalanceRow {
   earnedCents: number;
   paidOutCents: number;
   pendingClasses: number;
-  pendingCents: number;
 }
 
 const PAYOUT_COLUMNS = `id, teacher_id AS teacherId, paid_at AS paidAt, amount_cents AS amountCents, method, note,
   voided_at AS voidedAt`;
 
-// Pending: teacher passes of non-voided sales to active clients that were not used yet, at the rate each sale kept.
+// Pending: teacher passes of non-voided sales to active clients that were not used yet.
 const BALANCE_SELECT = `WITH ${SALE_STATS_CTE},
   pending AS (
-    SELECT ss.teacher_id, SUM(ss.teacher_passes - ss.used_teacher) AS classes,
-      SUM((ss.teacher_passes - ss.used_teacher) * ss.teacher_rate_cents) AS cents
+    SELECT ss.teacher_id, SUM(ss.teacher_passes - ss.used_teacher) AS classes
     FROM sale_stats ss JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
     WHERE ss.teacher_id IS NOT NULL
     GROUP BY ss.teacher_id
@@ -36,7 +34,7 @@ const BALANCE_SELECT = `WITH ${SALE_STATS_CTE},
               WHERE s.teacher_id = t.id AND p.voided_at IS NULL), 0) AS earnedCents,
     COALESCE((SELECT SUM(tp.amount_cents) FROM teacher_payouts tp
               WHERE tp.teacher_id = t.id AND tp.voided_at IS NULL), 0) AS paidOutCents,
-    COALESCE(pd.classes, 0) AS pendingClasses, COALESCE(pd.cents, 0) AS pendingCents
+    COALESCE(pd.classes, 0) AS pendingClasses
   FROM teachers t
   LEFT JOIN pending pd ON pd.teacher_id = t.id`;
 

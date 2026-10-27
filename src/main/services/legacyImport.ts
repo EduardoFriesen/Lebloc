@@ -54,15 +54,16 @@ function applyImport(ctx: Context, plan: ImportPlan, file: string): void {
   const specs = new Map<string, LegacyPlan>();
   for (const legacy of plan.plans) {
     specs.set(legacy.key, legacy);
-    const { name, freePasses, teacherPasses, priceCents } = legacy;
-    planIds.set(legacy.key, existingPlans.get(fold(name)) ?? insertPlan(ctx.db, { name, freePasses, teacherPasses, priceCents, active: true }));
+    const { name, freePasses, teacherPasses, priceCents, surchargeCents: teacherAmountCents } = legacy;
+    const fields = { name, freePasses, teacherPasses, priceCents, teacherAmountCents, active: true };
+    planIds.set(legacy.key, existingPlans.get(fold(name)) ?? insertPlan(ctx.db, fields));
   }
 
   const existingTeachers = new Map(listTeachers(ctx, true).map((t) => [fold(`${t.firstName} ${t.lastName}`.trim()), t.id]));
   const teacherIds = new Map<string, number>();
   for (const { name, active } of plan.teachers) {
-    // Only the name: rate, phone and schedules are filled in from Profesores.
-    const id = existingTeachers.get(fold(name)) ?? insertTeacher(ctx.db, { firstName: name, lastName: '', address: null, phone: null, socials: [], classRateCents: 0, active });
+    // Only the name: phone and schedules are filled in from Profesores.
+    const id = existingTeachers.get(fold(name)) ?? insertTeacher(ctx.db, { firstName: name, lastName: '', address: null, phone: null, socials: [], active });
     teacherIds.set(name, id);
   }
 
@@ -78,7 +79,7 @@ function applyImport(ctx: Context, plan: ImportPlan, file: string): void {
     const spec = specs.get(pass.planKey);
     const planId = planIds.get(pass.planKey);
     if (!spec || !planId) throw new Error(`Plan ${pass.planKey} missing from the import plan`);
-    // The teacher's part comes from the spreadsheet's table, not from the teacher's rate; a typed price keeps it.
+    // The teacher's part comes from the spreadsheet's table; a typed price keeps it.
     const surchargeCents = Math.min(spec.surchargeCents, pass.totalCents);
     const saleId = insertSale(ctx.db, clientId, pass.startedAt, {
       planId,
@@ -87,7 +88,6 @@ function applyImport(ctx: Context, plan: ImportPlan, file: string): void {
       teacherPasses: spec.teacherPasses,
       localPriceCents: pass.totalCents - surchargeCents,
       teacherId: pass.teacher ? (teacherIds.get(pass.teacher) ?? null) : null,
-      teacherRateCents: spec.teacherPasses > 0 ? Math.round(surchargeCents / spec.teacherPasses) : 0,
       teacherSurchargeCents: surchargeCents,
       totalCents: pass.totalCents,
       splitRule: 'proportional',

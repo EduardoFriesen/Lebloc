@@ -12,6 +12,7 @@ export const ERROR_MESSAGES = {
   TEACHER_NOT_ALLOWED: 'Este plan no incluye clases con profesor.',
   INACTIVE_PLAN: 'El plan está inactivo.',
   INACTIVE_TEACHER: 'El profesor está inactivo.',
+  TEACHER_AMOUNT_MISSING: 'Cargá el monto para el profesor en Planes.',
   ALREADY_VOIDED: 'El registro ya está anulado.',
   CLIENT_ARCHIVED: 'El cliente está archivado.',
   CLIENT_NOT_ARCHIVED: 'Solo se puede anonimizar un cliente archivado.',

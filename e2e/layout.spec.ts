@@ -30,7 +30,7 @@ const SCREENS = [
   ['/gastos', 'Gastos'],
   ['/finanzas/ventas', 'Finanzas'],
   ['/clientes/1', 'Pases'],
-  ['/profesores/1', 'Liquidaciones'],
+  ['/profesores/1', 'Pagos al profesor'],
 ] as const;
 
 async function problemsOn(route: string, heading: string): Promise<string[]> {

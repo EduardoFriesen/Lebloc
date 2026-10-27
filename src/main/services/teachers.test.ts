@@ -30,10 +30,10 @@ describe('teachers service', () => {
     const updated = updateTeacher(ctx, {
       ...basicTeacher,
       id: teacher.id,
-      classRateCents: 300_000,
+      phone: '1155550003',
       schedules: [{ weekday: 5, startTime: '10:00', endTime: '12:00' }],
     });
-    expect(updated.classRateCents).toBe(300_000);
+    expect(updated.phone).toBe('1155550003');
     expect(updated.schedules).toEqual([{ weekday: 5, startTime: '10:00', endTime: '12:00' }]);
   });
 

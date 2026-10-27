@@ -88,7 +88,11 @@ export function PlansPage() {
                   }
                 >
                   <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
-                  <p className="-mt-2 text-xs text-ink-soft">Precio del local</p>
+                  <p className="-mt-2 text-xs text-ink-soft">
+                    Precio del local
+                    {plan.teacherPasses > 0 &&
+                      (plan.teacherAmountCents > 0 ? ` + ${formatMoney(plan.teacherAmountCents)} para el profesor` : ' · falta el monto para el profesor')}
+                  </p>
                 </Card>
               ))}
             </CardGrid>
@@ -120,25 +124,32 @@ export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSav
   const [freePasses, setFreePasses] = useState(String(plan?.freePasses ?? 0));
   const [teacherPasses, setTeacherPasses] = useState(String(plan?.teacherPasses ?? 0));
   const [price, setPrice] = useState(plan ? formatMoneyInput(plan.priceCents) : '');
+  const [teacherAmount, setTeacherAmount] = useState(plan?.teacherAmountCents ? formatMoneyInput(plan.teacherAmountCents) : '');
   const [active, setActive] = useState(plan?.active ?? true);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const hasTeacher = Number(teacherPasses) > 0;
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const priceCents = parseMoneyInput(price);
+    // Hidden without teacher passes: whatever was typed there doesn't count.
+    const teacherAmountCents = hasTeacher ? parseMoneyInput(teacherAmount) : 0;
     const parsed = planInput.safeParse({
       name,
       freePasses: Number(freePasses),
       teacherPasses: Number(teacherPasses),
       priceCents: priceCents ?? -1,
+      teacherAmountCents: teacherAmountCents ?? -1,
       active,
     });
-    if (!parsed.success || priceCents === null) {
+    if (!parsed.success || priceCents === null || teacherAmountCents === null) {
       setErrors({
         ...(parsed.success ? {} : toFieldErrors(parsed.error)),
         ...(priceCents === null ? { priceCents: MONEY_ERROR } : {}),
+        ...(teacherAmountCents === null ? { teacherAmountCents: MONEY_ERROR } : {}),
       });
       return;
     }
@@ -181,8 +192,17 @@ export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSav
         value={price}
         onChange={(event) => setPrice(event.target.value)}
         error={errors.priceCents}
-        hint="Lo que cobra el local. El recargo del profesor se suma al vender."
+        hint={hasTeacher ? 'Lo que cobra el local. Lo del profesor se suma al vender.' : 'Lo que cobra el local.'}
       />
+      {hasTeacher && (
+        <MoneyField
+          label="Para el profesor"
+          value={teacherAmount}
+          onChange={(event) => setTeacherAmount(event.target.value)}
+          error={errors.teacherAmountCents}
+          hint={`Lo que le corresponde por las ${teacherPasses} clases. El cliente lo paga aparte del precio del local.`}
+        />
+      )}
       <CheckboxField label="Activo" checked={active} onChange={(event) => setActive(event.target.checked)} />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">

@@ -79,10 +79,8 @@ function SaleBreakdown({ snapshot }: { snapshot: SaleSnapshot }) {
         <dd>{formatMoney(snapshot.localPriceCents)}</dd>
       </div>
       <div>
-        <dt className="text-ink-soft">Recargo del profesor</dt>
-        <dd>
-          {snapshot.teacherPasses} × {formatMoney(snapshot.teacherRateCents)} = {formatMoney(snapshot.teacherSurchargeCents)}
-        </dd>
+        <dt className="text-ink-soft">Para el profesor</dt>
+        <dd>{formatMoney(snapshot.teacherSurchargeCents)}</dd>
       </div>
       <div>
         <dt className="text-ink-soft">Total</dt>

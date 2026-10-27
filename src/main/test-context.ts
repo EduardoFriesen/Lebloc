@@ -53,10 +53,16 @@ export const basicTeacher: TeacherInput = {
   address: null,
   phone: null,
   socials: [],
-  classRateCents: 250_000,
   active: true,
   schedules: [],
 };
 
-export const freePlan: PlanInput = { name: 'Pack 8 libres', freePasses: 8, teacherPasses: 0, priceCents: 2_000_000, active: true };
-export const mixedPlan: PlanInput = { name: 'Pack 4+4', freePasses: 4, teacherPasses: 4, priceCents: 2_000_000, active: true };
+export const freePlan: PlanInput = { name: 'Pack 8 libres', freePasses: 8, teacherPasses: 0, priceCents: 2_000_000, teacherAmountCents: 0, active: true };
+export const mixedPlan: PlanInput = {
+  name: 'Pack 4+4',
+  freePasses: 4,
+  teacherPasses: 4,
+  priceCents: 2_000_000,
+  teacherAmountCents: 1_000_000,
+  active: true,
+};

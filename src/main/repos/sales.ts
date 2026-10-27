@@ -10,7 +10,7 @@ const SALE_SELECT = `SELECT s.id, s.client_id AS clientId, s.sold_at AS soldAt, 
     s.free_passes AS freePasses, s.teacher_passes AS teacherPasses, s.local_price_cents AS localPriceCents,
     s.teacher_id AS teacherId,
     CASE WHEN t.id IS NULL THEN NULL ELSE trim(t.first_name || ' ' || t.last_name) END AS teacherName,
-    s.teacher_rate_cents AS teacherRateCents, s.teacher_surcharge_cents AS teacherSurchargeCents,
+    s.teacher_surcharge_cents AS teacherSurchargeCents,
     s.total_cents AS totalCents, s.split_rule AS splitRule, s.voided_at AS voidedAt,
     COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paidCents,
     (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'free') AS usedFree,
@@ -35,9 +35,9 @@ export function insertSale(db: Db, clientId: number, soldAt: string, snapshot: S
   const result = db
     .prepare(
       `INSERT INTO sales (client_id, plan_id, sold_at, plan_name, free_passes, teacher_passes, local_price_cents,
-         teacher_id, teacher_rate_cents, teacher_surcharge_cents, total_cents, split_rule)
+         teacher_id, teacher_surcharge_cents, total_cents, split_rule)
        VALUES (@clientId, @planId, @soldAt, @planName, @freePasses, @teacherPasses, @localPriceCents,
-         @teacherId, @teacherRateCents, @teacherSurchargeCents, @totalCents, @splitRule)`,
+         @teacherId, @teacherSurchargeCents, @totalCents, @splitRule)`,
     )
     .run({
       clientId,
@@ -48,7 +48,6 @@ export function insertSale(db: Db, clientId: number, soldAt: string, snapshot: S
       teacherPasses: snapshot.teacherPasses,
       localPriceCents: snapshot.localPriceCents,
       teacherId: snapshot.teacherId,
-      teacherRateCents: snapshot.teacherRateCents,
       teacherSurchargeCents: snapshot.teacherSurchargeCents,
       totalCents: snapshot.totalCents,
       splitRule: snapshot.splitRule,

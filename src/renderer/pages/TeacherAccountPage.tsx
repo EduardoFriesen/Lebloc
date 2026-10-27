@@ -56,7 +56,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
     <>
       <PageHeader
         title={fullName(teacher)}
-        subtitle={`${formatMoney(teacher.classRateCents)} por clase${teacher.active ? '' : ' · Inactivo'}`}
+        subtitle={teacher.active ? undefined : 'Inactivo'}
         actions={
           <>
             <Button variant="edit" onClick={() => setEditing(true)}>
@@ -74,18 +74,11 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
         </div>
       )}
       <dl className="mb-8 grid gap-4 md:grid-cols-2">
-        <Stat label="Generado" value={formatMoney(account.earnedCents)} hint="Su parte de los pagos ya cobrados" />
-        <Stat label="Liquidado" value={formatMoney(account.paidOutCents)} />
         <Stat
-          label="Saldo"
+          label="Se le debe"
           value={formatMoney(account.balanceCents)}
           testId="teacher-balance"
-          hint={account.balanceCents < 0 ? 'A favor del local' : 'Pendiente de pagar al profesor'}
-        />
-        <Stat
-          label="Por dar"
-          value={account.pendingClasses === 1 ? '1 clase' : `${account.pendingClasses} clases`}
-          hint={`Valen ${formatMoney(account.pendingCents)}; se le paga a medida que los clientes pagan`}
+          hint={account.balanceCents < 0 ? 'A favor del local' : 'Lo ya cobrado para el profesor que todavía no se le pagó'}
         />
       </dl>
 
@@ -100,7 +93,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
       <div className="grid gap-8 xl:grid-cols-2">
         <section aria-labelledby="liquidaciones-title" className="flex flex-col gap-3">
           <h2 id="liquidaciones-title" className="font-display text-2xl font-semibold">
-            Liquidaciones
+            Pagos al profesor
           </h2>
           <table className={tableClass}>
             <thead>
@@ -143,10 +136,10 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
                   </td>
                 </tr>
               ))}
-              <FillerRows filled={payouts.visible.length} columns={5} empty="Todavía no hay liquidaciones" />
+              <FillerRows filled={payouts.visible.length} columns={5} empty="Todavía no se le pagó nada" />
             </tbody>
           </table>
-          <PageBar keep label="Liquidaciones" page={payouts.page} pages={payouts.pages} onChange={payouts.setPage} />
+          <PageBar keep label="Pagos al profesor" page={payouts.page} pages={payouts.pages} onChange={payouts.setPage} />
         </section>
 
         <section aria-labelledby="cobros-title" className="flex flex-col gap-3">

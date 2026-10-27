@@ -28,13 +28,15 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await label('Pases con profesor').fill('2');
   await label('Precio del local').fill('20.000');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
+  await expect(page.getByText('Ingresá un monto válido, por ejemplo 15.000,50.')).toBeVisible();
+  await label('Para el profesor').fill('10.000');
+  await page.getByRole('button', { name: 'Guardar plan' }).click();
   await expect(page.getByRole('link', { name: 'Pack 2+2', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('button', { name: 'Nuevo profesor' }).click();
   await label('Nombre').fill('Juan');
   await label('Apellido').fill('Pared');
-  await label('Importe por clase').fill('5.000');
   await page.getByRole('button', { name: 'Guardar profesor' }).click();
   await expect(page.getByRole('heading', { name: 'Juan Pared' })).toBeVisible();
   await page.getByRole('button', { name: 'Editar' }).click();
@@ -77,12 +79,12 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('link', { name: 'Juan Pared', exact: true }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/5\.000,00/);
-  // One of the two classes with Juan was used: one left, worth his $5.000 rate.
-  await expect(page.getByText('1 clase', { exact: true })).toBeVisible();
-  await expect(page.getByText(/Valen \$\s5\.000,00/)).toBeVisible();
+  // Only what is owed: classes left to give are not valued.
+  await expect(page.getByText(/Valen/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Registrar liquidación' }).click();
   await page.getByRole('button', { name: 'Confirmar liquidación' }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/\$\s0,00/);
+  await expect(page.getByRole('table').filter({ hasText: 'Medio' }).getByRole('cell', { name: /5\.000,00/ })).toBeVisible();
 });
 
 test('sell fully paid by default, renew an exhausted plan, sign the waiver and go back', async () => {
@@ -162,11 +164,14 @@ test('cards open from anywhere, not only from the name', async () => {
   await expect(page.getByRole('heading', { name: 'Pack 2+2', level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Editar' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Editar plan' })).toBeVisible();
+  await expect(page.getByRole('dialog').getByLabel('Para el profesor', { exact: true })).toHaveValue('10.000,00');
+  await page.getByRole('dialog').getByLabel('Pases con profesor').fill('0');
+  await expect(page.getByRole('dialog').getByLabel('Para el profesor', { exact: true })).toBeHidden();
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
 
   await page.getByRole('link', { name: 'Profesores' }).click();
   await page.getByRole('button', { name: 'Editar Juan Pared' }).click();
-  await expect(page.getByRole('dialog').getByLabel('Importe por clase', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByLabel('Apellido', { exact: true })).toHaveValue('Pared');
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 });
@@ -307,7 +312,7 @@ test('the counter summary opens the detail behind each number', async () => {
   await page.getByRole('link', { name: 'Mostrador' }).click();
   await summary.getByRole('link', { name: 'Saldo con profesores' }).click();
   const juan = page.getByRole('list', { name: 'Profesores' }).getByRole('listitem').filter({ hasText: 'Juan Pared' });
-  await expect(juan.getByText('Saldo')).toBeVisible();
+  await expect(juan.getByText('Se le debe')).toBeVisible();
 });
 
 test('the counter finds a client without typing the accents, or by DNI', async () => {

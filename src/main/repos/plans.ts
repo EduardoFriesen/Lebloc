@@ -6,7 +6,8 @@ interface PlanRow extends Omit<Plan, 'active'> {
   active: number;
 }
 
-const PLAN_COLUMNS = `id, name, free_passes AS freePasses, teacher_passes AS teacherPasses, price_cents AS priceCents, active`;
+const PLAN_COLUMNS = `id, name, free_passes AS freePasses, teacher_passes AS teacherPasses, price_cents AS priceCents,
+  teacher_amount_cents AS teacherAmountCents, active`;
 
 function toPlan(row: PlanRow): Plan {
   return { ...row, active: row.active === 1 };
@@ -18,6 +19,7 @@ function planParams(fields: PlanInput) {
     freePasses: fields.freePasses,
     teacherPasses: fields.teacherPasses,
     priceCents: fields.priceCents,
+    teacherAmountCents: fields.teacherAmountCents,
     active: fields.active ? 1 : 0,
   };
 }
@@ -25,8 +27,8 @@ function planParams(fields: PlanInput) {
 export function insertPlan(db: Db, fields: PlanInput): number {
   const result = db
     .prepare(
-      `INSERT INTO plans (name, free_passes, teacher_passes, price_cents, active)
-       VALUES (@name, @freePasses, @teacherPasses, @priceCents, @active)`,
+      `INSERT INTO plans (name, free_passes, teacher_passes, price_cents, teacher_amount_cents, active)
+       VALUES (@name, @freePasses, @teacherPasses, @priceCents, @teacherAmountCents, @active)`,
     )
     .run(planParams(fields));
   return Number(result.lastInsertRowid);
@@ -35,7 +37,7 @@ export function insertPlan(db: Db, fields: PlanInput): number {
 export function updatePlan(db: Db, id: number, fields: PlanInput): void {
   db.prepare(
     `UPDATE plans SET name = @name, free_passes = @freePasses, teacher_passes = @teacherPasses,
-       price_cents = @priceCents, active = @active
+       price_cents = @priceCents, teacher_amount_cents = @teacherAmountCents, active = @active
      WHERE id = @id`,
   ).run({ ...planParams(fields), id });
 }

@@ -116,7 +116,6 @@ export function seedDatabase(db: Db, now: Date): void {
       address: 'Av. Belgrano 1450',
       phone: '11 5555-2001',
       socials: [{ network: 'Instagram', handle: '@marti.escala' }],
-      classRateCents: pesos(3_500),
       active: true,
       schedules: [
         { weekday: 1, startTime: '18:00', endTime: '20:00' },
@@ -132,7 +131,6 @@ export function seedDatabase(db: Db, now: Date): void {
         { network: 'Instagram', handle: '@facu.laja' },
         { network: 'TikTok', handle: '@facubloc' },
       ],
-      classRateCents: pesos(4_000),
       active: true,
       schedules: [
         { weekday: 2, startTime: '19:00', endTime: '21:00' },
@@ -145,7 +143,6 @@ export function seedDatabase(db: Db, now: Date): void {
       address: null,
       phone: '11 5555-2003',
       socials: [{ network: 'Instagram', handle: '@sol.escuelita' }],
-      classRateCents: pesos(3_000),
       active: true,
       schedules: [{ weekday: 6, startTime: '10:00', endTime: '12:00' }],
     };
@@ -155,7 +152,6 @@ export function seedDatabase(db: Db, now: Date): void {
       address: 'Calle 9 de Julio 320',
       phone: '11 5555-2004',
       socials: [],
-      classRateCents: pesos(3_500),
       active: true,
       schedules: [{ weekday: 5, startTime: '18:00', endTime: '20:00' }],
     };
@@ -165,13 +161,13 @@ export function seedDatabase(db: Db, now: Date): void {
     const diego = createTeacher(ctx, diegoInput).id;
 
     // Planes
-    const promoInput: PlanInput = { name: 'Promo verano 10 libres', freePasses: 10, teacherPasses: 0, priceCents: pesos(35_000), active: true };
-    const suelto = createPlan(ctx, { name: 'Pase libre suelto', freePasses: 1, teacherPasses: 0, priceCents: pesos(7_000), active: true }).id;
-    const pack8 = createPlan(ctx, { name: 'Pack 8 libres', freePasses: 8, teacherPasses: 0, priceCents: pesos(40_000), active: true }).id;
-    const pack12 = createPlan(ctx, { name: 'Pack 12 libres', freePasses: 12, teacherPasses: 0, priceCents: pesos(54_000), active: true }).id;
-    const escuelita = createPlan(ctx, { name: 'Escuelita 4 clases', freePasses: 0, teacherPasses: 4, priceCents: pesos(20_000), active: true }).id;
-    const mixto = createPlan(ctx, { name: 'Mensual 4 libres + 4 con profe', freePasses: 4, teacherPasses: 4, priceCents: pesos(28_000), active: true }).id;
-    const dosPorSemana = createPlan(ctx, { name: 'Mensual 2x semana con profe', freePasses: 0, teacherPasses: 8, priceCents: pesos(30_000), active: true }).id;
+    const promoInput: PlanInput = { name: 'Promo verano 10 libres', freePasses: 10, teacherPasses: 0, priceCents: pesos(35_000), teacherAmountCents: 0, active: true };
+    const suelto = createPlan(ctx, { name: 'Pase libre suelto', freePasses: 1, teacherPasses: 0, priceCents: pesos(7_000), teacherAmountCents: 0, active: true }).id;
+    const pack8 = createPlan(ctx, { name: 'Pack 8 libres', freePasses: 8, teacherPasses: 0, priceCents: pesos(40_000), teacherAmountCents: 0, active: true }).id;
+    const pack12 = createPlan(ctx, { name: 'Pack 12 libres', freePasses: 12, teacherPasses: 0, priceCents: pesos(54_000), teacherAmountCents: 0, active: true }).id;
+    const escuelita = createPlan(ctx, { name: 'Escuelita 4 clases', freePasses: 0, teacherPasses: 4, priceCents: pesos(20_000), teacherAmountCents: pesos(12_000), active: true }).id;
+    const mixto = createPlan(ctx, { name: 'Mensual 4 libres + 4 con profe', freePasses: 4, teacherPasses: 4, priceCents: pesos(28_000), teacherAmountCents: pesos(14_000), active: true }).id;
+    const dosPorSemana = createPlan(ctx, { name: 'Mensual 2x semana con profe', freePasses: 0, teacherPasses: 8, priceCents: pesos(30_000), teacherAmountCents: pesos(32_000), active: true }).id;
     const promo = createPlan(ctx, promoInput).id;
 
     // Mateo: socio de hace un año, la ficha está por vencer.

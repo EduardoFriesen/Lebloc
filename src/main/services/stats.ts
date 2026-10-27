@@ -30,7 +30,6 @@ export function getTeacherStats(ctx: Context): TeacherStats {
     owedCents: owed.reduce((total, balance) => total + balance.balanceCents, 0),
     owedTeachers: owed.length,
     pendingClasses: balances.reduce((total, balance) => total + balance.pendingClasses, 0),
-    pendingCents: balances.reduce((total, balance) => total + balance.pendingCents, 0),
   };
 }
 

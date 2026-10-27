@@ -64,7 +64,7 @@ describe('summary stats', () => {
 
     const owedToJuan = getTeacherAccount(ctx, juanId).balanceCents;
     expect(owedToJuan).toBeGreaterThan(0);
-    expect(getTeacherStats(ctx)).toEqual({ active: 2, inactive: 1, owedCents: owedToJuan, owedTeachers: 1, pendingClasses: 3, pendingCents: 750_000 });
+    expect(getTeacherStats(ctx)).toEqual({ active: 2, inactive: 1, owedCents: owedToJuan, owedTeachers: 1, pendingClasses: 3 });
   });
 
   it("counts active and inactive plans and this month's sales at the local's price, leaving out the teacher surcharge", () => {

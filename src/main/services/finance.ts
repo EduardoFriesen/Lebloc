@@ -83,7 +83,6 @@ export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActiv
         active: row.active === 1,
         balanceCents: balance?.balanceCents ?? 0,
         pendingClasses: balance?.pendingClasses ?? 0,
-        pendingCents: balance?.pendingCents ?? 0,
       };
     })
     .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0);

@@ -12,7 +12,6 @@ interface TeacherRow {
   address: string | null;
   phone: string | null;
   socials: string;
-  classRateCents: number;
   active: number;
 }
 
@@ -22,8 +21,7 @@ interface ScheduleRow extends TeacherSchedule {
 
 const storedSocials = z.array(z.object({ network: z.string(), handle: z.string() }));
 
-const TEACHER_COLUMNS = `id, first_name AS firstName, last_name AS lastName, address, phone, socials,
-  class_rate_cents AS classRateCents, active`;
+const TEACHER_COLUMNS = 'id, first_name AS firstName, last_name AS lastName, address, phone, socials, active';
 const SCHEDULE_COLUMNS = 'teacher_id AS teacherId, weekday, start_time AS startTime, end_time AS endTime';
 
 function teacherParams(fields: TeacherFields) {
@@ -33,7 +31,6 @@ function teacherParams(fields: TeacherFields) {
     address: fields.address,
     phone: fields.phone,
     socials: JSON.stringify(fields.socials),
-    classRateCents: fields.classRateCents,
     active: fields.active ? 1 : 0,
   };
 }
@@ -46,7 +43,6 @@ function toTeacher(row: TeacherRow, schedules: readonly ScheduleRow[]): Teacher 
     address: row.address,
     phone: row.phone,
     socials: storedSocials.parse(JSON.parse(row.socials)),
-    classRateCents: row.classRateCents,
     active: row.active === 1,
     schedules: schedules
       .filter((schedule) => schedule.teacherId === row.id)
@@ -57,8 +53,8 @@ function toTeacher(row: TeacherRow, schedules: readonly ScheduleRow[]): Teacher 
 export function insertTeacher(db: Db, fields: TeacherFields): number {
   const result = db
     .prepare(
-      `INSERT INTO teachers (first_name, last_name, address, phone, socials, class_rate_cents, active)
-       VALUES (@firstName, @lastName, @address, @phone, @socials, @classRateCents, @active)`,
+      `INSERT INTO teachers (first_name, last_name, address, phone, socials, active)
+       VALUES (@firstName, @lastName, @address, @phone, @socials, @active)`,
     )
     .run(teacherParams(fields));
   return Number(result.lastInsertRowid);
@@ -67,7 +63,7 @@ export function insertTeacher(db: Db, fields: TeacherFields): number {
 export function updateTeacher(db: Db, id: number, fields: TeacherFields): void {
   db.prepare(
     `UPDATE teachers SET first_name = @firstName, last_name = @lastName, address = @address, phone = @phone,
-       socials = @socials, class_rate_cents = @classRateCents, active = @active
+       socials = @socials, active = @active
      WHERE id = @id`,
   ).run({ ...teacherParams(fields), id });
 }

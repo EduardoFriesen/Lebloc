@@ -9,12 +9,13 @@ export interface PlanForSale {
   freePasses: number;
   teacherPasses: number;
   priceCents: number;
+  /** What the teacher gets for all the plan's teacher passes, charged on top of the price. */
+  teacherAmountCents: number;
   active: boolean;
 }
 
 export interface TeacherForSale {
   id: number;
-  classRateCents: number;
   active: boolean;
 }
 
@@ -25,24 +26,19 @@ export interface SaleSnapshot {
   teacherPasses: number;
   localPriceCents: number;
   teacherId: number | null;
-  teacherRateCents: number;
   teacherSurchargeCents: number;
   totalCents: number;
   splitRule: SplitRule;
 }
 
-export function computeSurcharge(teacherPasses: number, rateCents: number): number {
-  return teacherPasses * rateCents;
-}
-
 export function buildSaleSnapshot(plan: PlanForSale, teacher: TeacherForSale | null, splitRule: SplitRule): SaleSnapshot {
   if (!plan.active) throw new DomainError('INACTIVE_PLAN');
+  if (plan.teacherPasses > 0 && plan.teacherAmountCents <= 0) throw new DomainError('TEACHER_AMOUNT_MISSING');
   if (plan.teacherPasses > 0 && !teacher) throw new DomainError('TEACHER_REQUIRED');
   if (plan.teacherPasses === 0 && teacher) throw new DomainError('TEACHER_NOT_ALLOWED');
   if (teacher && !teacher.active) throw new DomainError('INACTIVE_TEACHER');
 
-  const teacherRateCents = teacher?.classRateCents ?? 0;
-  const teacherSurchargeCents = computeSurcharge(plan.teacherPasses, teacherRateCents);
+  const teacherSurchargeCents = plan.teacherPasses > 0 ? plan.teacherAmountCents : 0;
   return {
     planId: plan.id,
     planName: plan.name,
@@ -50,7 +46,6 @@ export function buildSaleSnapshot(plan: PlanForSale, teacher: TeacherForSale | n
     teacherPasses: plan.teacherPasses,
     localPriceCents: plan.priceCents,
     teacherId: teacher?.id ?? null,
-    teacherRateCents,
     teacherSurchargeCents,
     totalCents: plan.priceCents + teacherSurchargeCents,
     splitRule,

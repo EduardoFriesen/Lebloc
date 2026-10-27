@@ -135,6 +135,28 @@ describe('migrations', () => {
     expect(db.prepare("SELECT value FROM settings WHERE key = 'low_passes_threshold'").get()).toEqual({ value: '2' });
   });
 
+  it('moves the amount for the teacher from the teacher to the plan, keeping past sales', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 10).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 10');
+    db.exec(`
+      INSERT INTO teachers (id, first_name, last_name, class_rate_cents) VALUES (1, 'Juan', 'Pared', 250000);
+      INSERT INTO plans (id, name, free_passes, teacher_passes, price_cents) VALUES (1, 'Pack 4+4', 4, 4, 2000000);
+      INSERT INTO clients (id, first_name, last_name, enrolled_at, updated_at) VALUES (1, 'Ana', 'Roca', '2026-10-01', 'x');
+      INSERT INTO sales (client_id, plan_id, sold_at, plan_name, free_passes, teacher_passes, local_price_cents, teacher_id,
+        teacher_rate_cents, teacher_surcharge_cents, total_cents, split_rule)
+      VALUES (1, 1, '2026-10-05', 'Pack 4+4', 4, 4, 2000000, 1, 250000, 1000000, 3000000, 'proportional');
+    `);
+    migrate(db);
+    // No single rate to copy: each teacher had their own, so the plan waits for its amount in Planes.
+    expect(db.prepare('SELECT teacher_amount_cents AS amount FROM plans').get()).toEqual({ amount: 0 });
+    expect(db.prepare('SELECT teacher_surcharge_cents AS surcharge, total_cents AS total FROM sales').get()).toEqual({ surcharge: 1000000, total: 3000000 });
+    const columns = (table: string) => db.prepare<[], { name: string }>(`SELECT name FROM pragma_table_info('${table}')`).all().map((c) => c.name);
+    expect(columns('teachers')).not.toContain('class_rate_cents');
+    expect(columns('sales')).not.toContain('teacher_rate_cents');
+    expect(() => db.prepare('UPDATE plans SET teacher_amount_cents = -1').run()).toThrow(/CHECK/);
+  });
+
   it('refuses a database created by a newer app version', () => {
     const db = openDatabase(':memory:');
     db.pragma('user_version = 99');

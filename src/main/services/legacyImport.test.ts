@@ -76,11 +76,12 @@ describe('legacy spreadsheet import', () => {
     expect(listPlans(ctx, true).map((plan) => plan.name)).toEqual(
       expect.arrayContaining(['Libre x8', 'Con profe x4', 'Día libre', 'Con profe x8', 'Libre x4', 'Escuelita x4', 'Escuelita día']),
     );
-    expect(listTeachers(ctx, true).map((teacher) => [teacher.firstName, teacher.lastName, teacher.active, teacher.classRateCents])).toEqual(
+    expect(listPlans(ctx, true).find((plan) => plan.name === 'Con profe x4')).toMatchObject({ teacherPasses: 4, teacherAmountCents: 2_700_000 });
+    expect(listTeachers(ctx, true).map((teacher) => [teacher.firstName, teacher.lastName, teacher.active])).toEqual(
       expect.arrayContaining([
-        ['Fran', '', true, 0],
-        ['Pipi', '', true, 0],
-        ['Sin asignar', '', false, 0],
+        ['Fran', '', true],
+        ['Pipi', '', true],
+        ['Sin asignar', '', false],
       ]),
     );
     const balances = listTeacherBalances(ctx);

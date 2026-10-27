@@ -1,14 +1,13 @@
 import { type ChangeEvent, type FormEvent, useState } from 'react';
-import { parseMoneyInput } from '../../shared/money';
 import { teacherInput } from '../../shared/schemas';
 import type { Social, Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { CheckboxField, MoneyField, SelectField, TextField } from '../components/ui/Field';
+import { CheckboxField, SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { call } from '../lib/api';
 import { removeAt, replaceAt } from '../lib/arrays';
-import { formatMoneyInput, WEEKDAY_LABELS } from '../lib/format';
-import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
+import { WEEKDAY_LABELS } from '../lib/format';
+import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 
 interface ScheduleDraft {
   weekday: string;
@@ -22,7 +21,6 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
     lastName: teacher?.lastName ?? '',
     address: teacher?.address ?? '',
     phone: teacher?.phone ?? '',
-    rate: teacher ? formatMoneyInput(teacher.classRateCents) : '',
   });
   const [active, setActive] = useState(teacher?.active ?? true);
   const [socials, setSocials] = useState<Social[]>(teacher?.socials ?? []);
@@ -42,22 +40,17 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const classRateCents = parseMoneyInput(fields.rate);
     const parsed = teacherInput.safeParse({
       firstName: fields.firstName,
       lastName: fields.lastName,
       address: fields.address,
       phone: fields.phone,
       socials,
-      classRateCents: classRateCents ?? -1,
       active,
       schedules: schedules.map((s) => ({ weekday: Number(s.weekday), startTime: s.startTime, endTime: s.endTime })),
     });
-    if (!parsed.success || classRateCents === null) {
-      setErrors({
-        ...(parsed.success ? {} : toFieldErrors(parsed.error)),
-        ...(classRateCents === null ? { classRateCents: MONEY_ERROR } : {}),
-      });
+    if (!parsed.success) {
+      setErrors(toFieldErrors(parsed.error));
       return;
     }
     setErrors({});
@@ -83,10 +76,7 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
           <TextField label="Apellido" {...bind('lastName')} error={errors.lastName} />
           <TextField label="Dirección" {...bind('address')} error={errors.address} />
           <TextField label="Teléfono" type="tel" {...bind('phone')} error={errors.phone} />
-          <MoneyField label="Importe por clase" {...bind('rate')} error={errors.classRateCents} hint="Se usa para calcular el recargo al vender." />
-          <div className="flex items-end">
-            <CheckboxField label="Activo" checked={active} onChange={(event) => setActive(event.target.checked)} />
-          </div>
+          <CheckboxField label="Activo" checked={active} onChange={(event) => setActive(event.target.checked)} />
         </div>
       </fieldset>
 

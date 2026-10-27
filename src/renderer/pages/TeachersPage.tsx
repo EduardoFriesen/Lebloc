@@ -38,7 +38,6 @@ export function TeachersPage() {
             ...teacher,
             balanceCents: balance?.balanceCents ?? 0,
             pendingClasses: balance?.pendingClasses ?? 0,
-            pendingCents: balance?.pendingCents ?? 0,
           };
         });
     },
@@ -81,7 +80,6 @@ export function TeachersPage() {
                   key={teacher.id}
                   to={`/profesores/${teacher.id}`}
                   title={fullName(teacher)}
-                  subtitle={`${formatMoney(teacher.classRateCents)} por clase`}
                   muted={!teacher.active}
                   badges={!teacher.active && <Badge>Inactivo</Badge>}
                   actions={
@@ -91,13 +89,10 @@ export function TeachersPage() {
                   }
                 >
                   <StatRow>
-                    <Stat label="Saldo">
+                    <Stat label="Se le debe">
                       <span className={teacher.balanceCents < 0 ? 'text-danger' : ''}>{formatMoney(teacher.balanceCents)}</span>
                     </Stat>
-                    <Stat label="Clases por dar">
-                      {teacher.pendingClasses}
-                      {teacher.pendingClasses > 0 && <span className="block font-sans text-sm text-ink-soft">{formatMoney(teacher.pendingCents)}</span>}
-                    </Stat>
+                    <Stat label="Clases por dar">{teacher.pendingClasses}</Stat>
                   </StatRow>
                   {teacher.schedules.length === 0 ? (
                     <p className="text-sm text-ink-soft">Sin horarios</p>
@@ -140,7 +135,7 @@ export function TeachersPage() {
           },
           {
             label: 'Clases pendientes',
-            value: <SummaryValue count={data.pendingClasses} amount={data.pendingClasses > 0 ? formatMoney(data.pendingCents) : undefined} />,
+            value: <SummaryValue count={data.pendingClasses} />,
           },
         ]}
       />

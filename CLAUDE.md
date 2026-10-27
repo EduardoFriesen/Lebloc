@@ -34,7 +34,7 @@ No correr Vitest con el `node` del sistema: falla con `NODE_MODULE_VERSION`. Si 
 
 ## Reglas de dominio no obvias (de `lebloc.md`)
 
-- **El recargo por profesor no es ingreso del local.** Las clases con profesor están tercerizadas: el recargo se calcula a partir del importe por clase de cada profesor y se le debe a ese profesor. Tiene que quedar fuera de los ingresos del local en el balance, y el dashboard muestra cuánto le corresponde a cada profesor según las clases que tiene que dar.
+- **El recargo por profesor no es ingreso del local.** Las clases con profesor están tercerizadas: cada plan con clases con profesor tiene un monto para el profesor (total por esas clases, cargado en Planes) que se suma al precio del local al vender y se le debe al profesor elegido. Tiene que quedar fuera de los ingresos del local en el balance, y del profesor se muestra solo lo que se le debe (lo cobrado para él menos lo ya pagado), no el valor de las clases por dar.
 - **Un plan puede ser mixto:** N clases semanales con profesor más M clases libres, cada una con su precio, configurado por el administrador.
 - **Pagos parciales:** un plan se puede pagar en el momento o después, completo o en cuotas. Cada pago guarda su fecha, importe y medio (efectivo o transferencia). La deuda es el total del plan menos la suma de los pagos. Hace falta una vista de deudores.
 - **El consumo de pases se registra a mano:** lo marca el administrador, nunca se descuenta solo. Hay que avisar cuando a un cliente le quedan pocos pases.

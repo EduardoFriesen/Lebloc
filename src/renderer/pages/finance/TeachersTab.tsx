@@ -60,7 +60,6 @@ function TeachersView({ teachers }: { teachers: TeacherActivity[] }) {
               <th scope="col">Pagado en el período</th>
               <th scope="col">Saldo hoy</th>
               <th scope="col">Clases por dar</th>
-              <th scope="col">Valor</th>
             </tr>
           </thead>
           <tbody>
@@ -78,15 +77,13 @@ function TeachersView({ teachers }: { teachers: TeacherActivity[] }) {
                 <td className="tabular-nums">{formatMoney(teacher.paidOutCents)}</td>
                 <td className={`tabular-nums ${teacher.balanceCents < 0 ? 'text-danger' : ''}`}>{formatMoney(teacher.balanceCents)}</td>
                 <td className="tabular-nums">{teacher.pendingClasses}</td>
-                <td className="tabular-nums">{formatMoney(teacher.pendingCents)}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <p className="text-sm text-ink-soft">
-          Lo cobrado para el profesor sale del recargo de los planes con profesor: es del profesor, no es ingreso del local. El saldo es lo que
-          el local le debe hoy. Las clases por dar son los pases con profesor vendidos que todavía no se usaron, al valor de cada venta: se le
-          pagan a medida que los clientes pagan.
+          Lo cobrado para el profesor sale del monto para el profesor de cada plan: es del profesor, no es ingreso del local. El saldo es lo que
+          el local le debe hoy. Las clases por dar son los pases con profesor vendidos que todavía no se usaron.
         </p>
       </section>
     </div>

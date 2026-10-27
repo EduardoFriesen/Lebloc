@@ -7,7 +7,7 @@ import { voidPayment } from './payments';
 import { getTeacherAccount, registerPayout, voidPayout } from './payouts';
 import { createPlan } from './plans';
 import { sellPlan, voidSale } from './sales';
-import { createTeacher, updateTeacher } from './teachers';
+import { createTeacher } from './teachers';
 
 describe('teacher ledger', () => {
   let ctx: TestContext;
@@ -49,13 +49,12 @@ describe('teacher ledger', () => {
     ]);
   });
 
-  it('counts the classes left to give, valued at the rate each sale kept', () => {
-    // Ana's mixed plan left 4 classes with Juan at $2.500 each; one is used and then Juan's rate goes up.
+  it('counts the classes left to give, without valuing them', () => {
     const used = consume(ctx, { clientId, kind: 'teacher', note: null });
-    updateTeacher(ctx, { ...basicTeacher, id: teacherId, classRateCents: 900_000 });
-    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 3, pendingCents: 750_000 });
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 3 });
+    expect(getTeacherAccount(ctx, teacherId)).not.toHaveProperty('pendingCents');
     voidConsumption(ctx, used.id);
-    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 4, pendingCents: 1_000_000 });
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 4 });
   });
 
   it('leaves voided sales and archived clients out of the classes left to give', () => {
@@ -63,7 +62,7 @@ describe('teacher ledger', () => {
     const voided = sellPlan(ctx, { clientId: carlaId, planId, teacherId, splitRule: 'proportional', soldAt: '2026-10-05', initialPayment: null });
     voidSale(ctx, voided.id);
     archiveClient(ctx, clientId);
-    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 0, pendingCents: 0 });
+    expect(getTeacherAccount(ctx, teacherId)).toMatchObject({ pendingClasses: 0 });
   });
 
   it('rejects a payout dated after today', () => {

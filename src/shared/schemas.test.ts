@@ -46,9 +46,19 @@ describe('schemas', () => {
   });
 
   it('rejects plans without passes, pointing at freePasses', () => {
-    const result = planInput.safeParse({ name: 'Vacío', freePasses: 0, teacherPasses: 0, priceCents: 1000, active: true });
+    const result = planInput.safeParse({ name: 'Vacío', freePasses: 0, teacherPasses: 0, priceCents: 1000, teacherAmountCents: 0, active: true });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual(['freePasses']);
+  });
+
+  it('requires an amount for the teacher only when the plan has teacher passes', () => {
+    const plan = { name: 'Pack 4+4', freePasses: 4, teacherPasses: 4, priceCents: 1000, teacherAmountCents: 500, active: true };
+    expect(planInput.safeParse(plan).success).toBe(true);
+    const missing = planInput.safeParse({ ...plan, teacherAmountCents: 0 });
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0]?.path).toEqual(['teacherAmountCents']);
+    expect(planInput.safeParse({ ...plan, teacherPasses: 0, teacherAmountCents: 0 }).success).toBe(true);
+    expect(planInput.safeParse({ ...plan, teacherPasses: 0 }).success).toBe(false);
   });
 
   it('rejects schedules that end before they start', () => {

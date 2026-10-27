@@ -85,7 +85,6 @@ const teacherFields = {
   address: optionalText(200),
   phone: optionalText(30),
   socials: z.array(socialInput).max(10),
-  classRateCents: cents,
   active: z.boolean(),
   schedules: z.array(scheduleInput).max(30),
 };
@@ -97,12 +96,20 @@ const planFields = {
   freePasses: passCount,
   teacherPasses: passCount,
   priceCents: cents,
+  teacherAmountCents: cents,
   active: z.boolean(),
 };
-const hasPasses = (plan: { freePasses: number; teacherPasses: number }) => plan.freePasses + plan.teacherPasses > 0;
+type PlanCounts = { freePasses: number; teacherPasses: number; teacherAmountCents: number };
+const hasPasses = (plan: PlanCounts) => plan.freePasses + plan.teacherPasses > 0;
 const hasPassesIssue = { message: 'El plan tiene que tener al menos un pase', path: ['freePasses'] };
-export const planInput = z.object(planFields).refine(hasPasses, hasPassesIssue);
-export const planUpdate = z.object({ id, ...planFields }).refine(hasPasses, hasPassesIssue);
+// Only plans with teacher passes carry an amount for the teacher, and then it can't be zero.
+const teacherAmountFits = (plan: PlanCounts) => (plan.teacherPasses > 0) === (plan.teacherAmountCents > 0);
+const teacherAmountIssue = { message: 'Cargá el monto para el profesor', path: ['teacherAmountCents'] };
+export const planInput = z.object(planFields).refine(hasPasses, hasPassesIssue).refine(teacherAmountFits, teacherAmountIssue);
+export const planUpdate = z
+  .object({ id, ...planFields })
+  .refine(hasPasses, hasPassesIssue)
+  .refine(teacherAmountFits, teacherAmountIssue);
 
 const newPaymentFields = { amountCents: positiveCents, method: paymentMethodSchema, paidAt: isoDate };
 export const saleInput = z.object({

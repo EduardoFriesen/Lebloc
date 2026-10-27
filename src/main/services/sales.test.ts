@@ -55,10 +55,9 @@ describe('sales and payments', () => {
     });
   });
 
-  it('sells a mixed plan adding the teacher surcharge', () => {
+  it("sells a mixed plan adding the plan's amount for the teacher", () => {
     expect(sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId }))).toMatchObject({
       teacherName: 'Juan Pared',
-      teacherRateCents: 250_000,
       teacherSurchargeCents: 1_000_000,
       totalCents: 3_000_000,
       remainingFree: 4,
@@ -116,11 +115,10 @@ describe('sales and payments', () => {
     expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM sales').get()).toEqual({ n: 0 });
   });
 
-  it('keeps the sale snapshot when the plan or the teacher change later', () => {
+  it('keeps the sale snapshot when the plan changes later', () => {
     const sale = sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId }));
-    updatePlan(ctx, { ...mixedPlan, id: mixedPlanId, priceCents: 9_000_000 });
-    updateTeacher(ctx, { ...basicTeacher, id: teacherId, classRateCents: 900_000 });
-    expect(getSale(ctx, sale.id)).toMatchObject({ localPriceCents: 2_000_000, teacherRateCents: 250_000, totalCents: 3_000_000 });
+    updatePlan(ctx, { ...mixedPlan, id: mixedPlanId, priceCents: 9_000_000, teacherAmountCents: 4_000_000 });
+    expect(getSale(ctx, sale.id)).toMatchObject({ localPriceCents: 2_000_000, teacherSurchargeCents: 1_000_000, totalCents: 3_000_000 });
   });
 
   it('rejects payments above the debt and payments on voided sales', () => {
