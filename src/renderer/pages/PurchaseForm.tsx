@@ -41,10 +41,12 @@ function costPreview(product: Product | undefined, line: Line): string {
 interface PurchaseFormProps {
   onSaved: (purchase: KioskPurchase) => void;
   onCancel: () => void;
+  /** A product was created here: it exists even if the delivery is then cancelled. */
+  onProductCreated: () => void;
 }
 
 /** What the supplier brought: per product, the units and what they cost; each sets that product's unit cost. */
-export function PurchaseForm({ onSaved, onCancel }: PurchaseFormProps) {
+export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFormProps) {
   const products = useAsync(() => call('products:list', { includeInactive: false }), [], { keepPreviousData: true });
   const [paidAt, setPaidAt] = useState(todayIso());
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -213,6 +215,7 @@ export function PurchaseForm({ onSaved, onCancel }: PurchaseFormProps) {
               setCreating(false);
               products.reload();
               addProduct(product.id);
+              onProductCreated();
             }}
             onCancel={() => setCreating(false)}
           />

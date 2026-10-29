@@ -127,6 +127,26 @@ test('a supplier delivery sets the unit cost and shows in Gastos', async () => {
   await expect(merchandise()).toContainText(/\$\s0,00/);
 });
 
+test('a product created from a delivery shows up even if the delivery is cancelled', async () => {
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await page.getByRole('button', { name: 'Cargar entrega del proveedor' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Entrega del proveedor' });
+  await dialog.getByRole('button', { name: 'Nuevo producto' }).click();
+  const newProduct = page.getByRole('dialog', { name: 'Nuevo producto' });
+  await newProduct.getByLabel('Nombre', { exact: true }).fill('Turrón');
+  await newProduct.getByLabel('% de ganancia').fill('50');
+  await newProduct.getByLabel('Precio de venta').fill('800');
+  await newProduct.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(newProduct).toBeHidden();
+  await dialog.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(page.getByRole('table', { name: 'Productos', exact: true }).getByRole('row', { name: /Turrón/ })).toBeVisible();
+  await label('Buscar producto').fill('turr');
+  await expect(page.getByRole('button', { name: /^Turrón ·/ })).toBeVisible();
+  await label('Buscar producto').fill('');
+});
+
 test('the main menu collapses and expands', async () => {
   const menu = page.getByRole('navigation', { name: 'Principal' });
   await menu.getByRole('button', { name: 'Ocultar menú' }).click();

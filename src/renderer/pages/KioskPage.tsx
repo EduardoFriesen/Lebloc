@@ -304,6 +304,10 @@ function ProductsBlock({
               onPurchased();
             }}
             onCancel={() => setPurchasing(false)}
+            onProductCreated={() => {
+              products.reload();
+              onChanged();
+            }}
           />
         )}
       </Dialog>
