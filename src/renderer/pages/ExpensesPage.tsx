@@ -26,6 +26,7 @@ export function ExpensesPage() {
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const data = useAsync(() => call('expenses:month', { month }), [month], { keepPreviousData: true });
   const staff = useAsync(() => call('staff:stats', { month }), [month], { keepPreviousData: true });
+  const purchases = useAsync(() => call('purchases:list', { month }), [month], { keepPreviousData: true });
 
   function reload() {
     data.reload();
@@ -90,6 +91,11 @@ export function ExpensesPage() {
             label: 'Sueldos del mes',
             value: <span className="font-semibold">{staff.status === 'success' ? formatMoney(staff.data.monthCostCents) : '—'}</span>,
             onSelect: () => void navigate('/empleados'),
+          },
+          {
+            label: 'Mercadería del kiosco',
+            value: <span className="font-semibold">{purchases.status === 'success' ? formatMoney(purchases.data.totalCents) : '—'}</span>,
+            onSelect: () => void navigate('/kiosco'),
           },
         ]}
       />

@@ -27,17 +27,20 @@ import {
 } from '../components/ui/table';
 import { call } from '../lib/api';
 import { sum } from '../lib/arrays';
-import { formatMoney, formatTime, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
+import { currentMonthIso, formatDate, formatMoney, formatTime, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
 import { matchesSearch } from '../lib/search';
 import { useAsync } from '../lib/useAsync';
-import type { KioskSale, Product } from '../../shared/types';
+import type { KioskPurchase, KioskSale, Product } from '../../shared/types';
 import { ProductForm } from './ProductForm';
+import { PurchaseForm } from './PurchaseForm';
 
 const HEADING = 'font-display text-2xl font-semibold';
 
 export function KioskPage() {
   // Picked from the summary: only active (true), only inactive (false) or all (null).
   const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
+  // Bumped when a delivery is saved, so its list reloads.
+  const [purchases, setPurchases] = useState(0);
   const stats = useAsync(() => call('kiosk:stats', {}), []);
 
   return (
@@ -56,9 +59,15 @@ export function KioskPage() {
       </div>
       {/* The scroll padding keeps focused rows out from under the sticky headings. */}
       <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
-        <ProductsBlock onlyActive={onlyActive} onChanged={stats.reload} />
+        <ProductsBlock
+          onlyActive={onlyActive}
+          onChanged={stats.reload}
+          onPurchased={() => setPurchases((count) => count + 1)}
+        />
         <Stripe />
         <SalesBlock onChanged={stats.reload} />
+        <Stripe />
+        <PurchasesBlock version={purchases} />
       </div>
       <SummaryTable
         state={stats}
@@ -167,9 +176,11 @@ function ProductsTable({
 function ProductsBlock({
   onlyActive,
   onChanged,
+  onPurchased,
 }: {
   onlyActive: boolean | null;
   onChanged: () => void;
+  onPurchased: () => void;
 }) {
   const headingId = useId();
   const products = useAsync(
@@ -179,6 +190,7 @@ function ProductsBlock({
   );
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -195,6 +207,9 @@ function ProductsBlock({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          <Button variant="secondary" onClick={() => setPurchasing(true)}>
+            Cargar entrega del proveedor
+          </Button>
           <Button onClick={() => setEditing('new')}>Nuevo producto</Button>
         </div>
       </div>
@@ -230,6 +245,18 @@ function ProductsBlock({
               onChanged();
             }}
             onCancel={() => setEditing(null)}
+          />
+        )}
+      </Dialog>
+      <Dialog open={purchasing} wide title="Entrega del proveedor" onClose={() => setPurchasing(false)}>
+        {purchasing && (
+          <PurchaseForm
+            onSaved={() => {
+              setPurchasing(false);
+              products.reload();
+              onPurchased();
+            }}
+            onCancel={() => setPurchasing(false)}
           />
         )}
       </Dialog>
@@ -370,6 +397,97 @@ function SalesBlock({ onChanged }: { onChanged: () => void }) {
           setPending(null);
           sales.reload();
           onChanged();
+        }}
+        onClose={() => setPending(null)}
+      />
+    </section>
+  );
+}
+
+function PurchasesTable({ purchases, onVoid }: { purchases: KioskPurchase[]; onVoid: (purchase: KioskPurchase) => void }) {
+  const { visible, page, pages, setPage } = usePage(purchases, TABLE_PAGE_SIZE);
+  return (
+    <>
+      <table className={tableClass}>
+        <caption className="sr-only">Entregas del proveedor</caption>
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Productos</th>
+            <th scope="col">Medio</th>
+            <th scope="col">Total</th>
+            <th scope="col">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((purchase) => (
+            <tr key={purchase.id} className={purchase.voidedAt ? 'text-ink-soft line-through' : ''}>
+              <td>{formatDate(purchase.paidAt)}</td>
+              <td>{purchase.items.map((item) => `${item.quantity} × ${item.productName}`).join(', ')}</td>
+              <td>{PAYMENT_METHOD_LABELS[purchase.method]}</td>
+              <td className="font-semibold">{formatMoney(purchase.totalCents)}</td>
+              <td className="text-right">
+                {purchase.voidedAt ? (
+                  <span className="inline-block no-underline">
+                    <Badge>Anulada</Badge>
+                  </span>
+                ) : (
+                  <Button variant="ghost" aria-label={`Anular entrega del ${formatDate(purchase.paidAt)}`} onClick={() => onVoid(purchase)}>
+                    Anular
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+          <FillerRows filled={visible.length} columns={5} empty="No hay entregas cargadas este mes." />
+        </tbody>
+      </table>
+      <PageBar keep label="Entregas" page={page} pages={pages} onChange={setPage} />
+    </>
+  );
+}
+
+/** Supplier deliveries of a month. Voiding one leaves the product cost as it is: it is fixed by hand if needed. */
+function PurchasesBlock({ version }: { version: number }) {
+  const headingId = useId();
+  const [month, setMonth] = useState(currentMonthIso());
+  const purchases = useAsync(() => call('purchases:list', { month }), [month, version], { keepPreviousData: true });
+  const [pending, setPending] = useState<ConfirmRequest | null>(null);
+
+  function askVoid(purchase: KioskPurchase) {
+    setPending({
+      title: 'Anular entrega',
+      message: `Se anula la entrega de ${formatMoney(purchase.totalCents)} del ${formatDate(purchase.paidAt)}. Deja de contar en el balance; el costo de los productos no cambia.`,
+      confirmLabel: 'Anular entrega',
+      action: () => call('purchases:void', { id: purchase.id }),
+    });
+  }
+
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <div className={`${STICKY_HEADING} flex flex-wrap items-end justify-between gap-3`}>
+        <h2 id={headingId} className={HEADING}>
+          Entregas del proveedor
+        </h2>
+        <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
+      </div>
+      <AsyncView state={purchases}>
+        {(data) => (
+          <>
+            <p className="text-sm">
+              Total del mes: <strong>{formatMoney(data.totalCents)}</strong>
+            </p>
+            <PurchasesTable key={month} purchases={data.purchases} onVoid={askVoid} />
+          </>
+        )}
+      </AsyncView>
+      <ConfirmDialog
+        request={pending}
+        onDone={() => {
+          setPending(null);
+          purchases.reload();
         }}
         onClose={() => setPending(null)}
       />

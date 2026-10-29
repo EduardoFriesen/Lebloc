@@ -82,6 +82,59 @@ test('create a product, sell it at the counter and void the ticket', async () =>
   await expect(movements.getByRole('row', { name: /Kiosco.*1 × Magnesio/ })).toBeVisible();
 });
 
+test('a supplier delivery sets the unit cost and shows in Gastos', async () => {
+  const nav = page.getByRole('navigation', { name: 'Principal' });
+  const products = page.getByRole('table', { name: 'Productos', exact: true });
+  const deliveries = page.getByRole('table', { name: 'Entregas del proveedor', exact: true });
+  const merchandise = () => page.getByRole('complementary', { name: 'Resumen' }).getByRole('row', { name: /Mercadería del kiosco/ });
+
+  await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await page.getByRole('button', { name: 'Cargar entrega del proveedor' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Entrega del proveedor' });
+  const first = dialog.getByRole('group', { name: 'Línea 1' });
+  await first.getByLabel('Producto').selectOption({ label: 'Agua' });
+  await first.getByLabel('Cantidad').fill('24');
+  await first.getByLabel('Costo total').fill('26.400');
+  await expect(first).toContainText(/\$\s1\.100,00 c\/u \(antes \$\s1\.000,00\)/);
+
+  // A product the supplier brings for the first time is created right there; Escape closes only its dialog.
+  await dialog.getByRole('button', { name: 'Nuevo producto' }).click();
+  const newProduct = page.getByRole('dialog', { name: 'Nuevo producto' });
+  await expect(newProduct.getByLabel('Costo unitario')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(newProduct).toBeHidden();
+  await expect(first.getByLabel('Cantidad')).toHaveValue('24');
+  await dialog.getByRole('button', { name: 'Nuevo producto' }).click();
+  await newProduct.getByLabel('Nombre', { exact: true }).fill('Chicle');
+  await newProduct.getByLabel('% de ganancia').fill('100');
+  await newProduct.getByLabel('Precio de venta').fill('500');
+  await newProduct.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(newProduct).toBeHidden();
+  const second = dialog.getByRole('group', { name: 'Línea 2' });
+  await expect(second.getByLabel('Producto').locator('option:checked')).toHaveText('Chicle');
+  await second.getByLabel('Cantidad').fill('20');
+  await second.getByLabel('Costo total').fill('4.000');
+  await expect(dialog).toContainText(/Total pagado: \$\s30\.400,00/);
+  await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
+  await expect(products.getByRole('row', { name: /Chicle/ })).toContainText(/\$\s200,00/);
+  await expect(deliveries.getByRole('row', { name: /24 × Agua, 20 × Chicle/ })).toContainText(/\$\s30\.400,00/);
+
+  await nav.getByRole('link', { name: 'Gastos', exact: true }).click();
+  await expect(merchandise()).toContainText(/\$\s30\.400,00/);
+
+  // Voiding it takes it out of the month but leaves the product cost as it is.
+  await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await deliveries.getByRole('button', { name: /Anular entrega/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Anular entrega' }).click();
+  await expect(deliveries.getByText('Anulada')).toBeVisible();
+  await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
+  await nav.getByRole('link', { name: 'Gastos', exact: true }).click();
+  await expect(merchandise()).toContainText(/\$\s0,00/);
+});
+
 test('the main menu collapses and expands', async () => {
   const menu = page.getByRole('navigation', { name: 'Principal' });
   await menu.getByRole('button', { name: 'Ocultar menú' }).click();

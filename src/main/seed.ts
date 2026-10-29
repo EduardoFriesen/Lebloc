@@ -14,6 +14,7 @@ import { consume, voidConsumption } from './services/consumptions';
 import { sellCounter, updateCounterPrices } from './services/counterSales';
 import { sellKiosk, voidKioskSale } from './services/kiosk';
 import { createProduct, updateProduct } from './services/products';
+import { createPurchase } from './services/purchases';
 import { registerPayment, voidPayment } from './services/payments';
 import { getTeacherAccount, registerPayout, voidPayout } from './services/payouts';
 import { createPlan, updatePlan } from './services/plans';
@@ -419,6 +420,17 @@ export function seedDatabase(db: Db, now: Date): void {
     ticket(0, 10, 'cash', [[agua, 2]]);
     ticket(0, 15, 'transfer', [[isotonica, 1], [barrita, 2]]);
     ticket(0, 18, 'cash', [[alfajor, 3], [cinta, 1]]);
+
+    // Hoy llegó el proveedor: agua y barritas al mismo costo que tenían.
+    at(0, Math.min(9, now.getHours()));
+    createPurchase(ctx, {
+      paidAt: toIsoDate(now),
+      method: 'cash',
+      items: [
+        { productId: agua, quantity: 24, costCents: pesos(24_000) },
+        { productId: barrita, quantity: 24, costCents: pesos(14_400) },
+      ],
+    });
 
     // Carla paga hoy otra cuota (debía $24.000, queda en $20.000): fila de plan en "Movimientos de hoy".
     at(0, Math.min(17, now.getHours()));

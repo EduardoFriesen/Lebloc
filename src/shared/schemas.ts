@@ -157,7 +157,7 @@ export const purchaseInput = z.object({
   paidAt: isoDate,
   method: paymentMethodSchema,
   items: z
-    .array(z.object({ productId: id, quantity: z.number().int().min(1).max(10_000), costCents: cents }))
+    .array(z.object({ productId: id, quantity: z.number().int('Ingresá un número entero').min(1, 'Ingresá al menos 1').max(10_000), costCents: cents }))
     .min(1, 'Agregá al menos un producto')
     .max(50)
     .superRefine((items, ctx) => {
