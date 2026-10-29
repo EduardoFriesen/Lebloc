@@ -153,6 +153,21 @@ export const kioskSellInput = z.object({
   method: paymentMethodSchema,
 });
 export const kioskSalesInput = z.object({ date: isoDate });
+export const purchaseInput = z.object({
+  paidAt: isoDate,
+  method: paymentMethodSchema,
+  items: z
+    .array(z.object({ productId: id, quantity: z.number().int().min(1).max(10_000), costCents: cents }))
+    .min(1, 'Agregá al menos un producto')
+    .max(50)
+    .superRefine((items, ctx) => {
+      const seen = new Set<number>();
+      items.forEach((item, index) => {
+        if (seen.has(item.productId)) ctx.addIssue({ code: 'custom', path: [index, 'productId'], message: 'Ese producto ya está en la entrega' });
+        seen.add(item.productId);
+      });
+    }),
+});
 export const counterPricesInput = z.object({ dayPassCents: cents, shoeRentalCents: cents });
 export const counterSellInput = z.object({
   kinds: z
@@ -231,6 +246,7 @@ export type SettingsInput = z.infer<typeof settingsInput>;
 export type WaiverInput = z.infer<typeof waiverInput>;
 export type ProductInput = z.infer<typeof productInput>;
 export type ProductUpdate = z.infer<typeof productUpdate>;
+export type PurchaseInput = z.infer<typeof purchaseInput>;
 export type KioskSellInput = z.infer<typeof kioskSellInput>;
 export type CounterSellInput = z.infer<typeof counterSellInput>;
 export type MonthInput = z.infer<typeof monthInput>;

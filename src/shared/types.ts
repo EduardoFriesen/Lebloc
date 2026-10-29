@@ -324,6 +324,36 @@ export interface KioskSale {
   totalCents: number;
 }
 
+export interface KioskPurchaseItem {
+  productId: number;
+  /** Snapshot taken when the delivery was entered. */
+  productName: string;
+  quantity: number;
+  /** What the whole line cost. */
+  costCents: number;
+  /** Derived: cost / quantity, the product's new unit cost. */
+  unitCostCents: number;
+}
+
+/** A supplier delivery: the kiosk stock bought and paid on `paidAt`. */
+export interface KioskPurchase {
+  id: number;
+  paidAt: string;
+  method: PaymentMethod;
+  recordedAt: string;
+  voidedAt: string | null;
+  items: KioskPurchaseItem[];
+  /** Derived from the items: never stored. */
+  totalCents: number;
+}
+
+export interface KioskPurchaseMonth {
+  /** Voided ones included, newest first. */
+  purchases: KioskPurchase[];
+  /** Non-voided only. */
+  totalCents: number;
+}
+
 export type CounterSaleKind = 'day_pass' | 'shoe_rental';
 
 /** A walk-in day pass or a shoe rental, charged at the counter without a client. */

@@ -15,3 +15,7 @@ export function ticketTotalCents(items: readonly { quantity: number; unitPriceCe
 export function ticketProfitCents(items: readonly { quantity: number; unitPriceCents: number; unitCostCents: number }[]): number {
   return items.reduce((total, item) => total + item.quantity * (item.unitPriceCents - item.unitCostCents), 0);
 }
+
+export function purchaseTotalCents(items: readonly { costCents: number }[]): number {
+  return items.reduce((total, item) => total + item.costCents, 0);
+}

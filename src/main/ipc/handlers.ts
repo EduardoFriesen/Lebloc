@@ -35,6 +35,7 @@ import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } fr
 import { getDayEntries, getDayMovements } from '../services/counter';
 import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
+import { createPurchase, getPurchaseMonth, voidPurchase } from '../services/purchases';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
 import { sellPlan, setSaleExpiry, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
@@ -93,6 +94,9 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'kiosk:sales': ({ date }) => listKioskSales(ctx, date),
     'kiosk:top': () => listTopProducts(ctx),
     'kiosk:stats': () => getKioskStats(ctx),
+    'purchases:create': (input) => createPurchase(ctx, input),
+    'purchases:list': ({ month }) => getPurchaseMonth(ctx, month),
+    'purchases:void': ({ id }) => voidPurchase(ctx, id),
     'counter:today': () => getDayMovements(ctx),
     'counter:entries': () => getDayEntries(ctx),
     'counter:sell': (input) => sellCounter(ctx, input),
