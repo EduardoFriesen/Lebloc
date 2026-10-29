@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { must } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
+import {
+  adultClient,
+  basicTeacher,
+  createTestContext,
+  FAR_EXPIRY,
+  freePlan,
+  mixedPlan,
+  setKioskPurchasesFrom,
+  TEST_NOW,
+  type TestContext,
+} from '../test-context';
 import { createClient } from './clients';
 import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
@@ -12,6 +22,7 @@ import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
 import { createPlan } from './plans';
 import { createProduct } from './products';
+import { createPurchase, voidPurchase } from './purchases';
 import { sellPlan } from './sales';
 import { createTeacher } from './teachers';
 
@@ -23,6 +34,7 @@ const OCTOBER = { from: '2026-10-01', to: '2026-10-05' };
  * - Ana (enrolled 10-01) buys a free plan on 09-20, pays half then and half on 10-02; on 10-03 she buys the mixed
  *   plan with Juan, fully paid ($20.000 local + $10.000 teacher), climbs free on 10-03 at 23:30 and with Juan on 10-04.
  * - Juan gets a $4.000 payout on 10-04; Leo is an inactive teacher with nothing.
+ * - On 10-02 a supplier delivery paid in cash: 6 waters for $12.000 ($2.000 each, the cost they already had).
  * - Today: a $3.000 kiosk ticket (cost $2.000), a voided one, and a day pass with shoes ($8.000 + $3.000).
  * - Expenses: rent $40.000 on 10-01 and a voided gas bill; one 4-hour shift at $5.000 on 10-04.
  */
@@ -68,6 +80,7 @@ function scenario(ctx: TestContext) {
 
   const water = createProduct(ctx, { name: 'Agua', description: null, unitCostCents: 200_000, markupPercent: 50, priceCents: 300_000, active: true }).id;
   createProduct(ctx, { name: 'Barrita', description: null, unitCostCents: 100_000, markupPercent: 50, priceCents: 150_000, active: true });
+  createPurchase(ctx, { paidAt: '2026-10-02', method: 'cash', items: [{ productId: water, quantity: 6, costCents: 1_200_000 }] });
   sellKiosk(ctx, { items: [{ productId: water, quantity: 1 }], method: 'cash' });
   voidKioskSale(ctx, sellKiosk(ctx, { items: [{ productId: water, quantity: 5 }], method: 'cash' }).id);
   updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
@@ -96,6 +109,24 @@ describe('finance', () => {
     scenario(ctx);
   });
 
+  describe('kiosk merchandise', () => {
+    it('counts the cost of tickets sold before the switch and the deliveries paid after it', () => {
+      const fresh = createTestContext();
+      setKioskPurchasesFrom(fresh, '2026-10-04');
+      const product = createProduct(fresh, { name: 'Agua', description: null, unitCostCents: 100_000, markupPercent: 50, priceCents: 150_000, active: true }).id;
+      fresh.clock.set(new Date(2026, 9, 3, 12));
+      sellKiosk(fresh, { items: [{ productId: product, quantity: 1 }], method: 'cash' });
+      fresh.clock.set(TEST_NOW);
+      sellKiosk(fresh, { items: [{ productId: product, quantity: 1 }], method: 'cash' });
+      createPurchase(fresh, { paidAt: '2026-10-05', method: 'transfer', items: [{ productId: product, quantity: 3, costCents: 300_000 }] });
+      voidPurchase(fresh, createPurchase(fresh, { paidAt: '2026-10-05', method: 'cash', items: [{ productId: product, quantity: 1, costCents: 999_900 }] }).id);
+
+      expect(getFinanceSummary(fresh, OCTOBER).totals.kiosk_cost).toBe(400_000);
+      expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'transfer' }).totals.kiosk_cost).toBe(300_000);
+      expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'cash' }).totals.kiosk_cost).toBe(0);
+    });
+  });
+
   describe('summary', () => {
     it('counts what was collected in the range, keeping the teacher share apart', () => {
       const summary = getFinanceSummary(ctx, OCTOBER);
@@ -103,17 +134,17 @@ describe('finance', () => {
         plans: 3_000_000, // $10.000 of the September plan's second half + $20.000 local of the mixed plan
         teacher: 1_000_000,
         kiosk: 300_000,
-        kiosk_cost: 200_000,
+        kiosk_cost: 1_200_000, // the delivery, not the ticket's cost
         day_pass: 800_000,
         shoe_rental: 300_000,
         expenses: 4_000_000,
         staff: 2_000_000,
       });
-      expect(summary.current).toEqual({ incomeCents: 4_400_000, expensesCents: 6_200_000, resultCents: -1_800_000 });
+      expect(summary.current).toEqual({ incomeCents: 4_400_000, expensesCents: 7_200_000, resultCents: -2_800_000 });
       expect(summary.expensesByCategory).toEqual([{ category: 'rent', cents: 4_000_000 }]);
     });
 
-    it('splits by payment method, with salaries from the settlements paid that way and no kiosk stock', () => {
+    it('splits by payment method, with salaries from the settlements paid that way and the kiosk deliveries paid that way', () => {
       const employeeId = must(listEmployees(ctx, false, '2026-10')[0]).id;
       settleShifts(ctx, { employeeId, ...OCTOBER, paidAt: '2026-10-05', method: 'cash' });
 
@@ -123,7 +154,7 @@ describe('finance', () => {
         plans: 1_000_000,
         teacher: 0,
         kiosk: 300_000,
-        kiosk_cost: 0,
+        kiosk_cost: 1_200_000,
         day_pass: 800_000,
         shoe_rental: 300_000,
         expenses: 0,
@@ -167,10 +198,10 @@ describe('finance', () => {
       expect(granularity).toBe('day');
       expect(series).toEqual([
         { bucket: '2026-10-01', plans: 0, kiosk: 0, day_pass: 0, shoe_rental: 0, outflow: 4_000_000 },
-        { bucket: '2026-10-02', plans: 1_000_000, kiosk: 0, day_pass: 0, shoe_rental: 0, outflow: 0 },
+        { bucket: '2026-10-02', plans: 1_000_000, kiosk: 0, day_pass: 0, shoe_rental: 0, outflow: 1_200_000 },
         { bucket: '2026-10-03', plans: 2_000_000, kiosk: 0, day_pass: 0, shoe_rental: 0, outflow: 0 },
         { bucket: '2026-10-04', plans: 0, kiosk: 0, day_pass: 0, shoe_rental: 0, outflow: 2_000_000 },
-        { bucket: '2026-10-05', plans: 0, kiosk: 300_000, day_pass: 800_000, shoe_rental: 300_000, outflow: 200_000 },
+        { bucket: '2026-10-05', plans: 0, kiosk: 300_000, day_pass: 800_000, shoe_rental: 300_000, outflow: 0 },
       ]);
     });
 

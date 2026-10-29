@@ -51,7 +51,7 @@ export function ExpenseForm({ repeat, onSaved, onCancel }: ExpenseFormProps) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
-      <p className="text-sm text-ink-soft">La mercadería del kiosco no va acá: su costo se descuenta en cada venta.</p>
+      <p className="text-sm text-ink-soft">La mercadería del kiosco no va acá: se carga como entrega del proveedor en Kiosco.</p>
       <div className="grid grid-cols-2 gap-4">
         <SelectField
           label="Categoría"

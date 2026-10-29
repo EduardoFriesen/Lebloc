@@ -19,7 +19,7 @@ export function sumBySource(rows: readonly { source: MoneySource; cents: number 
 
 /**
  * What the local keeps. The teacher share of plan payments is passed on to the teacher, so it is never income;
- * kiosk stock is not an expense when bought but its cost is, sale by sale.
+ * kiosk stock is an expense when the supplier is paid.
  */
 export function balanceOf(totals: SourceTotals): Balance {
   const incomeCents = totals.plans + totals.kiosk + totals.day_pass + totals.shoe_rental;

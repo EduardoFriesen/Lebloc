@@ -16,7 +16,7 @@ export interface TestContext extends Context {
 
 export function createTestContext(now: Date = TEST_NOW): TestContext {
   let current = now;
-  return {
+  const ctx: TestContext = {
     db: openDatabase(':memory:'),
     clock: {
       now: () => current,
@@ -25,6 +25,14 @@ export function createTestContext(now: Date = TEST_NOW): TestContext {
       },
     },
   };
+  // The migration sets the real install day; tests count kiosk stock by delivery unless they move it.
+  setKioskPurchasesFrom(ctx, '2000-01-01');
+  return ctx;
+}
+
+/** From this day the kiosk stock counts when the supplier is paid; before it, ticket by ticket. */
+export function setKioskPurchasesFrom(ctx: TestContext, date: string): void {
+  ctx.db.prepare("UPDATE settings SET value = ? WHERE key = 'kiosk_purchases_from'").run(date);
 }
 
 export const adultClient: ClientInput = {

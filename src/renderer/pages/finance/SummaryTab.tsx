@@ -144,7 +144,7 @@ function SummaryView({ data, byMethod }: { data: FinanceSummary; byMethod: boole
               <StatementRow key={row.category} label={EXPENSE_CATEGORY_LABELS[row.category]} cents={-row.cents} />
             ))}
             <StatementRow label={byMethod ? 'Sueldos liquidados' : 'Sueldos'} cents={-totals.staff} />
-            {!byMethod && <StatementRow label="Mercadería vendida del kiosco" cents={-totals.kiosk_cost} />}
+            <StatementRow label="Mercadería del kiosco" cents={-totals.kiosk_cost} />
             <StatementRow label="Total egresos" cents={-current.expensesCents} strong />
             <StatementRow label="Resultado" cents={current.resultCents} strong />
           </tbody>
@@ -154,8 +154,8 @@ function SummaryView({ data, byMethod }: { data: FinanceSummary; byMethod: boole
         </p>
         {byMethod && (
           <p className="text-sm text-ink-soft">
-            Los sueldos son las liquidaciones pagadas con este medio en el período. La mercadería vendida del kiosco no tiene medio de pago:
-            solo cuenta en Total.
+            Los sueldos son las liquidaciones pagadas con este medio en el período, y la mercadería del kiosco, las entregas del
+            proveedor pagadas con este medio.
           </p>
         )}
       </section>

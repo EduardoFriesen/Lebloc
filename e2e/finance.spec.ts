@@ -53,12 +53,12 @@ test('filter the summary by payment method, starting on the total', async () => 
   const methods = page.getByRole('group', { name: 'Medio de pago' });
   const statement = page.getByRole('table', { name: 'Estado de resultados del período' });
   await expect(methods.getByRole('button', { name: 'Total' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(statement.getByRole('row', { name: /Mercadería vendida del kiosco/ })).toBeVisible();
+  await expect(statement.getByRole('row', { name: /Mercadería del kiosco/ })).toBeVisible();
 
   await methods.getByRole('button', { name: 'Efectivo' }).click();
   await expect(statement.getByRole('row', { name: /Sueldos liquidados/ })).toBeVisible();
-  await expect(statement.getByRole('row', { name: /Mercadería vendida del kiosco/ })).toBeHidden();
-  await expect(page.getByText(/no tiene medio de pago: solo cuenta en Total/)).toBeVisible();
+  await expect(statement.getByRole('row', { name: /Mercadería del kiosco/ })).toBeVisible();
+  await expect(page.getByText(/entregas del\s+proveedor pagadas con este medio/)).toBeVisible();
 
   await methods.getByRole('button', { name: 'Transferencia' }).click();
   await expect(methods.getByRole('button', { name: 'Transferencia' })).toHaveAttribute('aria-pressed', 'true');
@@ -66,7 +66,7 @@ test('filter the summary by payment method, starting on the total', async () => 
 
   await methods.getByRole('button', { name: 'Total' }).click();
   await expect(statement.getByRole('row', { name: /^Sueldos/ })).not.toContainText('liquidados');
-  await expect(statement.getByRole('row', { name: /Mercadería vendida del kiosco/ })).toBeVisible();
+  await expect(statement.getByRole('row', { name: /Mercadería del kiosco/ })).toBeVisible();
 });
 
 test('falls back to this month on an invalid URL range and shows the empty state for a quiet period', async () => {
