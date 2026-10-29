@@ -153,6 +153,7 @@ export function listClientSummaries(db: Db, filters: ClientSummaryFilters): Clie
          COALESCE(SUM(ss.left_free), 0) AS remainingFree,
          COALESCE(SUM(ss.left_teacher), 0) AS remainingTeacher,
          MAX(CASE WHEN ss.left_free + ss.left_teacher > 0 THEN ss.expires_at END) AS expiresAt,
+         MIN(CASE WHEN ss.left_free + ss.left_teacher > 0 THEN ss.sold_at END) AS startedAt,
          COALESCE(SUM(ss.total_cents - ss.paid_cents), 0) AS debtCents,
          MIN(CASE WHEN ss.total_cents - ss.paid_cents > 0 THEN ss.sold_at END) AS oldestDebtSoldAt,
          ${LAST_SIGNED_AT_SQL} AS waiverSignedAt

@@ -193,6 +193,30 @@ describe('clients service', () => {
     expect(getClientAccount(ctx, carla)).toMatchObject({ lowOnPasses: false, expiresAt: '2026-11-01' });
   });
 
+  it('startedAt is the oldest sale with usable passes', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string, expiresAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt, initialPayment: null });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const startedAt = (firstName: string) =>
+      listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).find(
+        (client) => client.firstName === firstName,
+      )?.startedAt;
+
+    // An expired sale doesn't count: its passes are lost.
+    sell(ana, '2026-09-01', '2026-09-30');
+    sell(ana, '2026-09-20', FAR_EXPIRY);
+    expect(startedAt('Ana')).toBe('2026-09-20');
+    sell(ana, '2026-10-01', FAR_EXPIRY);
+    expect(startedAt('Ana')).toBe('2026-09-20');
+    for (let pass = 0; pass < freePlan.freePasses; pass += 1) consume(ctx, { clientId: ana, kind: 'free', note: null });
+    expect(startedAt('Ana')).toBe('2026-10-01');
+
+    sell(bruno, '2026-09-01', '2026-09-30');
+    expect(startedAt('Bruno')).toBeNull();
+  });
+
   it('lists only clients whose waiver is missing or expired on request', () => {
     createClient(ctx, adultClient);
     const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;

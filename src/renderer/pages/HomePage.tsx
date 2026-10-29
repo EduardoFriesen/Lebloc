@@ -14,7 +14,7 @@ import { PagedList } from '../components/ui/Pager';
 import { STICKY_HEADING, SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
+import { debtLabel, formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
 import { errorMessage } from '../lib/formErrors';
 import { type AsyncResult, useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
@@ -199,6 +199,7 @@ function ResultRow({ client, busy, onConsume }: Pick<SearchResultsProps, 'busy' 
           <span>
             Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
           </span>
+          {client.startedAt && <span>Inició el {formatDate(client.startedAt).slice(0, 5)}</span>}
           <PassBadge status={client.passStatus} expiresAt={client.expiresAt} />
           {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
           {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}

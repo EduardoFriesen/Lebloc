@@ -53,6 +53,8 @@ export interface ClientSummary {
   debtDays: number | null;
   /** Last day any of the passes left can be used; null without passes left. */
   expiresAt: string | null;
+  /** Day the oldest sale with passes left was sold; null without passes left. */
+  startedAt: string | null;
   passStatus: PassStatus;
   waiver: WaiverStatus;
 }

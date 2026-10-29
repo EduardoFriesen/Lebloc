@@ -264,6 +264,7 @@ test('a pass marked at the counter shows in today entries and can be voided ther
   await expect(results).toBeHidden();
   await search.fill('Ana Roc');
   await expect(results).toBeVisible();
+  await expect(results.getByRole('listitem').filter({ hasText: 'Ana Roca' })).toContainText(/Inició el \d{2}\/\d{2}/);
 
   await results.getByRole('button', { name: 'Pase libre para Ana Roca' }).click();
   await expect(page.getByText('Ana Roca: pase libre registrado.')).toBeVisible();
