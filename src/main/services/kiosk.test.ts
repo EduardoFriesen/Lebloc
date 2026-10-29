@@ -8,8 +8,8 @@ import type { ProductInput } from '../../shared/schemas';
 
 const alfajor: ProductInput = {
   name: 'Alfajor',
-  packSize: 12,
-  packCostCents: 600_000,
+  description: null,
+  unitCostCents: 50_000,
   markupPercent: 50,
   priceCents: 75_000,
   active: true,
@@ -23,7 +23,7 @@ describe('kiosk sales', () => {
   beforeEach(() => {
     ctx = createTestContext();
     alfajorId = createProduct(ctx, alfajor).id;
-    aguaId = createProduct(ctx, { ...alfajor, name: 'Agua', packSize: 6, packCostCents: 300_000, priceCents: 100_000 }).id;
+    aguaId = createProduct(ctx, { ...alfajor, name: 'Agua', unitCostCents: 50_000, priceCents: 100_000 }).id;
   });
 
   const sell = () =>

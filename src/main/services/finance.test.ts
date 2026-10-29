@@ -66,8 +66,8 @@ function scenario(ctx: TestContext) {
   ctx.clock.set(TEST_NOW);
   registerPayout(ctx, { teacherId, amountCents: 400_000, method: 'cash', paidAt: '2026-10-04', note: null });
 
-  const water = createProduct(ctx, { name: 'Agua', packSize: 6, packCostCents: 1_200_000, markupPercent: 50, priceCents: 300_000, active: true }).id;
-  createProduct(ctx, { name: 'Barrita', packSize: 12, packCostCents: 1_200_000, markupPercent: 50, priceCents: 150_000, active: true });
+  const water = createProduct(ctx, { name: 'Agua', description: null, unitCostCents: 200_000, markupPercent: 50, priceCents: 300_000, active: true }).id;
+  createProduct(ctx, { name: 'Barrita', description: null, unitCostCents: 100_000, markupPercent: 50, priceCents: 150_000, active: true });
   sellKiosk(ctx, { items: [{ productId: water, quantity: 1 }], method: 'cash' });
   voidKioskSale(ctx, sellKiosk(ctx, { items: [{ productId: water, quantity: 5 }], method: 'cash' }).id);
   updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });

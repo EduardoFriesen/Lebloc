@@ -13,3 +13,6 @@ test-results/
 # Real spreadsheets carry personal data (DNI, phones, minors): never commit them. Only the synthetic test fixture.
 *.xlsx
 !src/main/import/fixtures/*.xlsx
+
+# Brainstorming mockups and the plan ledger
+.superpowers/

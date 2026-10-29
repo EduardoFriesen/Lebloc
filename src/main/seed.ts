@@ -393,16 +393,16 @@ export function seedDatabase(db: Db, now: Date): void {
     });
 
     // Kiosco: productos (con precios redondeados distintos del sugerido) y tickets de los últimos días.
-    const product = (name: string, packSize: number, packCost: number, markupPercent: number, price: number) =>
-      createProduct(ctx, { name, packSize, packCostCents: pesos(packCost), markupPercent, priceCents: pesos(price), active: true }).id;
-    const agua = product('Agua 500 ml', 12, 12_000, 40, 1_400);
-    const isotonica = product('Bebida isotónica', 6, 9_000, 50, 2_300);
-    const barrita = product('Barrita de cereal', 24, 14_400, 60, 1_000);
-    const alfajor = product('Alfajor', 12, 9_600, 50, 1_200);
-    const magnesio = product('Magnesio en bolsa', 10, 15_000, 60, 2_400);
-    const cinta = product('Cinta de dedos', 5, 10_000, 50, 3_000);
-    const energizante = product('Energizante', 12, 24_000, 40, 2_800);
-    updateProduct(ctx, { id: energizante, name: 'Energizante', packSize: 12, packCostCents: pesos(24_000), markupPercent: 40, priceCents: pesos(2_800), active: false });
+    const product = (name: string, unitCost: number, markupPercent: number, price: number) =>
+      createProduct(ctx, { name, description: null, unitCostCents: pesos(unitCost), markupPercent, priceCents: pesos(price), active: true }).id;
+    const agua = product('Agua 500 ml', 1_000, 40, 1_400);
+    const isotonica = product('Bebida isotónica', 1_500, 50, 2_300);
+    const barrita = product('Barrita de cereal', 600, 60, 1_000);
+    const alfajor = product('Alfajor', 800, 50, 1_200);
+    const magnesio = product('Magnesio en bolsa', 1_500, 60, 2_400);
+    const cinta = product('Cinta de dedos', 2_000, 50, 3_000);
+    const energizante = product('Energizante', 2_000, 40, 2_800);
+    updateProduct(ctx, { id: energizante, name: 'Energizante', description: null, unitCostCents: pesos(2_000), markupPercent: 40, priceCents: pesos(2_800), active: false });
 
     const ticket = (daysAgo: number, hour: number, method: PaymentMethod, items: [number, number][]) => {
       at(daysAgo, daysAgo === 0 ? Math.min(hour, now.getHours()) : hour);

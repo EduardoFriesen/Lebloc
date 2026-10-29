@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { suggestedPriceCents, ticketProfitCents, ticketTotalCents, unitCostCents } from './kiosk';
 
 describe('unitCostCents', () => {
-  it('divides the pack cost by the units in the pack', () => {
-    expect(unitCostCents(1_200_000, 12)).toBe(100_000);
+  it('divides the cost by the units bought', () => {
+    expect(unitCostCents(1_200_000, 24)).toBe(50_000);
   });
 
   it('rounds to the nearest cent', () => {
@@ -14,16 +14,15 @@ describe('unitCostCents', () => {
 
 describe('suggestedPriceCents', () => {
   it('adds the markup over the unit cost', () => {
-    expect(suggestedPriceCents(1_200_000, 12, 40)).toBe(140_000);
+    expect(suggestedPriceCents(50_000, 60)).toBe(80_000);
   });
 
   it('is the unit cost when there is no markup', () => {
-    expect(suggestedPriceCents(1_000, 3, 0)).toBe(333);
+    expect(suggestedPriceCents(333, 0)).toBe(333);
   });
 
-  it('rounds once, from the pack values', () => {
-    // 1000 / 3 * 11 = 3666.67 -> 3667; rounding the unit cost first would give 333 * 11 = 3663.
-    expect(suggestedPriceCents(1_000, 3, 1_000)).toBe(3_667);
+  it('rounds to the nearest cent', () => {
+    expect(suggestedPriceCents(333, 60)).toBe(533); // 532.8
   });
 });
 

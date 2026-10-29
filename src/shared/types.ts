@@ -293,13 +293,13 @@ export interface Dashboard {
 export interface Product {
   id: number;
   name: string;
-  packSize: number;
-  packCostCents: number;
+  description: string | null;
+  /** Set by the last supplier delivery, or by hand. */
+  unitCostCents: number;
   markupPercent: number;
   priceCents: number;
   active: boolean;
-  /** Derived from the pack: never stored. */
-  unitCostCents: number;
+  /** Derived from the unit cost and the markup: never stored. */
   suggestedPriceCents: number;
 }
 

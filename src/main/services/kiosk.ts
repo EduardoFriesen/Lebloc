@@ -1,5 +1,5 @@
 import { DomainError } from '../../domain/errors';
-import { ticketProfitCents, ticketTotalCents, unitCostCents } from '../../domain/kiosk';
+import { ticketProfitCents, ticketTotalCents } from '../../domain/kiosk';
 import type { KioskSellInput } from '../../shared/schemas';
 import type { KioskSale, KioskStats } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
@@ -28,7 +28,7 @@ export function sellKiosk(ctx: Context, input: KioskSellInput): KioskSale {
         productName: product.name,
         quantity,
         unitPriceCents: product.priceCents,
-        unitCostCents: unitCostCents(product.packCostCents, product.packSize),
+        unitCostCents: product.unitCostCents,
       };
     });
     const id = repo.insertKioskSale(ctx.db, { soldAt: today(ctx), recordedAt: nowIso(ctx), method: input.method });

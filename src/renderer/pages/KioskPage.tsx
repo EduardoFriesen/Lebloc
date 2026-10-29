@@ -113,7 +113,7 @@ function ProductsTable({
         <thead>
           <tr>
             <th scope="col">Producto</th>
-            <th scope="col">Paquete</th>
+            <th scope="col">Descripción</th>
             <th scope="col">Costo unitario</th>
             <th scope="col">Ganancia</th>
             <th scope="col">Sugerido</th>
@@ -132,7 +132,7 @@ function ProductsTable({
               <td className="font-semibold">
                 {product.name} {!product.active && <Badge>Inactivo</Badge>}
               </td>
-              <td>{product.packSize} u.</td>
+              <td>{product.description ?? '—'}</td>
               <td>{formatMoney(product.unitCostCents)}</td>
               <td>{product.markupPercent}%</td>
               <td>{formatMoney(product.suggestedPriceCents)}</td>

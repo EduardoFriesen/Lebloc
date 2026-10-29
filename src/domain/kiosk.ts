@@ -1,10 +1,10 @@
-export function unitCostCents(packCostCents: number, packSize: number): number {
-  return Math.round(packCostCents / packSize);
+export function unitCostCents(costCents: number, quantity: number): number {
+  return Math.round(costCents / quantity);
 }
 
-/** Markup over cost, computed from the pack values so it rounds only once. */
-export function suggestedPriceCents(packCostCents: number, packSize: number, markupPercent: number): number {
-  return Math.round((packCostCents * (100 + markupPercent)) / (packSize * 100));
+/** Markup over the unit cost. */
+export function suggestedPriceCents(unitCostCents: number, markupPercent: number): number {
+  return Math.round((unitCostCents * (100 + markupPercent)) / 100);
 }
 
 export function ticketTotalCents(items: readonly { quantity: number; unitPriceCents: number }[]): number {

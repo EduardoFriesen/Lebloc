@@ -43,12 +43,12 @@ describe('migrations', () => {
   it('rejects invalid kiosk rows at the database level', () => {
     const db = openDatabase(':memory:');
     const product = db.prepare(
-      'INSERT INTO products (name, pack_size, pack_cost_cents, markup_percent, price_cents) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO products (name, unit_cost_cents, markup_percent, price_cents) VALUES (?, ?, ?, ?)',
     );
-    expect(() => product.run('Agua', 0, 1000, 40, 100)).toThrow(/CHECK/);
-    expect(() => product.run('Agua', 12, 1000, 1001, 100)).toThrow(/CHECK/);
-    product.run('Agua', 12, 1000, 40, 100);
-    expect(() => product.run('AGUA', 6, 500, 40, 100)).toThrow(/UNIQUE/);
+    expect(() => product.run('Agua', -1, 40, 100)).toThrow(/CHECK/);
+    expect(() => product.run('Agua', 80, 1001, 100)).toThrow(/CHECK/);
+    product.run('Agua', 80, 40, 100);
+    expect(() => product.run('AGUA', 80, 40, 100)).toThrow(/UNIQUE/);
     db.prepare("INSERT INTO kiosk_sales (sold_at, recorded_at, method) VALUES ('2026-10-11', 'x', 'cash')").run();
     expect(() =>
       db.prepare("INSERT INTO kiosk_sales (sold_at, recorded_at, method) VALUES ('2026-10-11', 'x', 'card')").run(),
@@ -188,6 +188,27 @@ describe('migrations', () => {
         .run(),
     ).toThrow(/expires_at/);
     expect(() => db.prepare("UPDATE sales SET expires_at = '2026-01-01' WHERE sold_at = '2026-10-05'").run()).toThrow(/expires_at/);
+  });
+
+  it('keeps each product unit cost, drops the pack and counts kiosk stock by delivery from today', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 12).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 12');
+    db.exec(`
+      INSERT INTO products (name, pack_size, pack_cost_cents, markup_percent, price_cents) VALUES ('Agua', 12, 1000, 40, 200);
+      INSERT INTO products (name, pack_size, pack_cost_cents, markup_percent, price_cents) VALUES ('Barra', 3, 2000, 40, 900);
+    `);
+    migrate(db);
+    expect(db.prepare('SELECT name, unit_cost_cents AS unitCost, description FROM products ORDER BY name').all()).toEqual([
+      { name: 'Agua', unitCost: 83, description: null },
+      { name: 'Barra', unitCost: 667, description: null },
+    ]);
+    const columns = (db.prepare('PRAGMA table_info(products)').all() as { name: string }[]).map((column) => column.name);
+    expect(columns).not.toContain('pack_size');
+    expect(columns).not.toContain('pack_cost_cents');
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'kiosk_purchase%' ORDER BY name").all();
+    expect(tables).toEqual([{ name: 'kiosk_purchase_items' }, { name: 'kiosk_purchases' }]);
+    expect(db.prepare("SELECT value FROM settings WHERE key = 'kiosk_purchases_from'").get()).toEqual({ value: toIsoDate(new Date()) });
   });
 
   it('refuses a database created by a newer app version', () => {

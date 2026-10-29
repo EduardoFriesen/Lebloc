@@ -25,18 +25,16 @@ test('create a product, sell it at the counter and void the ticket', async () =>
   await page.getByRole('navigation').getByRole('link', { name: 'Kiosco', exact: true }).click();
   await page.getByRole('button', { name: 'Nuevo producto' }).click();
   await label('Nombre').fill('Agua');
-  await label('Unidades por paquete').fill('12');
-  await label('Costo del paquete').fill('12.000');
+  await label('Costo unitario').fill('1.000');
   await label('% de ganancia').fill('40');
-  await expect(page.getByText(/Costo unitario \$\s1\.000,00 · Sugerido \$\s1\.400,00/)).toBeVisible();
+  await expect(page.getByText(/Sugerido \$\s1\.400,00/)).toBeVisible();
   await page.getByRole('button', { name: 'Usar sugerido' }).click();
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.getByRole('row', { name: /Agua/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Nuevo producto' }).click();
   await label('Nombre').fill('Magnesio');
-  await label('Unidades por paquete').fill('10');
-  await label('Costo del paquete').fill('15.000');
+  await label('Costo unitario').fill('1.500');
   await label('% de ganancia').fill('60');
   await page.getByRole('button', { name: 'Usar sugerido' }).click();
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();

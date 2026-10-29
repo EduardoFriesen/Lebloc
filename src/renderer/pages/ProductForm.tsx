@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { suggestedPriceCents, unitCostCents } from "../../domain/kiosk";
+import { suggestedPriceCents } from "../../domain/kiosk";
 import { parseMoneyInput } from "../../shared/money";
 import { productInput } from "../../shared/schemas";
 import type { Product } from "../../shared/types";
@@ -17,15 +17,17 @@ import {
 
 interface ProductFormProps {
   product: Product | null;
+  /** Created from a delivery: the delivery sets the unit cost, so it isn't asked here and starts at $0. */
+  hideCost?: boolean;
   onSaved: (product: Product) => void;
   onCancel: () => void;
 }
 
-export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
+export function ProductForm({ product, hideCost = false, onSaved, onCancel }: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? "");
-  const [packSize, setPackSize] = useState(String(product?.packSize ?? 1));
-  const [packCost, setPackCost] = useState(
-    product ? formatMoneyInput(product.packCostCents) : "",
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [unitCost, setUnitCost] = useState(
+    product ? formatMoneyInput(product.unitCostCents) : hideCost ? "0" : "",
   );
   const [markup, setMarkup] = useState(String(product?.markupPercent ?? 0));
   const [price, setPrice] = useState(
@@ -36,35 +38,29 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const packCostCents = parseMoneyInput(packCost);
-  const sizeNumber = Number(packSize);
+  const unitCostCents = parseMoneyInput(unitCost);
   const markupNumber = Number(markup);
-  const canPreview =
-    packCostCents !== null &&
-    Number.isInteger(sizeNumber) &&
-    sizeNumber >= 1 &&
-    Number.isFinite(markupNumber) &&
-    markupNumber >= 0;
-  const unitCost = canPreview ? unitCostCents(packCostCents, sizeNumber) : null;
-  const suggested = canPreview
-    ? suggestedPriceCents(packCostCents, sizeNumber, markupNumber)
-    : null;
+  // From a delivery the cost is still unknown, so there is no suggested price yet.
+  const suggested =
+    !hideCost && unitCostCents !== null && Number.isFinite(markupNumber) && markupNumber >= 0
+      ? suggestedPriceCents(unitCostCents, markupNumber)
+      : null;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     const priceCents = parseMoneyInput(price);
     const parsed = productInput.safeParse({
       name,
-      packSize: Number(packSize),
-      packCostCents: packCostCents ?? -1,
+      description,
+      unitCostCents: unitCostCents ?? -1,
       markupPercent: Number(markup),
       priceCents: priceCents ?? -1,
       active,
     });
-    if (!parsed.success || packCostCents === null || priceCents === null) {
+    if (!parsed.success || unitCostCents === null || priceCents === null) {
       setErrors({
         ...(parsed.success ? {} : toFieldErrors(parsed.error)),
-        ...(packCostCents === null ? { packCostCents: MONEY_ERROR } : {}),
+        ...(unitCostCents === null ? { unitCostCents: MONEY_ERROR } : {}),
         ...(priceCents === null ? { priceCents: MONEY_ERROR } : {}),
       });
       return;
@@ -96,34 +92,36 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         onChange={(event) => setName(event.target.value)}
         error={errors.name}
       />
-      <div className="grid grid-cols-2 gap-4">
+      <TextField
+        label="Descripción"
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+        error={errors.description}
+      />
+      <div className={hideCost ? "" : "grid grid-cols-2 gap-4"}>
+        {!hideCost && (
+          <MoneyField
+            label="Costo unitario"
+            value={unitCost}
+            onChange={(event) => setUnitCost(event.target.value)}
+            error={errors.unitCostCents}
+          />
+        )}
         <TextField
-          label="Unidades por paquete"
+          label="% de ganancia"
           type="number"
-          min={1}
-          value={packSize}
-          onChange={(event) => setPackSize(event.target.value)}
-          error={errors.packSize}
-        />
-        <MoneyField
-          label="Costo del paquete"
-          value={packCost}
-          onChange={(event) => setPackCost(event.target.value)}
-          error={errors.packCostCents}
+          min={0}
+          value={markup}
+          onChange={(event) => setMarkup(event.target.value)}
+          error={errors.markupPercent}
         />
       </div>
-      <TextField
-        label="% de ganancia"
-        type="number"
-        min={0}
-        value={markup}
-        onChange={(event) => setMarkup(event.target.value)}
-        error={errors.markupPercent}
-      />
       <p className="text-sm text-ink-soft" aria-live="polite">
-        {unitCost === null || suggested === null
-          ? "Completá unidades, costo y ganancia para ver el sugerido."
-          : `Costo unitario ${formatMoney(unitCost)} · Sugerido ${formatMoney(suggested)}`}
+        {hideCost
+          ? "El costo unitario lo pone la entrega."
+          : suggested === null
+            ? "Completá costo y ganancia para ver el sugerido."
+            : `Sugerido ${formatMoney(suggested)}`}
       </p>
       <div className="flex items-end gap-2">
         <div className="flex-1">

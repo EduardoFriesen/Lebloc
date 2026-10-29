@@ -21,7 +21,7 @@ describe('counter day movements', () => {
     clientId = createClient(ctx, adultClient).id;
     const planId = createPlan(ctx, freePlan).id;
     saleId = sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null }).id;
-    productId = createProduct(ctx, { name: 'Agua', packSize: 6, packCostCents: 300_000, markupPercent: 50, priceCents: 100_000, active: true }).id;
+    productId = createProduct(ctx, { name: 'Agua', description: null, unitCostCents: 50_000, markupPercent: 50, priceCents: 100_000, active: true }).id;
   });
 
   const pay = (amountCents: number, paidAt = '2026-10-05') => registerPayment(ctx, { saleId, amountCents, method: 'cash', paidAt });

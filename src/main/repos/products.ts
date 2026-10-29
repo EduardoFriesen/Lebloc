@@ -1,17 +1,10 @@
 import type { ProductInput } from '../../shared/schemas';
+import type { Product } from '../../shared/types';
 import type { Db } from '../db/connection';
 
-export interface ProductRow {
-  id: number;
-  name: string;
-  packSize: number;
-  packCostCents: number;
-  markupPercent: number;
-  priceCents: number;
-  active: boolean;
-}
+export type ProductRow = Omit<Product, 'suggestedPriceCents'>;
 
-const COLUMNS = `id, name, pack_size AS packSize, pack_cost_cents AS packCostCents, markup_percent AS markupPercent,
+const COLUMNS = `id, name, description, unit_cost_cents AS unitCostCents, markup_percent AS markupPercent,
   price_cents AS priceCents, active`;
 
 const toRow = (row: Omit<ProductRow, 'active'> & { active: number }): ProductRow => ({ ...row, active: row.active === 1 });
@@ -21,8 +14,8 @@ const PARAMS = (p: ProductInput) => ({ ...p, active: p.active ? 1 : 0 });
 export function insertProduct(db: Db, p: ProductInput): number {
   const result = db
     .prepare(
-      `INSERT INTO products (name, pack_size, pack_cost_cents, markup_percent, price_cents, active)
-       VALUES (@name, @packSize, @packCostCents, @markupPercent, @priceCents, @active)`,
+      `INSERT INTO products (name, description, unit_cost_cents, markup_percent, price_cents, active)
+       VALUES (@name, @description, @unitCostCents, @markupPercent, @priceCents, @active)`,
     )
     .run(PARAMS(p));
   return Number(result.lastInsertRowid);
@@ -30,9 +23,13 @@ export function insertProduct(db: Db, p: ProductInput): number {
 
 export function updateProductRow(db: Db, id: number, p: ProductInput): void {
   db.prepare(
-    `UPDATE products SET name = @name, pack_size = @packSize, pack_cost_cents = @packCostCents,
+    `UPDATE products SET name = @name, description = @description, unit_cost_cents = @unitCostCents,
        markup_percent = @markupPercent, price_cents = @priceCents, active = @active WHERE id = @id`,
   ).run({ ...PARAMS(p), id });
+}
+
+export function setProductUnitCost(db: Db, id: number, unitCostCents: number): void {
+  db.prepare('UPDATE products SET unit_cost_cents = ? WHERE id = ?').run(unitCostCents, id);
 }
 
 export function findProduct(db: Db, id: number): ProductRow | undefined {

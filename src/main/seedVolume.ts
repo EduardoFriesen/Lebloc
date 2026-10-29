@@ -157,8 +157,8 @@ export function seedVolume(ctx: Context, at: SeedClock, now: Date, refs: { plans
     const suggested = (packCost * (100 + markupPercent)) / (packSize * 100);
     createProduct(ctx, {
       name,
-      packSize,
-      packCostCents: pesos(packCost),
+      description: null,
+      unitCostCents: Math.round(pesos(packCost) / packSize),
       markupPercent,
       priceCents: pesos(Math.ceil(suggested / 100) * 100),
       active: !INACTIVE_PRODUCTS.has(name),

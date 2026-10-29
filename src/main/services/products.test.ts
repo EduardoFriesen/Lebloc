@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
 import type { ProductInput } from '../../shared/schemas';
+import { setProductUnitCost } from '../repos/products';
 import { createTestContext, type TestContext } from '../test-context';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { createProduct, getProduct, listProducts, listTopProducts, updateProduct } from './products';
 
 const alfajor: ProductInput = {
   name: 'Alfajor',
-  packSize: 12,
-  packCostCents: 600_000,
+  description: 'Triple',
+  unitCostCents: 50_000,
   markupPercent: 50,
   priceCents: 75_000,
   active: true,
@@ -20,16 +21,29 @@ describe('products', () => {
     ctx = createTestContext();
   });
 
-  it('creates a product with derived unit cost and suggested price', () => {
+  it('creates a product with its unit cost, description and derived suggested price', () => {
     const product = createProduct(ctx, alfajor);
-    expect(product).toMatchObject({ name: 'Alfajor', priceCents: 75_000, active: true, unitCostCents: 50_000, suggestedPriceCents: 75_000 });
+    expect(product).toMatchObject({
+      name: 'Alfajor',
+      description: 'Triple',
+      priceCents: 75_000,
+      active: true,
+      unitCostCents: 50_000,
+      suggestedPriceCents: 75_000,
+    });
     expect(getProduct(ctx, product.id)).toEqual(product);
   });
 
   it('updates a product and recomputes the derived values', () => {
     const { id } = createProduct(ctx, alfajor);
-    const updated = updateProduct(ctx, { ...alfajor, id, packCostCents: 1_200_000, markupPercent: 0 });
+    const updated = updateProduct(ctx, { ...alfajor, id, unitCostCents: 100_000, markupPercent: 0 });
     expect(updated).toMatchObject({ unitCostCents: 100_000, suggestedPriceCents: 100_000 });
+  });
+
+  it('takes a new unit cost from a delivery and recomputes the suggested price', () => {
+    const { id } = createProduct(ctx, alfajor);
+    setProductUnitCost(ctx.db, id, 40_000);
+    expect(getProduct(ctx, id)).toMatchObject({ unitCostCents: 40_000, suggestedPriceCents: 60_000, priceCents: 75_000 });
   });
 
   it('rejects duplicate names regardless of case, but allows re-saving the same product', () => {
@@ -56,7 +70,7 @@ describe('products', () => {
 
 describe('top products', () => {
   const make = (ctx: TestContext, name: string, active = true) =>
-    createProduct(ctx, { name, packSize: 1, packCostCents: 1000, markupPercent: 50, priceCents: 1500, active }).id;
+    createProduct(ctx, { name, description: null, unitCostCents: 1000, markupPercent: 50, priceCents: 1500, active }).id;
 
   it('ranks by units, skips voided/old/inactive, fills by name, max 5', () => {
     const ctx = createTestContext();
@@ -68,7 +82,7 @@ describe('top products', () => {
     sell(fanta, 5);
     voidKioskSale(ctx, sell(alfa, 9).id);
     sell(off, 20);
-    updateProduct(ctx, { id: off, name: 'Zeta', packSize: 1, packCostCents: 1000, markupPercent: 50, priceCents: 1500, active: false });
+    updateProduct(ctx, { id: off, name: 'Zeta', description: null, unitCostCents: 1000, markupPercent: 50, priceCents: 1500, active: false });
     ctx.clock.set(new Date(2026, 8, 1, 12));
     sell(dulce, 50);
     ctx.clock.set(new Date(2026, 9, 5, 12));

@@ -1,17 +1,13 @@
 import { addMonths } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
-import { suggestedPriceCents, unitCostCents } from '../../domain/kiosk';
+import { suggestedPriceCents } from '../../domain/kiosk';
 import type { ProductInput, ProductUpdate } from '../../shared/schemas';
 import type { Product } from '../../shared/types';
 import { type Context, today } from '../context';
 import * as repo from '../repos/products';
 
 function toProduct(row: repo.ProductRow): Product {
-  return {
-    ...row,
-    unitCostCents: unitCostCents(row.packCostCents, row.packSize),
-    suggestedPriceCents: suggestedPriceCents(row.packCostCents, row.packSize, row.markupPercent),
-  };
+  return { ...row, suggestedPriceCents: suggestedPriceCents(row.unitCostCents, row.markupPercent) };
 }
 
 function assertNameFree(ctx: Context, name: string, ownId?: number): void {

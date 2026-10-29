@@ -137,8 +137,8 @@ export const waiverInput = z.object({ clientId: id, signedAt: isoDate });
 
 const productFields = {
   name: z.string().trim().min(1, REQUIRED).max(80),
-  packSize: z.number().int().min(1).max(1000),
-  packCostCents: cents,
+  description: optionalText(200),
+  unitCostCents: cents,
   markupPercent: z.number().int().min(0).max(1000),
   priceCents: cents,
   active: z.boolean(),
