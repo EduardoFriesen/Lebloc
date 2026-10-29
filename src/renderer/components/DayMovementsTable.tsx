@@ -11,24 +11,10 @@ import { AsyncView } from './ui/States';
 import { FillerRows, TABLE_PAGE_SIZE, tableClass } from './ui/table';
 
 function rowKey(movement: DayMovement) {
-  if (movement.kind === 'plan') return `p${movement.paymentId}`;
-  return `${movement.kind === 'kiosk' ? 'k' : 'c'}${movement.sale.id}`;
+  return movement.kind === 'plan' ? `p${movement.paymentId}` : `c${movement.sale.id}`;
 }
 
 function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (request: ConfirmRequest) => void }) {
-  if (movement.kind === 'kiosk') {
-    const { sale } = movement;
-    return (
-      <tr>
-        <td>{formatTime(sale.recordedAt)}</td>
-        <td>Kiosco</td>
-        <td>{sale.items.map((item) => `${item.quantity} × ${item.productName}`).join(', ')}</td>
-        <td>{PAYMENT_METHOD_LABELS[sale.method]}</td>
-        <td className="font-semibold">{formatMoney(sale.totalCents)}</td>
-        <td />
-      </tr>
-    );
-  }
   if (movement.kind === 'counter') {
     const { sale } = movement;
     const label = COUNTER_SALE_LABELS[sale.kind];
@@ -83,7 +69,7 @@ function MovementsBody({ data, onVoid }: { data: DayMovements; onVoid: (request:
   return (
     <>
       <p className="text-sm">
-        Kiosco {formatMoney(data.kioskCents)} · Planes {formatMoney(data.plansCents)} · Pases sueltos {formatMoney(data.counterCents)} · Total{' '}
+        Planes {formatMoney(data.plansCents)} · Pases sueltos {formatMoney(data.counterCents)} · Total{' '}
         <strong>{formatMoney(data.totalCents)}</strong>
       </p>
       <table className={tableClass}>
@@ -113,17 +99,17 @@ function MovementsBody({ data, onVoid }: { data: DayMovements; onVoid: (request:
 }
 
 /**
- * Today's cash in: plan payments, kiosk tickets, walk-in passes and shoe rentals. Only the walk-in rows are voided
- * here (they have no screen of their own); payments and tickets are voided in their screens.
+ * Today's cash in from passes: plan payments, walk-in passes and shoe rentals (kiosk tickets are in Kiosco). Only the
+ * walk-in rows are voided here (they have no screen of their own); payments are voided in the client's file.
  */
 export function DayMovementsTable({ state, onChanged }: { state: AsyncResult<DayMovements>; onChanged: () => void }) {
   const headingId = useId();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className="font-display text-2xl font-semibold">
+      <h3 id={headingId} className="font-display text-lg font-semibold text-ink-soft">
         Movimientos de hoy
-      </h2>
+      </h3>
       <AsyncView state={state}>{(data) => <MovementsBody data={data} onVoid={setConfirm} />}</AsyncView>
       <ConfirmDialog
         request={confirm}

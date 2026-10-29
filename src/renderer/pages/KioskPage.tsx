@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Card';
 import {
@@ -31,6 +31,7 @@ import { currentMonthIso, formatDate, formatMoney, formatTime, PAYMENT_METHOD_LA
 import { matchesSearch } from '../lib/search';
 import { useAsync } from '../lib/useAsync';
 import type { KioskPurchase, KioskSale, Product } from '../../shared/types';
+import { KioskSalePanel } from '../components/KioskSalePanel';
 import { ProductForm } from './ProductForm';
 import { PurchaseForm } from './PurchaseForm';
 
@@ -39,8 +40,12 @@ const HEADING = 'font-display text-2xl font-semibold';
 export function KioskPage() {
   // Picked from the summary: only active (true), only inactive (false) or all (null).
   const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
-  // Bumped when a delivery is saved, so its list reloads.
+  // Bumped when a ticket or a delivery is saved, so its list reloads.
+  const [sales, setSales] = useState(0);
   const [purchases, setPurchases] = useState(0);
+  // Bumped when a product is created or edited (also from a delivery), so the checkout shows it.
+  const [catalog, setCatalog] = useState(0);
+  const bumpCatalog = () => setCatalog((count) => count + 1);
   const stats = useAsync(() => call('kiosk:stats', {}), []);
 
   return (
@@ -48,7 +53,7 @@ export function KioskPage() {
       <div className={SUMMARY_TOP}>
         <PageHeader
           title="Kiosco"
-          subtitle="Productos con su precio y los tickets vendidos por día."
+          subtitle="Vendé, mirá los tickets del día, los productos y las entregas del proveedor."
         />
         {onlyActive !== null && (
           <ClearFilter
@@ -59,13 +64,27 @@ export function KioskPage() {
       </div>
       {/* The scroll padding keeps focused rows out from under the sticky headings. */}
       <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
-        <ProductsBlock
-          onlyActive={onlyActive}
-          onChanged={stats.reload}
-          onPurchased={() => setPurchases((count) => count + 1)}
+        <SellBlock
+          catalog={catalog}
+          onSold={() => {
+            stats.reload();
+            setSales((count) => count + 1);
+          }}
         />
         <Stripe />
-        <SalesBlock onChanged={stats.reload} />
+        <SalesBlock version={sales} onChanged={stats.reload} />
+        <Stripe />
+        <ProductsBlock
+          onlyActive={onlyActive}
+          onChanged={() => {
+            stats.reload();
+            bumpCatalog();
+          }}
+          onPurchased={() => {
+            setPurchases((count) => count + 1);
+            bumpCatalog();
+          }}
+        />
         <Stripe />
         <PurchasesBlock version={purchases} />
       </div>
@@ -105,6 +124,35 @@ export function KioskPage() {
   );
 }
 
+/** Checkout: tap products into a ticket and charge it. The search box stays under the sticky heading. */
+function SellBlock({ catalog, onSold }: { catalog: number; onSold: () => void }) {
+  const headingId = useId();
+  const [search, setSearch] = useState('');
+  const panel = useRef<HTMLDivElement>(null);
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <div className={`${STICKY_HEADING} flex flex-wrap items-end justify-between gap-3`}>
+        <h2 id={headingId} className={HEADING}>
+          Vender
+        </h2>
+        <TextField
+          label="Buscar producto"
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            // Typing from further down: bring the matches (right under the sticky heading) into view.
+            panel.current?.scrollIntoView({ block: 'nearest' });
+          }}
+        />
+      </div>
+      <div ref={panel}>
+        <KioskSalePanel search={search} onSearchChange={setSearch} onSold={onSold} catalog={catalog} />
+      </div>
+    </section>
+  );
+}
+
 function ProductsTable({
   products,
   empty,
@@ -122,7 +170,6 @@ function ProductsTable({
         <thead>
           <tr>
             <th scope="col">Producto</th>
-            <th scope="col">Descripción</th>
             <th scope="col">Costo unitario</th>
             <th scope="col">Ganancia</th>
             <th scope="col">Sugerido</th>
@@ -138,10 +185,10 @@ function ProductsTable({
               key={product.id}
               className={product.active ? '' : 'text-ink-soft'}
             >
-              <td className="font-semibold">
-                {product.name} {!product.active && <Badge>Inactivo</Badge>}
+              <td>
+                <span className="font-semibold">{product.name}</span> {!product.active && <Badge>Inactivo</Badge>}
+                {product.description && <span className="block text-xs text-ink-soft">{product.description}</span>}
               </td>
-              <td>{product.description ?? '—'}</td>
               <td>{formatMoney(product.unitCostCents)}</td>
               <td>{product.markupPercent}%</td>
               <td>{formatMoney(product.suggestedPriceCents)}</td>
@@ -159,7 +206,7 @@ function ProductsTable({
               </td>
             </tr>
           ))}
-          <FillerRows filled={visible.length} columns={7} empty={empty} />
+          <FillerRows filled={visible.length} columns={6} empty={empty} />
         </tbody>
       </table>
       <PageBar
@@ -202,7 +249,7 @@ function ProductsBlock({
         </h2>
         <div className="flex flex-wrap items-end gap-4">
           <TextField
-            label="Buscar producto"
+            label="Filtrar productos"
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -336,12 +383,12 @@ function SalesTable({
   );
 }
 
-function SalesBlock({ onChanged }: { onChanged: () => void }) {
+function SalesBlock({ version, onChanged }: { version: number; onChanged: () => void }) {
   const headingId = useId();
   const [date, setDate] = useState(todayIso());
   const sales = useAsync(
     () => call('kiosk:sales', { date }),
-    [date],
+    [date, version],
     { keepPreviousData: true },
   );
   const [pending, setPending] = useState<ConfirmRequest | null>(null);

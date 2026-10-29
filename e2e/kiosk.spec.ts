@@ -19,10 +19,9 @@ test.afterAll(async () => {
 });
 
 const label = (text: string) => page.getByLabel(text, { exact: true });
-const kioskToday = () => page.getByRole('region', { name: 'Resumen' }).getByRole('listitem').filter({ hasText: 'Kiosco hoy' });
-
-test('create a product, sell it at the counter and void the ticket', async () => {
-  await page.getByRole('navigation').getByRole('link', { name: 'Kiosco', exact: true }).click();
+test('create a product, sell it from the kiosk screen and void the ticket', async () => {
+  const nav = page.getByRole('navigation', { name: 'Principal' });
+  await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
   await page.getByRole('button', { name: 'Nuevo producto' }).click();
   await label('Nombre').fill('Agua');
   await label('Costo unitario').fill('1.000');
@@ -40,46 +39,39 @@ test('create a product, sell it at the counter and void the ticket', async () =>
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.getByRole('row', { name: /Magnesio/ })).toBeVisible();
 
-  await page.getByRole('navigation').getByRole('link', { name: 'Mostrador' }).click();
   const product = page.getByRole('button', { name: /^Agua ·/ });
   await product.click();
   await product.click();
   await expect(page.getByRole('button', { name: /Cobrar/ })).toHaveText(/\$\s2\.800,00/);
   await page.getByRole('button', { name: /Cobrar/ }).click();
   await expect(page.getByText(/Venta registrada: \$\s2\.800,00/)).toBeVisible();
-  await expect(kioskToday()).toContainText('1');
-  await expect(kioskToday()).toContainText(/\$\s2\.800,00/);
-
   await expect(page.getByRole('heading', { name: 'Más vendidos' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Agua ·/ })).toBeVisible();
 
-  const movements = page.getByRole('region', { name: 'Movimientos de hoy' });
-  await expect(movements.getByRole('row', { name: /Kiosco.*2 × Agua/ })).toBeVisible();
-  await expect(movements).toContainText(/Total \$\s2\.800,00/);
-
-  await page.getByRole('navigation').getByRole('link', { name: 'Kiosco', exact: true }).click();
-  await expect(page.getByRole('row', { name: /2 × Agua/ })).toBeVisible();
+  const sales = page.getByRole('table', { name: 'Ventas del día' });
+  await expect(sales.getByRole('row', { name: /2 × Agua/ })).toBeVisible();
   // Agua costs $1.000 a unit and sells at $1.400: 2 units leave $800.
   const summary = page.getByRole('complementary', { name: 'Resumen' });
   await expect(summary.getByRole('row', { name: /Ventas de hoy/ })).toContainText(/\$\s2\.800,00/);
   await expect(summary.getByRole('row', { name: /Ganancia de hoy/ })).toContainText(/\$\s800,00/);
   await page.getByRole('button', { name: /Anular ticket/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Anular venta' }).click();
-  await expect(page.getByText('Anulado')).toBeVisible();
+  await expect(sales.getByText('Anulado')).toBeVisible();
   await expect(summary.getByRole('row', { name: /Ventas de hoy/ })).not.toContainText('$');
 
-  await page.getByRole('navigation').getByRole('link', { name: 'Mostrador' }).click();
-  await expect(kioskToday()).toHaveText(/0/);
-  await expect(kioskToday()).not.toContainText('$');
-  await expect(movements.getByRole('row', { name: /2 × Agua/ })).toHaveCount(0);
-  await expect(movements).not.toContainText(/Total \$\s2\.800,00/);
+  // The counter is only for passes: no kiosk checkout and no tickets in its movements.
+  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Pases', exact: true })).toBeVisible();
+  await expect(label('Buscar producto')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Agua/ })).toHaveCount(0);
 
   // A product that was never sold is found by searching and can be charged.
+  await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
   await label('Buscar producto').fill('magn');
   await page.getByRole('button', { name: /^Magnesio ·/ }).click();
   await page.getByRole('button', { name: /Cobrar/ }).click();
   await expect(page.getByText(/Venta registrada: \$\s2\.400,00/)).toBeVisible();
-  await expect(movements.getByRole('row', { name: /Kiosco.*1 × Magnesio/ })).toBeVisible();
+  await expect(sales.getByRole('row', { name: /1 × Magnesio/ })).toBeVisible();
 });
 
 test('a supplier delivery sets the unit cost and shows in Gastos', async () => {

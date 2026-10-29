@@ -56,13 +56,3 @@ export function listKioskItems(db: Db, saleId: number): KioskSaleItem[] {
 export function voidKioskSale(db: Db, id: number, now: string): void {
   db.prepare('UPDATE kiosk_sales SET voided_at = ? WHERE id = ?').run(now, id);
 }
-
-export function kioskDaySummary(db: Db, date: string): { count: number; cents: number } {
-  return db
-    .prepare<[string], { count: number; cents: number }>(
-      `SELECT COUNT(*) AS count,
-         COALESCE(SUM((SELECT SUM(i.quantity * i.unit_price_cents) FROM kiosk_sale_items i WHERE i.sale_id = s.id)), 0) AS cents
-       FROM kiosk_sales s WHERE s.sold_at = ? AND s.voided_at IS NULL`,
-    )
-    .get(date) as { count: number; cents: number };
-}

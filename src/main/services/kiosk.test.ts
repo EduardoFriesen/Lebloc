@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
-import { getDashboard } from './dashboard';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from './kiosk';
 import { createProduct, updateProduct } from './products';
 import type { ProductInput } from '../../shared/schemas';
@@ -75,16 +74,6 @@ describe('kiosk sales', () => {
     sell();
     expect(listKioskSales(ctx, '2026-10-05').map((s) => s.id)).toEqual([second.id, first.id]);
     expect(listKioskSales(ctx, '2026-10-05')[1]?.voidedAt).not.toBeNull();
-  });
-
-  it('feeds the dashboard with today\'s non-voided tickets only', () => {
-    const voided = sell();
-    sell();
-    voidKioskSale(ctx, voided.id);
-    ctx.clock.set(new Date(2026, 9, 4, 12));
-    sell();
-    ctx.clock.set(new Date(2026, 9, 5, 12));
-    expect(getDashboard(ctx).summary).toMatchObject({ kioskTodayCount: 1, kioskTodayCents: 250_000 });
   });
 
   it('summarizes products and today\'s non-voided tickets with their profit', () => {

@@ -4,7 +4,6 @@ import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
 import { DayEntriesTable } from '../components/DayEntriesTable';
 import { DayMovementsTable } from '../components/DayMovementsTable';
-import { KioskSalePanel } from '../components/KioskSalePanel';
 import { WalkInButtons } from '../components/WalkInButtons';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, FOCUS_WITHIN, PassBadge, STRETCHED } from '../components/ui/Card';
@@ -13,7 +12,6 @@ import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
 import { STICKY_HEADING, SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
-import { Stripe } from '../components/ui/Stripe';
 import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
 import { debtLabel, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
@@ -23,14 +21,11 @@ import { NewClientDialog } from './ClientForm';
 
 export function HomePage() {
   const pasesId = useId();
-  const kioskId = useId();
   const [search, setSearch] = useState('');
   // Escape, a click outside or a failed pass close the results; typing or clicking the box opens them again.
   const [dismissed, setDismissed] = useState(false);
   const searchBox = useRef<HTMLInputElement>(null);
   const resultsId = useId();
-  const [productSearch, setProductSearch] = useState('');
-  const kioskPanel = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -119,27 +114,6 @@ export function HomePage() {
           <ListSection title="Ingresos de hoy">
             <DayEntriesTable state={entries} onChanged={refresh} />
           </ListSection>
-        </section>
-        <Stripe />
-        <section aria-labelledby={kioskId} className="flex flex-col gap-6">
-          <div className={`${STICKY_HEADING} flex flex-col gap-3`}>
-            <h2 id={kioskId} className="font-display text-2xl font-semibold">
-              Kiosco
-            </h2>
-            <TextField
-              label="Buscar producto"
-              type="search"
-              value={productSearch}
-              onChange={(event) => {
-                setProductSearch(event.target.value);
-                // Typing from down in the movements: bring the matches (right under this sticky header) into view.
-                kioskPanel.current?.scrollIntoView({ block: 'nearest' });
-              }}
-            />
-          </div>
-          <div ref={kioskPanel}>
-            <KioskSalePanel search={productSearch} onSearchChange={setProductSearch} onSold={refresh} />
-          </div>
           <DayMovementsTable state={movements} onChanged={refresh} />
         </section>
       </div>
@@ -287,12 +261,6 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
           <span>
             {summary.debtorCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.debtTotalCents)} · </span>}
             <span className={value}>{summary.debtorCount}</span>
-          </span>
-        </AlertRow>
-        <AlertRow to="/kiosco" name="Kiosco hoy">
-          <span>
-            {summary.kioskTodayCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.kioskTodayCents)} · </span>}
-            <span className={value}>{summary.kioskTodayCount}</span>
           </span>
         </AlertRow>
         <AlertRow to="/clientes?fichas=1" name="Fichas por actualizar">

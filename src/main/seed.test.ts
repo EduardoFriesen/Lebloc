@@ -7,7 +7,7 @@ import { getDayEntries, getDayMovements } from './services/counter';
 import { getDashboard } from './services/dashboard';
 import { getStaffStats } from './services/employees';
 import { getExpenseMonth } from './services/expenses';
-import { listKioskSales } from './services/kiosk';
+import { getKioskStats, listKioskSales } from './services/kiosk';
 import { listPlans } from './services/plans';
 import { listProducts } from './services/products';
 import { listTeachers } from './services/teachers';
@@ -58,23 +58,21 @@ describe('seedDatabase', () => {
     expect(products.some((product) => product.priceCents !== product.suggestedPriceCents)).toBe(true);
     const today = listKioskSales(ctx, '2026-10-09');
     const live = today.filter((sale) => !sale.voidedAt);
-    const { summary } = getDashboard(ctx);
-    expect(summary.kioskTodayCount).toBeGreaterThan(0);
-    expect(summary.kioskTodayCents).toBeGreaterThan(0);
-    expect(summary.kioskTodayCount).toBe(live.length);
-    expect(summary.kioskTodayCents).toBe(live.reduce((total, sale) => total + sale.totalCents, 0));
+    const stats = getKioskStats(ctx);
+    expect(stats.todayCount).toBeGreaterThan(0);
+    expect(stats.todayCount).toBe(live.length);
+    expect(stats.todayCents).toBe(live.reduce((total, sale) => total + sale.totalCents, 0));
     expect(
       ['2026-10-03', '2026-10-07'].flatMap((date) => listKioskSales(ctx, date)).some((sale) => sale.voidedAt !== null),
     ).toBe(true);
   });
 
-  it('shows a plan payment, a kiosk ticket and walk-in passes in the counter movements of today', () => {
-    const { rows, plansCents, kioskCents, counterCents, totalCents } = getDayMovements(ctx);
+  it('shows a plan payment and walk-in passes in the counter movements of today', () => {
+    const { rows, plansCents, counterCents, totalCents } = getDayMovements(ctx);
     const plan = rows.find((row) => row.kind === 'plan' && row.clientName.startsWith('Carla'));
     expect(plan).toMatchObject({ amountCents: 400_000, debtCents: 2_000_000 });
-    expect(rows.some((row) => row.kind === 'kiosk')).toBe(true);
     expect(counterCents).toBe(1_900_000);
-    expect(totalCents).toBe(plansCents + kioskCents + counterCents);
+    expect(totalCents).toBe(plansCents + counterCents);
   });
 
   it('never writes movements in the future', () => {

@@ -239,9 +239,6 @@ export interface DashboardSummary {
   pendingWaivers: number;
   /** Sum of every teacher's balance (negative when the local is owed). */
   teacherBalanceCents: number;
-  /** Kiosk tickets sold today that are not voided. */
-  kioskTodayCount: number;
-  kioskTodayCents: number;
   /** The last copy out of the PC failed: the pendrive is not plugged in, or there was no internet for Google Drive. */
   externalBackupFailed: boolean;
 }
@@ -381,7 +378,6 @@ export interface CounterPrices {
 }
 
 export type DayMovement =
-  | { kind: 'kiosk'; sale: KioskSale }
   | { kind: 'counter'; sale: CounterSale }
   | {
       kind: 'plan';
@@ -416,7 +412,6 @@ export type DayEntry =
 
 export interface DayMovements {
   rows: DayMovement[];
-  kioskCents: number;
   plansCents: number;
   counterCents: number;
   totalCents: number;

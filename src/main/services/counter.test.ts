@@ -28,12 +28,12 @@ describe('counter day movements', () => {
   const sell = () => sellKiosk(ctx, { items: [{ productId, quantity: 2 }], method: 'cash' });
 
   it('is empty without movements', () => {
-    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, counterCents: 0, totalCents: 0 });
+    expect(getDayMovements(ctx)).toEqual({ rows: [], plansCents: 0, counterCents: 0, totalCents: 0 });
   });
 
-  it('lists today payments (with current debt) before kiosk tickets and totals them', () => {
+  it('lists today payments (with current debt) and leaves the kiosk tickets to the kiosk screen', () => {
     const payment = pay(500_000);
-    const ticket = sell();
+    sell();
     const day = getDayMovements(ctx);
     expect(day.rows).toEqual([
       {
@@ -48,33 +48,31 @@ describe('counter day movements', () => {
         debtCents: 1_500_000,
         recordedAt: ctx.clock.now().toISOString(),
       },
-      { kind: 'kiosk', sale: ticket },
     ]);
-    expect(day).toMatchObject({ kioskCents: 200_000, plansCents: 500_000, totalCents: 700_000 });
+    expect(day).toEqual({ rows: day.rows, plansCents: 500_000, counterCents: 0, totalCents: 500_000 });
   });
 
-  it('leaves out voided payments, voided tickets and other days', () => {
+  it('leaves out voided payments and other days', () => {
     voidPayment(ctx, pay(100_000).id);
     pay(100_000, '2026-10-04');
     voidKioskSale(ctx, sell().id);
     ctx.clock.set(new Date(2026, 9, 4, 12));
     sell();
     ctx.clock.set(new Date(2026, 9, 5, 12));
-    expect(getDayMovements(ctx)).toEqual({ rows: [], kioskCents: 0, plansCents: 0, counterCents: 0, totalCents: 0 });
+    expect(getDayMovements(ctx)).toEqual({ rows: [], plansCents: 0, counterCents: 0, totalCents: 0 });
   });
 
-  it('lists walk-in passes and shoe rentals after the kiosk, leaving out voided ones', () => {
+  it('lists walk-in passes and shoe rentals, leaving out voided ones', () => {
     updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
     const [pass, shoes] = sellCounter(ctx, { kinds: ['day_pass', 'shoe_rental'], method: 'cash' });
     voidCounterSale(ctx, sellCounter(ctx, { kinds: ['day_pass'], method: 'cash' })[0]?.id ?? 0);
-    const ticket = sell();
+    sell();
     const day = getDayMovements(ctx);
     expect(day.rows).toEqual([
-      { kind: 'kiosk', sale: ticket },
       { kind: 'counter', sale: shoes },
       { kind: 'counter', sale: pass },
     ]);
-    expect(day).toMatchObject({ kioskCents: 200_000, counterCents: 1_100_000, totalCents: 1_300_000 });
+    expect(day).toEqual({ rows: day.rows, plansCents: 0, counterCents: 1_100_000, totalCents: 1_100_000 });
   });
 
   it('lists the movements of the day newest first, across kinds', () => {
@@ -85,7 +83,7 @@ describe('counter day movements', () => {
     sellCounter(ctx, { kinds: ['day_pass'], method: 'cash' });
     ctx.clock.set(new Date(2026, 9, 5, 10));
     pay(100_000);
-    expect(getDayMovements(ctx).rows.map((row) => row.kind)).toEqual(['counter', 'plan', 'kiosk']);
+    expect(getDayMovements(ctx).rows.map((row) => row.kind)).toEqual(['counter', 'plan']);
   });
 });
 
