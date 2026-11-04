@@ -20,5 +20,5 @@ export const OVERFLOWING = `[...document.querySelectorAll('[class*="rounded-2xl"
 
 /** The main view, the list beside the summary or the summary itself scrolling sideways: something is too wide for it. */
 export const SIDEWAYS = `[...new Set([document.getElementById('contenido'), ...document.querySelectorAll('[class*="overflow-y-auto"]')])]
-  .filter((element) => element && element.scrollWidth > element.clientWidth + 1)
+  .filter((element) => element && element.scrollWidth > element.clientWidth)
   .map((element) => (element.id || element.className.toString().slice(0, 30)) + ' scrolls sideways by ' + (element.scrollWidth - element.clientWidth) + 'px')`;

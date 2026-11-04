@@ -233,8 +233,8 @@ function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }
                   </span>
                 </td>
                 <td className="font-semibold">{formatMoney(expense.amountCents)}</td>
-                <td className="text-right whitespace-nowrap">
-                  {/* Two actions share the cell: tighter buttons keep the table inside the list beside the summary. */}
+                <td className="text-right">
+                  {/* Two actions share the cell, tighter, and may stack: the table has to fit beside the summary. */}
                   <Button variant="ghost" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
                     Repetir
                   </Button>
