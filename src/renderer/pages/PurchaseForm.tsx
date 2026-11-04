@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { unitCostCents } from '../../domain/kiosk';
 import { parseMoneyInput } from '../../shared/money';
-import { purchaseInput } from '../../shared/schemas';
+import { purchaseInput, purchaseUpdate } from '../../shared/schemas';
 import type { KioskPurchase, PaymentMethod, Product } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Dialog } from '../components/ui/Dialog';
@@ -9,9 +9,10 @@ import { MoneyField, SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
-import { formatMoney, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
+import { formatMoney, formatMoneyInput, todayIso } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+import { type PaymentMode, PaymentModeFields } from './PaymentModeFields';
 import { ProductForm } from './ProductForm';
 
 interface Line {
@@ -39,6 +40,8 @@ function costPreview(product: Product | undefined, line: Line): string {
 }
 
 interface PurchaseFormProps {
+  /** Given: its date and lines are edited (payments are handled from its detail). */
+  purchase?: KioskPurchase;
   onSaved: (purchase: KioskPurchase) => void;
   onCancel: () => void;
   /** A product was created here: it exists even if the delivery is then cancelled. */
@@ -46,11 +49,18 @@ interface PurchaseFormProps {
 }
 
 /** What the supplier brought: per product, the units and what they cost; each sets that product's unit cost. */
-export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFormProps) {
+export function PurchaseForm({ purchase, onSaved, onCancel, onProductCreated }: PurchaseFormProps) {
   const products = useAsync(() => call('products:list', { includeInactive: false }), [], { keepPreviousData: true });
-  const [paidAt, setPaidAt] = useState(todayIso());
+  const [receivedAt, setReceivedAt] = useState(purchase?.receivedAt ?? todayIso());
+  const [lines, setLines] = useState<Line[]>(() =>
+    purchase
+      ? purchase.items.map((item) => ({ ...newLine(String(item.productId)), quantity: String(item.quantity), cost: formatMoneyInput(item.costCents) }))
+      : [newLine()],
+  );
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('full');
+  const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
-  const [lines, setLines] = useState<Line[]>(() => [newLine()]);
+  const [paidAt, setPaidAt] = useState(todayIso());
   const [creating, setCreating] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
@@ -79,10 +89,13 @@ export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFo
       quantity: Number(line.quantity),
       costCents: parseMoneyInput(line.cost) ?? -1,
     }));
-    // ponytail: paid in full on the day, as before; Task 5 brings partial payments to the form.
-    const total = items.reduce((sum, item) => sum + Math.max(item.costCents, 0), 0);
-    const parsed = purchaseInput.safeParse({ receivedAt: paidAt, items, initialPayment: total > 0 ? { amountCents: total, method, paidAt } : null });
+    const withPayment = paymentMode === 'partial' || (paymentMode === 'full' && totalCents > 0);
+    const amountCents = paymentMode === 'partial' ? parseMoneyInput(amount) : totalCents;
+    const parsed = purchase
+      ? purchaseUpdate.safeParse({ id: purchase.id, receivedAt, items })
+      : purchaseInput.safeParse({ receivedAt, items, initialPayment: withPayment ? { amountCents: amountCents ?? -1, method, paidAt } : null });
     const lineErrors: FieldErrors = {};
+    if (!purchase && paymentMode === 'partial' && amountCents === null) lineErrors['initialPayment.amountCents'] = MONEY_ERROR;
     lines.forEach((line, index) => {
       if (line.productId === '') lineErrors[`items.${index}.productId`] = 'Elegí un producto';
       if (parseMoneyInput(line.cost) === null) lineErrors[`items.${index}.costCents`] = MONEY_ERROR;
@@ -98,7 +111,8 @@ export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFo
     setBusy(true);
     setServerError(null);
     try {
-      onSaved(await call('purchases:create', parsed.data));
+      // The schema picked above matches the mode: an id means an edit.
+      onSaved(await ('id' in parsed.data ? call('purchases:update', parsed.data) : call('purchases:create', parsed.data)));
     } catch (caught) {
       setServerError(errorMessage(caught));
       setBusy(false);
@@ -111,20 +125,13 @@ export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFo
       <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <TextField
-            label="Fecha de pago"
+            label="Fecha de entrega"
             type="date"
             max={todayIso()}
-            value={paidAt}
-            onChange={(event) => setPaidAt(event.target.value)}
-            error={errors.paidAt}
+            value={receivedAt}
+            onChange={(event) => setReceivedAt(event.target.value)}
+            error={errors.receivedAt}
           />
-          <SelectField label="Medio de pago" value={method} onChange={(event) => setMethod(event.target.value as PaymentMethod)}>
-            {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </SelectField>
         </div>
         <AsyncView state={products} skeleton={<SkeletonRows rows={2} />}>
           {(available) => (
@@ -193,10 +200,24 @@ export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFo
             </div>
           )}
         </AsyncView>
+        {!purchase && (
+          <PaymentModeFields
+            mode={paymentMode}
+            onModeChange={setPaymentMode}
+            amount={amount}
+            onAmountChange={setAmount}
+            method={method}
+            onMethodChange={setMethod}
+            paidAt={paidAt}
+            onPaidAtChange={setPaidAt}
+            amountError={errors['initialPayment.amountCents']}
+            paidAtError={errors['initialPayment.paidAt']}
+          />
+        )}
         {serverError && <Notice tone="error">{serverError}</Notice>}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 pt-4">
           <p>
-            Total pagado: <strong>{formatMoney(totalCents)}</strong>
+            Total: <strong>{formatMoney(totalCents)}</strong>
           </p>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onCancel}>
