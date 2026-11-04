@@ -29,7 +29,6 @@
   --color-series-2: #c8923a; /* mostaza */
   --color-series-3: #5a63b8; /* índigo */
   --color-series-4: #4f8a3e; /* salvia */
-  --color-heat-ink: #fbf4ea; /* texto sobre las celdas intensas del mapa de calor (oscuras en este tema) */
   /* Ancho del área principal desde el que el resumen va al costado de la lista: 40rem de lista (sus tablas), 2rem de
      separación, 20rem de resumen y 4rem de márgenes. En rem del contenedor, así se corre con el tamaño de letra. */
   --container-summary: 66rem;
@@ -53,7 +52,6 @@
   --color-series-2: #b98c30;
   --color-series-3: #7a83dc;
   --color-series-4: #5b9849;
-  --color-heat-ink: #2d2a3e; /* en el tema oscuro las celdas intensas son las más claras */
 }
 
 /* App shell: the window itself never scrolls; each screen scrolls its own content. */
@@ -101,6 +99,14 @@ body,
 /* En @layer base para que una utilidad (focus-visible:outline-none) lo pueda pisar, como en las cartas. */
 @layer base {
   :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* En los campos de fecha y de mes, Tab también pasa por el botón del calendario, que es interno del campo: ahí el campo
+     no cumple :focus ni :focus-visible, solo :focus-within. Lo marca mientras tenga el foco adentro (al hacer clic
+     también, como los de texto). */
+  input:is([type='date'], [type='month']):focus-within {
     outline: 3px solid var(--color-accent);
     outline-offset: 2px;
   }

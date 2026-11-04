@@ -13,8 +13,11 @@ import { FinanceEmpty, FinanceSkeleton, KpiRow, KpiTile, useFinanceRange } from 
 /** Monday first, the way the week is read at the counter. */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 const VISITS_COLOR = SERIES[2];
-/** Darkest cell, in percent of the series color mixed over the surface. */
-const HEAT_MAX = 90;
+/**
+ * Darkest cell, in percent of the series color mixed over the surface. Capped so the count inside every cell keeps
+ * 4.5:1 with the plain text color in both themes; past it, neither dark nor light text would.
+ */
+const HEAT_MAX = 62;
 const HEAT_MIN = 12;
 const HEAT_STEPS = [0.2, 0.4, 0.6, 0.8, 1];
 
@@ -119,7 +122,7 @@ function Heatmap({ heatmap }: { heatmap: number[][] }) {
                     <td
                       key={hour}
                       title={`${WEEKDAY_LABELS[weekday] ?? ''} ${hour} h: ${visitsLabel(count)}`}
-                      className={`h-9 min-w-9 rounded-md text-center font-semibold tabular-nums ${share > 0.55 ? 'text-heat-ink' : 'text-ink'}`}
+                      className="h-9 min-w-9 rounded-md text-center font-semibold tabular-nums text-ink"
                       style={{ background: count === 0 ? 'var(--color-sunken)' : heat(share) }}
                     >
                       {count === 0 ? <span className="sr-only">0</span> : count}
