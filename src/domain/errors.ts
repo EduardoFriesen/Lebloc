@@ -7,6 +7,8 @@ export const ERROR_MESSAGES = {
   SALE_HAS_ACTIVE_CONSUMPTIONS: 'La venta tiene consumos activos. Anulalos primero.',
   SALE_HAS_ACTIVE_CANCELLATIONS: 'La venta tiene la deuda cancelada. Anulá la cancelación primero.',
   NO_DEBT_TO_CANCEL: 'La venta no tiene deuda para cancelar.',
+  NOT_FULLY_PAID: 'Solo se facturan las ventas pagadas por completo.',
+  SALE_INVOICED: 'La venta está facturada. Desmarcala en Planes primero.',
   NOT_PAID_BY_TRANSFER: 'Solo se facturan las ventas con algún pago por transferencia.',
   DEBT_CANCELLED: 'La venta tiene la deuda cancelada. Anulá la cancelación antes de extenderla.',
   SALE_VOIDED: 'La venta está anulada.',

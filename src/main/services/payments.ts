@@ -1,6 +1,6 @@
 import { allocatePayment } from '../../domain/allocation';
 import { DomainError } from '../../domain/errors';
-import { assertPaymentVoidable, debtToCancel } from '../../domain/ledger';
+import { assertNotInvoiced, assertPaymentVoidable, debtToCancel } from '../../domain/ledger';
 import type { DebtCancellationInput, PaymentInput } from '../../shared/schemas';
 import type { DebtCancellation, Payment } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
@@ -46,6 +46,8 @@ export function voidPayment(ctx: Context, id: number): Payment {
   return ctx.db.transaction(() => {
     const payment = getPayment(ctx, id);
     assertPaymentVoidable(id, paymentsRepo.listPaymentsForSale(ctx.db, payment.saleId));
+    const sale = salesRepo.findSale(ctx.db, payment.saleId, today(ctx));
+    if (sale) assertNotInvoiced(sale);
     paymentsRepo.voidPayment(ctx.db, id, nowIso(ctx));
     return getPayment(ctx, id);
   })();

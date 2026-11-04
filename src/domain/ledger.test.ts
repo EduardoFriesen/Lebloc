@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectDomainError } from '../test/helpers';
-import { assertInvoiceable, assertPaymentVoidable, assertPayoutFits, assertSaleVoidable, debtToCancel, saleDebt, teacherBalance } from './ledger';
+import { assertInvoiceable, assertNotInvoiced, assertPaymentVoidable, assertPayoutFits, assertSaleVoidable, debtToCancel, saleDebt, teacherBalance } from './ledger';
 
 describe('saleDebt', () => {
   it('is the total minus what was paid', () => {
@@ -60,16 +60,28 @@ describe('assertSaleVoidable', () => {
 
 describe('assertInvoiceable', () => {
   const voided = '2026-10-05T12:00:00.000Z';
+  const paidUp = { voidedAt: null, totalCents: 1_000, paidCents: 1_000 };
+  const transfer = { method: 'transfer' as const, voidedAt: null };
 
-  it('allows invoicing a sale with an active transfer, whatever else it has', () => {
-    expect(() => assertInvoiceable({ voidedAt: null }, [{ method: 'cash', voidedAt: null }, { method: 'transfer', voidedAt: null }])).not.toThrow();
+  it('allows invoicing a sale paid in full with at least one transfer', () => {
+    expect(() => assertInvoiceable(paidUp, [{ method: 'cash', voidedAt: null }, transfer])).not.toThrow();
   });
 
-  it('rejects sales paid only in cash, unpaid, with the transfer voided, or voided', () => {
-    expectDomainError(() => assertInvoiceable({ voidedAt: null }, [{ method: 'cash', voidedAt: null }]), 'NOT_PAID_BY_TRANSFER');
-    expectDomainError(() => assertInvoiceable({ voidedAt: null }, []), 'NOT_PAID_BY_TRANSFER');
-    expectDomainError(() => assertInvoiceable({ voidedAt: null }, [{ method: 'transfer', voidedAt: voided }]), 'NOT_PAID_BY_TRANSFER');
-    expectDomainError(() => assertInvoiceable({ voidedAt: voided }, [{ method: 'transfer', voidedAt: null }]), 'SALE_VOIDED');
+  it('rejects a sale not paid in full, even if what is missing was cancelled', () => {
+    expectDomainError(() => assertInvoiceable({ ...paidUp, paidCents: 400 }, [transfer]), 'NOT_FULLY_PAID');
+  });
+
+  it('rejects sales paid only in cash, with the transfer voided, or voided', () => {
+    expectDomainError(() => assertInvoiceable(paidUp, [{ method: 'cash', voidedAt: null }]), 'NOT_PAID_BY_TRANSFER');
+    expectDomainError(() => assertInvoiceable(paidUp, [{ method: 'transfer', voidedAt: voided }, { method: 'cash', voidedAt: null }]), 'NOT_PAID_BY_TRANSFER');
+    expectDomainError(() => assertInvoiceable({ ...paidUp, voidedAt: voided }, [transfer]), 'SALE_VOIDED');
+  });
+});
+
+describe('assertNotInvoiced', () => {
+  it('lets the money of a sale change only while it is not invoiced', () => {
+    expect(() => assertNotInvoiced({ invoicedAt: null })).not.toThrow();
+    expectDomainError(() => assertNotInvoiced({ invoicedAt: '2026-10-05T12:00:00.000Z' }), 'SALE_INVOICED');
   });
 });
 

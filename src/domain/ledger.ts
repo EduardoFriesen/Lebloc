@@ -42,8 +42,20 @@ export function assertPayoutFits(balanceCents: number, amountCents: number): voi
   if (amountCents > balanceCents) throw new DomainError('PAYOUT_EXCEEDS_BALANCE');
 }
 
-/** Only transfers get invoiced: a sale can be marked once any of its active payments is one. */
-export function assertInvoiceable(sale: { voidedAt: string | null }, payments: readonly { method: 'cash' | 'transfer'; voidedAt: string | null }[]): void {
+/**
+ * A sale is invoiced once paid in full (a cancelled rest doesn't count), and only if a transfer came in: the cash
+ * part is not invoiced.
+ */
+export function assertInvoiceable(
+  sale: { voidedAt: string | null; totalCents: number; paidCents: number },
+  payments: readonly { method: 'cash' | 'transfer'; voidedAt: string | null }[],
+): void {
   if (sale.voidedAt) throw new DomainError('SALE_VOIDED');
+  if (sale.paidCents < sale.totalCents) throw new DomainError('NOT_FULLY_PAID');
   if (!payments.some((payment) => payment.method === 'transfer' && !payment.voidedAt)) throw new DomainError('NOT_PAID_BY_TRANSFER');
+}
+
+/** What was invoiced must not change behind the mark: extending or voiding a payment needs it unticked first. */
+export function assertNotInvoiced(sale: { invoicedAt: string | null }): void {
+  if (sale.invoicedAt) throw new DomainError('SALE_INVOICED');
 }

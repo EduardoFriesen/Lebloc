@@ -1,5 +1,5 @@
 import { DomainError } from '../../domain/errors';
-import { assertInvoiceable, assertSaleVoidable } from '../../domain/ledger';
+import { assertInvoiceable, assertNotInvoiced, assertSaleVoidable } from '../../domain/ledger';
 import { buildExtension, buildSaleSnapshot, extensionStateOf } from '../../domain/sale';
 import type { SaleExpiryInput, SaleExtensionInput, SaleInput, SaleInvoicedInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
@@ -50,6 +50,7 @@ export function extendSale(ctx: Context, input: SaleExtensionInput): Sale {
   return ctx.db.transaction(() => {
     const sale = getSale(ctx, input.saleId);
     requireActiveClient(ctx, sale.clientId);
+    assertNotInvoiced(sale);
     const plan = getPlan(ctx, input.planId);
     const teacher = input.teacherId === null ? null : getTeacher(ctx, input.teacherId);
     const state = extensionStateOf(sale, paymentsRepo.listPaymentsForSale(ctx.db, sale.id));

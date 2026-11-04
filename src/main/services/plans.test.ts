@@ -5,7 +5,7 @@ import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { cancelDebt, registerPayment, voidPayment } from './payments';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from './plans';
-import { sellPlan, setSaleInvoiced, voidSale } from './sales';
+import { extendSale, sellPlan, setSaleInvoiced, voidSale } from './sales';
 import { createTeacher } from './teachers';
 
 describe('plans service', () => {
@@ -139,18 +139,25 @@ describe('plans service', () => {
       expect(listPlanSales(ctx, { month: '2026-09' }).map((sale) => sale.soldAt)).toEqual(['2026-09-30']);
     });
 
-    it('marks a sale paid by transfer as invoiced, for good, until it is unmarked', () => {
+    it('invoices a sale once paid in full with a transfer, and locks its money until unmarked', () => {
       const { anaSale } = scenario();
-      const transfer = registerPayment(ctx, { saleId: anaSale.id, amountCents: 500_000, method: 'transfer', paidAt: '2026-10-03' });
       const anaRow = () => listPlanSales(ctx, { month: '2026-10' }).find((sale) => sale.saleId === anaSale.id);
+      const pay = (amountCents: number) => registerPayment(ctx, { saleId: anaSale.id, amountCents, method: 'transfer', paidAt: '2026-10-03' });
 
+      pay(500_000);
+      expectDomainError(() => setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true }), 'NOT_FULLY_PAID');
+      const last = pay(1_000_000);
       setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true });
-      expect(anaRow()).toMatchObject({ paidByCash: true, paidByTransfer: true, invoicedAt: TEST_NOW.toISOString() });
-      // Unmarking always works, even once the transfer is gone.
-      voidPayment(ctx, transfer.id);
+      expect(anaRow()).toMatchObject({ debtCents: 0, paidByCash: true, paidByTransfer: true, invoicedAt: TEST_NOW.toISOString() });
+
+      expectDomainError(() => voidPayment(ctx, last.id), 'SALE_INVOICED');
+      expectDomainError(
+        () => extendSale(ctx, { saleId: anaSale.id, planId: createPlan(ctx, { ...freePlan, name: 'Pack 12' }).id, teacherId: null, splitRule: 'proportional', expiresAt: FAR_EXPIRY, payment: null }),
+        'SALE_INVOICED',
+      );
       setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: false });
-      expect(anaRow()).toMatchObject({ paidByTransfer: false, invoicedAt: null });
-      expectDomainError(() => setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true }), 'NOT_PAID_BY_TRANSFER');
+      voidPayment(ctx, last.id);
+      expect(anaRow()).toMatchObject({ debtCents: 1_000_000, invoicedAt: null });
     });
 
     it('tells a cancelled debt apart from a paid one', () => {

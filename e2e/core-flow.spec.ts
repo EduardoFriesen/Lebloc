@@ -456,17 +456,25 @@ test('cancel what is owed without it being income, and void the cancellation', a
 test('the plans page shows how each sale was paid and ticks transfers as invoiced', async () => {
   await page.getByRole('link', { name: 'Planes' }).click();
   const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
-  // Carla paid the trial in cash and part of the pack by transfer.
+  // Carla paid the trial in cash and part of the pack by transfer: nothing to invoice until she pays it all.
   const carla = sales.getByRole('row', { name: /Carla Méndez\s+Pack 4 libres/ });
   await expect(carla).toContainText('Efectivo y transferencia');
   const invoiced = carla.getByRole('checkbox', { name: /^Facturada: Carla Méndez/ });
+  await expect(invoiced).toHaveCount(0);
+  await carla.getByRole('link', { name: 'Carla Méndez' }).click();
+  await page.getByRole('button', { name: 'Registrar pago' }).click();
+  await label('Monto').fill('4.000');
+  await label('Medio de pago').selectOption('transfer');
+  await page.getByRole('button', { name: 'Confirmar pago' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+  await page.getByRole('link', { name: 'Planes' }).click();
   await expect(invoiced).not.toBeChecked();
   await carla.getByRole('cell', { name: 'Pack 4 libres', exact: true }).click();
   await expect(invoiced).toBeChecked();
 
   // It stays after leaving the screen, and Finanzas adds up her transfer as invoiced.
   await page.getByRole('link', { name: 'Finanzas' }).click();
-  await expect(page.getByLabel('Totales del período')).toContainText(/Facturado\s*\$\s3\.000,00\s*de \$\s3\.000,00 en planes cobrados por transferencia/);
+  await expect(page.getByLabel('Totales del período')).toContainText(/Facturado\s*\$\s7\.000,00\s*de \$\s7\.000,00 en planes cobrados por transferencia/);
   await page.getByRole('link', { name: 'Planes' }).click();
   await expect(invoiced).toBeChecked();
 

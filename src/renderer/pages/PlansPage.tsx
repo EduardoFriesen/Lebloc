@@ -295,7 +295,7 @@ interface PlanSalesTableProps {
   onInvoiced: (sale: PlanSale, invoiced: boolean) => void;
 }
 
-/** Sales paid by transfer get a box by the payment: ticked (by the box or anywhere on the row) means it was invoiced. */
+/** Sales paid in full with a transfer get a box by the payment: ticked (by the box or anywhere on the row) means it was invoiced. */
 function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
   const { visible, page, pages, setPage } = usePage(sales, TABLE_PAGE_SIZE);
   return (
@@ -315,8 +315,8 @@ function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
         </thead>
         <tbody>
           {visible.map((sale) => {
-            // A sale invoiced before its transfer was voided keeps the box, so it can be unticked.
-            const invoiceable = sale.paidByTransfer || sale.invoicedAt !== null;
+            // Paid in full (nothing owed or cancelled) with a transfer; an invoiced one keeps its box to be unticked.
+            const invoiceable = (sale.paidByTransfer && sale.debtCents === 0 && sale.cancelledCents === 0) || sale.invoicedAt !== null;
             return (
               <tr
                 key={sale.saleId}

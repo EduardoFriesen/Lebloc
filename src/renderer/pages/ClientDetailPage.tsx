@@ -425,6 +425,7 @@ function SaleCard({
         <p className="text-sm text-ink-soft">
           {formatDate(sale.soldAt)}
           {sale.teacherName && ` · con ${sale.teacherName}`}
+          {sale.invoicedAt && ' · Facturada'}
           {voided && ' · Anulada'}
         </p>
       </header>
