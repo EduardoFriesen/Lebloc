@@ -6,13 +6,14 @@ import { parseMoneyInput } from '../../shared/money';
 import { saleInput } from '../../shared/schemas';
 import type { PaymentMethod, Plan, Sale, Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
-import { MoneyField, SelectField, TextField } from '../components/ui/Field';
+import { SelectField, TextField } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { AsyncView, EmptyState } from '../components/ui/States';
 import { call } from '../lib/api';
 import { formatMoney, fullName, SPLIT_RULE_LABELS, todayIso } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
+import { type PaymentMode, PaymentModeFields } from './PaymentModeFields';
 
 // While typing, a date input reports '' or a partial value: only whole dates move the expiry.
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -57,14 +58,6 @@ export function SellPlanForm({ clientId, renewFrom, onDone, onCancel }: SellPlan
 }
 
 type Preview = { snapshot: SaleSnapshot } | { error: string } | null;
-
-type PaymentMode = 'full' | 'partial' | 'none';
-
-const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
-  full: 'Pago completo',
-  partial: 'Pago parcial',
-  none: 'Sin pago ahora',
-};
 
 function previewSale(plan: Plan | undefined, teacher: Teacher | null, splitRule: SplitRule): Preview {
   if (!plan) return null;
@@ -211,50 +204,18 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
 
       {preview && ('error' in preview ? <Notice tone="warning">{preview.error}</Notice> : <SaleBreakdown snapshot={preview.snapshot} />)}
 
-      <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
-        <legend className="mb-1 text-sm font-semibold text-ink-soft">Pago</legend>
-        {(Object.keys(PAYMENT_MODE_LABELS) as PaymentMode[]).map((mode) => (
-          <label key={mode} className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="paymentMode"
-              value={mode}
-              checked={paymentMode === mode}
-              onChange={() => setPaymentMode(mode)}
-              className="accent-accent"
-            />
-            {PAYMENT_MODE_LABELS[mode]}
-          </label>
-        ))}
-      </fieldset>
-      {paymentMode !== 'none' && (
-        <div className="grid gap-3 md:grid-cols-3">
-          {paymentMode === 'partial' && (
-            <MoneyField
-              label="Monto del pago"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              error={errors['initialPayment.amountCents']}
-            />
-          )}
-          <SelectField
-            label="Medio de pago"
-            value={method}
-            onChange={(event) => setMethod(event.target.value === 'transfer' ? 'transfer' : 'cash')}
-          >
-            <option value="cash">Efectivo</option>
-            <option value="transfer">Transferencia</option>
-          </SelectField>
-          <TextField
-            label="Fecha del pago"
-            type="date"
-            max={todayIso()}
-            value={paidAt}
-            onChange={(event) => setPaidAt(event.target.value)}
-            error={errors['initialPayment.paidAt']}
-          />
-        </div>
-      )}
+      <PaymentModeFields
+        mode={paymentMode}
+        onModeChange={setPaymentMode}
+        amount={amount}
+        onAmountChange={setAmount}
+        method={method}
+        onMethodChange={setMethod}
+        paidAt={paidAt}
+        onPaidAtChange={setPaidAt}
+        amountError={errors['initialPayment.amountCents']}
+        paidAtError={errors['initialPayment.paidAt']}
+      />
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">

@@ -392,3 +392,47 @@ test('backups get copied to an external folder, and a missing one warns on the c
   await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
   await expect(warning).toHaveCount(0);
 });
+
+test('extend a used trial into a pack, paying part now', async () => {
+  await page.getByRole('link', { name: 'Planes' }).click();
+  for (const [name, passes, price] of [
+    ['Prueba libre', '1', '1.000'],
+    ['Pack 4 libres', '4', '8.000'],
+  ]) {
+    await page.getByRole('button', { name: 'Nuevo plan' }).click();
+    await label('Nombre').fill(name);
+    await label('Pases libres').fill(passes);
+    await label('Pases con profesor').fill('0');
+    await label('Precio del local').fill(price);
+    await page.getByRole('button', { name: 'Guardar plan' }).click();
+    await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  }
+
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Carla');
+  await label('Apellido').fill('Méndez');
+  await label('Fecha de nacimiento').fill('1995-02-14');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Carla Méndez' })).toBeVisible();
+
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Vender plan' }).click();
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Prueba libre' });
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+  await page.getByRole('button', { name: 'Consumir libre' }).click();
+  await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
+
+  // After the class she stays: the trial becomes the pack, its payment and its class count.
+  await page.getByRole('button', { name: 'Extender' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Extender plan' })).toBeVisible();
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pack 4 libres' });
+  await dialog.getByLabel('Pago parcial').check();
+  await dialog.getByLabel('Monto del pago').fill('3.000');
+  await dialog.getByRole('button', { name: 'Confirmar extensión' }).click();
+  await expect(page.getByText('Plan extendido.')).toBeVisible();
+  await expect(page.getByText('Pases: 3 libres · 0 con profesor')).toBeVisible();
+  await expect(page.getByText(/Extendida el .* · antes: Prueba libre/)).toBeVisible();
+  await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
+});

@@ -30,6 +30,7 @@ import { saleExpiryInput, waiverInput } from '../../shared/schemas';
 import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { ClientForm } from './ClientForm';
+import { ExtendSaleForm } from './ExtendSaleForm';
 import { PaymentForm } from './PaymentForm';
 import { SellPlanForm } from './SellPlanForm';
 
@@ -52,6 +53,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
   const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
   const [payingSale, setPayingSale] = useState<Sale | null>(null);
   const [expiringSale, setExpiringSale] = useState<Sale | null>(null);
+  const [extendingSale, setExtendingSale] = useState<Sale | null>(null);
   const [signing, setSigning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
@@ -161,6 +163,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
             onPay={setPayingSale}
             onRenew={(sale) => setSelling({ renewFrom: sale })}
             onChangeExpiry={setExpiringSale}
+            onExtend={setExtendingSale}
             onVoidPayment={(payment) =>
               setPending({
                 title: 'Anular pago',
@@ -244,6 +247,20 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
           />
         )}
       </Dialog>
+      <Dialog open={extendingSale !== null} title="Extender plan" onClose={() => setExtendingSale(null)}>
+        {extendingSale && (
+          <ExtendSaleForm
+            sale={extendingSale}
+            payments={account.payments.filter((payment) => payment.saleId === extendingSale.id)}
+            onDone={() => {
+              setExtendingSale(null);
+              setNotice({ tone: 'success', text: 'Plan extendido.' });
+              reload();
+            }}
+            onCancel={() => setExtendingSale(null)}
+          />
+        )}
+      </Dialog>
       <Dialog open={payingSale !== null} title="Registrar pago" onClose={() => setPayingSale(null)}>
         {payingSale && (
           <PaymentForm
@@ -320,6 +337,7 @@ interface SalesPanelProps {
   onPay: (sale: Sale) => void;
   onRenew: (sale: Sale) => void;
   onChangeExpiry: (sale: Sale) => void;
+  onExtend: (sale: Sale) => void;
   onVoidPayment: (payment: Payment) => void;
   onVoidSale: (sale: Sale) => void;
 }
@@ -351,7 +369,7 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
 // Smaller than other tables: there is one per sale.
 const PAYMENTS_PAGE_SIZE = 5;
 
-function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
+function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, onExtend, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
   const voided = sale.voidedAt !== null;
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
@@ -369,6 +387,11 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, on
           {voided && ' · Anulada'}
         </p>
       </header>
+      {sale.extendedFrom && (
+        <p className="text-sm text-ink-soft">
+          Extendida el {formatDateTime(sale.extendedFrom.extendedAt)} · antes: {sale.extendedFrom.planName}
+        </p>
+      )}
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-4">
         <div>
           <dt className="text-ink-soft">Local</dt>
@@ -430,6 +453,11 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, on
           {sale.remainingFree + sale.remainingTeacher === 0 && (
             <Button variant="secondary" onClick={() => onRenew(sale)}>
               Renovar
+            </Button>
+          )}
+          {!sale.expired && (
+            <Button variant="secondary" onClick={() => onExtend(sale)}>
+              Extender
             </Button>
           )}
           <Button variant="secondary" onClick={() => onChangeExpiry(sale)}>
