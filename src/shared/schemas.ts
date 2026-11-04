@@ -139,7 +139,6 @@ export const payoutInput = z.object({ teacherId: id, ...newPaymentFields, note: 
 export const settingsInput = z.object({
   lowPassesThreshold: z.number().int().min(0).max(100),
   expiryWarningDays: z.number().int().min(0).max(60),
-  waiverValidityMonths: z.number().int().min(1).max(120),
 });
 export const waiverInput = z.object({ clientId: id, signedAt: isoDate });
 

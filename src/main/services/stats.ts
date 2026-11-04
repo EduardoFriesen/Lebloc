@@ -7,7 +7,7 @@ import { planCounts } from '../repos/plans';
 import { monthSales, summaryCounts } from '../repos/saleStats';
 import { teacherCounts } from '../repos/teachers';
 import { listTeacherBalances } from './payouts';
-import { listWaiverAlerts } from './waivers';
+import { countMissingWaivers } from './waivers';
 
 export function getClientStats(ctx: Context): ClientStats {
   const counts = clientCounts(ctx.db, { from: monthStart(ctx.clock.now()), bornAfter: minorBirthCutoff(today(ctx)) });
@@ -18,7 +18,7 @@ export function getClientStats(ctx: Context): ClientStats {
     withoutPasses: counts.active - activeClients,
     debtorCount,
     debtTotalCents,
-    pendingWaivers: listWaiverAlerts(ctx).length,
+    pendingWaivers: countMissingWaivers(ctx),
   };
 }
 

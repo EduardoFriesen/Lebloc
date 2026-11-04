@@ -137,15 +137,8 @@ describe('schemas', () => {
     expect(clientListInput.parse({})).toEqual({ search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
   });
 
-  it('accepts a waiver validity between 1 and 120 months', () => {
-    const settings = { lowPassesThreshold: 2, expiryWarningDays: 7 };
-    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 0 }).success).toBe(false);
-    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 121 }).success).toBe(false);
-    expect(settingsInput.safeParse({ ...settings, waiverValidityMonths: 12 }).success).toBe(true);
-  });
-
   it('accepts warning about expiry from 0 to 60 days ahead', () => {
-    const settings = { lowPassesThreshold: 2, waiverValidityMonths: 12 };
+    const settings = { lowPassesThreshold: 2 };
     expect(settingsInput.safeParse({ ...settings, expiryWarningDays: 0 }).success).toBe(true);
     expect(settingsInput.safeParse({ ...settings, expiryWarningDays: 61 }).success).toBe(false);
   });

@@ -4,14 +4,14 @@ import { summaryCounts } from '../repos/saleStats';
 import { getBackupStatus } from './backups';
 import { listRenewals } from './clients';
 import { listTeacherBalances } from './payouts';
-import { listWaiverAlerts } from './waivers';
+import { countMissingWaivers } from './waivers';
 
 export function getDashboard(ctx: Context): Dashboard {
   const backup = getBackupStatus(ctx);
   return {
     summary: {
       ...summaryCounts(ctx.db, today(ctx)),
-      pendingWaivers: listWaiverAlerts(ctx).length,
+      pendingWaivers: countMissingWaivers(ctx),
       teacherBalanceCents: listTeacherBalances(ctx).reduce((total, balance) => total + balance.balanceCents, 0),
       externalBackupFailed: backup.mirrorError !== null || backup.driveError !== null,
     },

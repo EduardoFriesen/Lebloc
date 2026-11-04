@@ -111,7 +111,6 @@ function Segmented<T extends string>({ legend, name, value, options, onChange }:
 function SettingsForm({ initial }: { initial: Settings }) {
   const [threshold, setThreshold] = useState(String(initial.lowPassesThreshold));
   const [warningDays, setWarningDays] = useState(String(initial.expiryWarningDays));
-  const [waiverMonths, setWaiverMonths] = useState(String(initial.waiverValidityMonths));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -121,7 +120,6 @@ function SettingsForm({ initial }: { initial: Settings }) {
     const parsed = settingsInput.safeParse({
       lowPassesThreshold: Number(threshold),
       expiryWarningDays: Number(warningDays),
-      waiverValidityMonths: Number(waiverMonths),
     });
     if (!parsed.success) {
       setErrors(toFieldErrors(parsed.error));
@@ -161,17 +159,6 @@ function SettingsForm({ initial }: { initial: Settings }) {
         onChange={(event) => setWarningDays(event.target.value)}
         error={errors.expiryWarningDays}
         hint="Se avisa cuando los pases que le quedan a un cliente vencen dentro de esta cantidad de días."
-      />
-      <h2 className="font-display text-2xl font-semibold">Ficha firmada</h2>
-      <TextField
-        label="Vigencia de la ficha (meses)"
-        type="number"
-        min={1}
-        max={120}
-        value={waiverMonths}
-        onChange={(event) => setWaiverMonths(event.target.value)}
-        error={errors.waiverValidityMonths}
-        hint="Pasado este tiempo desde la firma, la ficha figura como vencida."
       />
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div>

@@ -1,4 +1,5 @@
 import { passStatus } from '../../domain/passes';
+import { waiverStatus } from '../../domain/waiver';
 import type { ClientAccount } from '../../shared/types';
 import { type Context, today } from '../context';
 import { listConsumptionsForClient } from '../repos/consumptions';
@@ -7,7 +8,6 @@ import { listSalesForClient } from '../repos/sales';
 import { listWaiversForClient } from '../repos/waivers';
 import { getClient } from './clients';
 import { getSettings } from './settings';
-import { waiverStatusResolver } from './waivers';
 
 function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
@@ -35,6 +35,6 @@ export function getClientAccount(ctx: Context, clientId: number): ClientAccount 
     expiresAt,
     lowOnPasses: active.length > 0 && passStatus(remainingFree + remainingTeacher, expiresAt, now, getSettings(ctx)) !== 'ok',
     waivers,
-    waiver: waiverStatusResolver(ctx)(lastSignedAt),
+    waiver: waiverStatus(lastSignedAt),
   };
 }

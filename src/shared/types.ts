@@ -162,13 +162,6 @@ export interface WaiverSignature {
   voidedAt: string | null;
 }
 
-export interface WaiverAlert {
-  clientId: number;
-  clientName: string;
-  state: WaiverState;
-  expiresAt: string | null;
-}
-
 export interface TeacherPayout {
   id: number;
   teacherId: number;
@@ -425,7 +418,6 @@ export interface Settings {
   lowPassesThreshold: number;
   /** Warn this many days before the passes left expire. */
   expiryWarningDays: number;
-  waiverValidityMonths: number;
 }
 
 export type BackupOutcome = { status: 'done'; path: string } | { status: 'cancelled' };

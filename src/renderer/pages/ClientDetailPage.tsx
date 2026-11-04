@@ -144,9 +144,9 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
               onSign={() => setSigning(true)}
               onVoid={(waiver) =>
                 setPending({
-                  title: 'Anular firma',
-                  message: `Se anula la firma de la ficha del ${formatDate(waiver.signedAt)}.`,
-                  confirmLabel: 'Anular firma',
+                  title: 'Anular entrega',
+                  message: `Se anula la entrega de la ficha del ${formatDate(waiver.signedAt)}.`,
+                  confirmLabel: 'Anular entrega',
                   action: () => call('waivers:void', { id: waiver.id }),
                 })
               }
@@ -221,13 +221,13 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
           onCancel={() => setEditing(false)}
         />
       </Dialog>
-      <Dialog open={signing} title="Registrar firma de la ficha" onClose={() => setSigning(false)}>
+      <Dialog open={signing} title="Registrar entrega de la ficha" onClose={() => setSigning(false)}>
         {signing && (
           <WaiverForm
             clientId={client.id}
             onDone={() => {
               setSigning(false);
-              setNotice({ tone: 'success', text: 'Firma de la ficha registrada.' });
+              setNotice({ tone: 'success', text: 'Entrega de la ficha registrada.' });
               reload();
             }}
             onCancel={() => setSigning(false)}
@@ -635,11 +635,11 @@ function WaiverSection({ account, disabled, onSign, onVoid }: WaiverSectionProps
     <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-2 border-t border-ink/10 pt-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="ficha-firmada-title" className={SUBTITLE}>
-          Ficha firmada
+          Ficha
         </h3>
         {!disabled && (
           <Button variant="secondary" className="px-4! py-1!" onClick={onSign}>
-            Registrar firma
+            Registrar entrega
           </Button>
         )}
       </header>
@@ -647,17 +647,17 @@ function WaiverSection({ account, disabled, onSign, onVoid }: WaiverSectionProps
         {waiverLabel(waiver)}
       </p>
       {waivers.length === 0 ? (
-        <p className="text-sm text-ink-soft">Todavía no se registró ninguna firma.</p>
+        <p className="text-sm text-ink-soft">Todavía no entregó la ficha.</p>
       ) : (
         <ul className="divide-y divide-ink/10 text-sm">
           {waivers.map((signature) => (
             <li key={signature.id} className={`flex items-center justify-between gap-2 py-1 ${signature.voidedAt ? 'text-ink-soft' : ''}`}>
               <span>
-                Firmada el {formatDate(signature.signedAt)}
+                Entregada el {formatDate(signature.signedAt)}
                 {signature.voidedAt && ' · Anulada'}
               </span>
               {!signature.voidedAt && !disabled && (
-                <Button variant="ghost" className="px-3! py-0.5! text-xs" aria-label={`Anular firma del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
+                <Button variant="ghost" className="px-3! py-0.5! text-xs" aria-label={`Anular entrega del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
                   Anular
                 </Button>
               )}
@@ -697,7 +697,7 @@ function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
       <TextField
-        label="Fecha de firma"
+        label="Fecha de entrega"
         type="date"
         max={todayIso()}
         value={signedAt}
@@ -710,7 +710,7 @@ function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: 
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>
-          Registrar firma
+          Registrar entrega
         </Button>
       </div>
     </form>

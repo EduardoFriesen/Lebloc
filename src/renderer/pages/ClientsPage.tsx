@@ -49,7 +49,7 @@ export function ClientsPage() {
       : onlyWithPasses
         ? { title: 'Nadie tiene pases', text: 'Ningún cliente tiene pases disponibles.' }
         : onlyPendingWaiver
-          ? { title: 'Fichas al día', text: 'Nadie tiene la ficha vencida ni sin firmar.' }
+          ? { title: 'Fichas al día', text: 'Todos entregaron la ficha.' }
           : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
 
   function setFilter(key: 'deuda' | 'pases' | 'fichas', on: boolean) {
@@ -94,7 +94,7 @@ export function ClientsPage() {
           <CheckboxField label="Incluir archivados" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
           <CheckboxField label="Solo con pases" checked={onlyWithPasses} onChange={(event) => setFilter('pases', event.target.checked)} />
           <CheckboxField label="Solo con deuda" checked={onlyDebtors} onChange={(event) => setFilter('deuda', event.target.checked)} />
-          <CheckboxField label="Ficha por actualizar" checked={onlyPendingWaiver} onChange={(event) => setFilter('fichas', event.target.checked)} />
+          <CheckboxField label="Sin ficha" checked={onlyPendingWaiver} onChange={(event) => setFilter('fichas', event.target.checked)} />
         </div>
         {view && <ClearFilter label={view.label} onClear={clearView} />}
       </div>
@@ -138,7 +138,7 @@ export function ClientsPage() {
             selected: onlyDebtors,
           },
           {
-            label: 'Fichas por actualizar',
+            label: 'Sin ficha',
             value: <SummaryValue count={data.pendingWaivers} />,
             onSelect: () => selectOnly({ fichas: '1' }),
             selected: onlyPendingWaiver,

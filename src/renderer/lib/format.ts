@@ -46,9 +46,7 @@ export function formatDate(iso: string): string {
 }
 
 export function waiverLabel(waiver: WaiverStatus): string {
-  if (waiver.state === 'valid') return `Ficha vigente hasta ${formatDate(waiver.expiresAt ?? '')}`;
-  if (waiver.state === 'expired') return `Ficha vencida desde ${formatDate(waiver.expiresAt ?? '')}`;
-  return 'Sin ficha firmada';
+  return waiver.signedAt ? `Ficha entregada el ${formatDate(waiver.signedAt)}` : 'Sin ficha';
 }
 
 export function formatDateTime(iso: string): string {

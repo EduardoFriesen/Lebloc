@@ -104,7 +104,7 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await label('Fecha de nacimiento').fill('1988-02-20');
   await page.getByRole('button', { name: 'Guardar cliente' }).click();
   await expect(page.getByRole('heading', { name: 'Bruno Sierra' })).toBeVisible();
-  await expect(page.getByText('Sin ficha firmada')).toBeVisible();
+  await expect(page.getByText('Sin ficha', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Vender plan' }).click();
   const dialog = page.getByRole('dialog');
@@ -146,9 +146,9 @@ test('sell fully paid by default, renew an exhausted plan, sign the waiver and g
   await salesPages.getByRole('button', { name: 'Página siguiente' }).click();
   await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Registrar firma' }).click();
-  await dialog.getByRole('button', { name: 'Registrar firma' }).click();
-  await expect(page.getByText(/Ficha vigente hasta/)).toBeVisible();
+  await page.getByRole('button', { name: 'Registrar entrega' }).click();
+  await dialog.getByRole('button', { name: 'Registrar entrega' }).click();
+  await expect(page.getByText(/Ficha entregada el/)).toBeVisible();
 
   await page.getByRole('button', { name: '← Volver' }).click();
   await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toBeVisible();
@@ -322,8 +322,8 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Mostrador' }).click();
-  await summary.getByRole('link', { name: 'Fichas por actualizar' }).click();
-  await expect(page.getByLabel('Ficha por actualizar')).toBeChecked();
+  await summary.getByRole('link', { name: 'Sin ficha' }).click();
+  await expect(page.getByLabel('Sin ficha')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
 

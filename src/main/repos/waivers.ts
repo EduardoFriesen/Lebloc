@@ -1,12 +1,6 @@
 import type { WaiverSignature } from '../../shared/types';
 import type { Db } from '../db/connection';
 
-export interface ClientWaiverRow {
-  clientId: number;
-  clientName: string;
-  signedAt: string | null;
-}
-
 const COLUMNS = 'id, client_id AS clientId, signed_at AS signedAt, recorded_at AS recordedAt, voided_at AS voidedAt';
 
 export const LAST_SIGNED_AT_SQL = `(SELECT MAX(w.signed_at) FROM waiver_signatures w
@@ -35,13 +29,12 @@ export function voidWaiver(db: Db, id: number, now: string): void {
   db.prepare('UPDATE waiver_signatures SET voided_at = ? WHERE id = ?').run(now, id);
 }
 
-export function listActiveClientWaivers(db: Db): ClientWaiverRow[] {
-  return db
-    .prepare<[], ClientWaiverRow>(
-      `SELECT c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName, ${LAST_SIGNED_AT_SQL} AS signedAt
-       FROM clients c
-       WHERE c.archived_at IS NULL
-       ORDER BY c.last_name COLLATE NOCASE, c.first_name COLLATE NOCASE`,
-    )
-    .all();
+export function countMissingWaivers(db: Db): number {
+  return (
+    db
+      .prepare<[], { count: number }>(
+        `SELECT COUNT(*) AS count FROM clients c WHERE c.archived_at IS NULL AND ${LAST_SIGNED_AT_SQL} IS NULL`,
+      )
+      .get()?.count ?? 0
+  );
 }

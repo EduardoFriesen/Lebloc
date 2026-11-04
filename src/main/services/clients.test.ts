@@ -217,7 +217,7 @@ describe('clients service', () => {
     expect(startedAt('Bruno')).toBeNull();
   });
 
-  it('lists only clients whose waiver is missing or expired on request', () => {
+  it('lists only clients without a waiver on request, however old the one handed in', () => {
     createClient(ctx, adultClient);
     const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
     const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
@@ -225,10 +225,7 @@ describe('clients service', () => {
     signWaiver(ctx, { clientId: carla, signedAt: '2025-09-01' });
 
     const pending = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: true });
-    expect(pending.map((client) => [client.firstName, client.waiver.state])).toEqual([
-      ['Carla', 'expired'],
-      ['Ana', 'missing'],
-    ]);
+    expect(pending.map((client) => client.firstName)).toEqual(['Ana']);
   });
 
   it('lists only clients without passes, minors, this month enrollments or archived on request', () => {

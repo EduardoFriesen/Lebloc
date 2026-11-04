@@ -3,13 +3,13 @@ import { attendanceWindows, monthStart } from '../../domain/attendance';
 import { daysBetween } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import { passStatus } from '../../domain/passes';
+import { waiverStatus } from '../../domain/waiver';
 import type { ClientInput, ClientListInput, ClientUpdate } from '../../shared/schemas';
 import type { Client, ClientSummary } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
 import { insertAudit } from '../repos/audit';
 import * as repo from '../repos/clients';
 import { getSettings } from './settings';
-import { waiverStatusResolver } from './waivers';
 
 export function getClient(ctx: Context, id: number): Client {
   const row = repo.findClientRow(ctx.db, id);
@@ -24,14 +24,13 @@ export function requireActiveClient(ctx: Context, id: number): Client {
 }
 
 function summaries(ctx: Context, filters: Omit<repo.ClientSummaryFilters, 'today'>): ClientSummary[] {
-  const statusOf = waiverStatusResolver(ctx);
   const settings = getSettings(ctx);
   const now = today(ctx);
   return repo.listClientSummaries(ctx.db, { ...filters, today: now }).map(({ waiverSignedAt, oldestDebtSoldAt, ...summary }) => ({
     ...summary,
     debtDays: oldestDebtSoldAt === null ? null : daysBetween(oldestDebtSoldAt, now),
     passStatus: passStatus(summary.remainingFree + summary.remainingTeacher, summary.expiresAt, now, settings),
-    waiver: statusOf(waiverSignedAt),
+    waiver: waiverStatus(waiverSignedAt),
   }));
 }
 
@@ -42,7 +41,7 @@ export function listClients(ctx: Context, input: ClientListInput): ClientSummary
     bornAfter: onlyMinors ? minorBirthCutoff(today(ctx)) : undefined,
     enrolledFrom: onlyNewThisMonth ? monthStart(ctx.clock.now()) : undefined,
   });
-  return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state !== 'valid') : clients;
+  return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state === 'missing') : clients;
 }
 
 /** Who has to renew: low or no passes, and came in the last 30 days. Those with no passes first. */

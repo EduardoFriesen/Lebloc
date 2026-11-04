@@ -114,7 +114,7 @@ export function seedDatabase(db: Db, now: Date): void {
 
   db.transaction(() => {
     at(160, 9);
-    updateSettings(ctx, { lowPassesThreshold: 2, expiryWarningDays: 7, waiverValidityMonths: 12 });
+    updateSettings(ctx, { lowPassesThreshold: 2, expiryWarningDays: 7 });
 
     // Profesores
     const martinaInput: TeacherInput = {
@@ -177,11 +177,11 @@ export function seedDatabase(db: Db, now: Date): void {
     const dosPorSemana = createPlan(ctx, { name: 'Mensual 2x semana con profe', freePasses: 0, teacherPasses: 8, priceCents: pesos(30_000), teacherAmountCents: pesos(32_000), active: true }).id;
     const promo = createPlan(ctx, promoInput).id;
 
-    // Mateo: socio de hace un año, la ficha está por vencer.
+    // Mateo: socio de hace un año.
     const mateo = client(360, { firstName: 'Mateo', lastName: 'Acosta', birthDate: '1989-12-12', phone: '11 4000-0120', emergencyName: 'Paula Acosta', emergencyPhone: '11 4000-0121', emergencyRelation: 'Esposa' });
     sign(mateo, 358);
 
-    // Carla: socia vieja con la ficha vencida y deuda en su último pack.
+    // Carla: socia vieja con deuda en su último pack.
     const carla = client(420, { firstName: 'Carla', lastName: 'Méndez', birthDate: '1995-02-14', phone: '11 4000-0103', emergencyName: 'Rosa Méndez', emergencyPhone: '11 4000-0104', emergencyRelation: 'Madre' });
     sign(carla, 400);
 

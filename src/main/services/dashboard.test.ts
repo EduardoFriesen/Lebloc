@@ -76,9 +76,8 @@ describe('debtors and dashboard', () => {
     const mixedId = createPlan(ctx, mixedPlan).id;
     sellPlan(ctx, saleOf({ clientId: darioId, planId: mixedId, teacherId: juanId, initialPayment: { amountCents: 1_500_000, method: 'cash', paidAt: '2026-10-05' } }));
 
-    // Ana never signed and Dario's waiver expired (12 months by default); Bruno is valid, Carla archived.
-    signWaiver(ctx, { clientId: brunoId, signedAt: '2026-10-01' });
-    signWaiver(ctx, { clientId: darioId, signedAt: '2025-09-01' });
+    // Ana and Dario never handed it in; Bruno's old one still counts, Carla is archived.
+    signWaiver(ctx, { clientId: brunoId, signedAt: '2015-10-01' });
 
     expect(getDashboard(ctx).summary).toEqual({
       activeClients: 2,

@@ -1,11 +1,9 @@
 import { DomainError } from '../../domain/errors';
-import { waiverStatus, type WaiverStatus } from '../../domain/waiver';
 import type { WaiverInput } from '../../shared/schemas';
-import type { WaiverAlert, WaiverSignature } from '../../shared/types';
+import type { WaiverSignature } from '../../shared/types';
 import { type Context, nowIso, today } from '../context';
 import * as repo from '../repos/waivers';
 import { requireActiveClient } from './clients';
-import { getSettings } from './settings';
 
 export function getWaiver(ctx: Context, id: number): WaiverSignature {
   const waiver = repo.findWaiver(ctx.db, id);
@@ -27,18 +25,7 @@ export function voidWaiver(ctx: Context, id: number): WaiverSignature {
   return getWaiver(ctx, id);
 }
 
-/** Returns a function that maps the last signing date to its status, reading the settings once. */
-export function waiverStatusResolver(ctx: Context): (lastSignedAt: string | null) => WaiverStatus {
-  const { waiverValidityMonths } = getSettings(ctx);
-  const now = today(ctx);
-  return (lastSignedAt) => waiverStatus(lastSignedAt, waiverValidityMonths, now);
-}
-
-export function listWaiverAlerts(ctx: Context): WaiverAlert[] {
-  const statusOf = waiverStatusResolver(ctx);
-  return repo
-    .listActiveClientWaivers(ctx.db)
-    .map(({ clientId, clientName, signedAt }) => ({ clientId, clientName, ...statusOf(signedAt) }))
-    .filter((alert) => alert.state !== 'valid')
-    .map(({ clientId, clientName, state, expiresAt }) => ({ clientId, clientName, state, expiresAt }));
+/** Active clients that never handed in the waiver (or whose deliveries were all voided). */
+export function countMissingWaivers(ctx: Context): number {
+  return repo.countMissingWaivers(ctx.db);
 }

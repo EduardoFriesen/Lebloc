@@ -11,7 +11,6 @@ import { getKioskStats, listKioskSales } from './services/kiosk';
 import { listPlans } from './services/plans';
 import { listProducts } from './services/products';
 import { listTeachers } from './services/teachers';
-import { listWaiverAlerts } from './services/waivers';
 
 describe('seedDatabase', () => {
   const now = new Date(2026, 9, 9, 12, 0, 0);
@@ -34,7 +33,6 @@ describe('seedDatabase', () => {
     expect(summary.pendingWaivers).toBeGreaterThan(0);
     expect(summary.teacherBalanceCents).toBeGreaterThan(0);
     expect(renewals.length).toBeGreaterThan(0);
-    expect(new Set(listWaiverAlerts(ctx).map((alert) => alert.state))).toEqual(new Set(['missing', 'expired']));
   });
 
   it('loads two months of expenses and employee shifts', () => {

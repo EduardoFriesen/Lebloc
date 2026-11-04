@@ -264,7 +264,7 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
             <span className={value}>{summary.debtorCount}</span>
           </span>
         </AlertRow>
-        <AlertRow to="/clientes?fichas=1" name="Fichas por actualizar">
+        <AlertRow to="/clientes?fichas=1" name="Sin ficha">
           <span className={value}>{summary.pendingWaivers}</span>
         </AlertRow>
         <AlertRow to="/profesores" name="Saldo con profesores">
