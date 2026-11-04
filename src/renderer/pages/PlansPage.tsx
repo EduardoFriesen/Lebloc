@@ -52,7 +52,7 @@ export function PlansPage() {
       <div className={SUMMARY_TOP}>
         <PageHeader
           title="Planes"
-          subtitle="Packs de pases sin vencimiento. El recargo del profesor se suma al vender, según el profesor elegido."
+          subtitle="Packs de pases. Si incluyen clases con profesor, su monto se suma al precio del local al vender."
           actions={<Button onClick={() => setEditing('new')}>Nuevo plan</Button>}
         />
         {onlyActive !== null && <ClearFilter label={onlyActive ? 'Activos' : 'Inactivos'} onClear={() => setOnlyActive(null)} />}
