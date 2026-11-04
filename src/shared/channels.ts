@@ -28,6 +28,8 @@ export const CHANNELS = [
   'sales:extend',
   'payments:create',
   'payments:void',
+  'debts:cancel',
+  'debts:voidCancellation',
   'consumptions:create',
   'consumptions:void',
   'payouts:create',

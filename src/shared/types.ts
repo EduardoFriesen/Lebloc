@@ -111,6 +111,8 @@ export interface Sale {
   expiresAt: string;
   expired: boolean;
   paidCents: number;
+  /** Forgiven: no longer owed, but not paid either. */
+  cancelledCents: number;
   debtCents: number;
   remainingFree: number;
   remainingTeacher: number;
@@ -129,6 +131,14 @@ export interface Payment {
   voidedAt: string | null;
 }
 
+export interface DebtCancellation {
+  id: number;
+  saleId: number;
+  amountCents: number;
+  cancelledAt: string;
+  voidedAt: string | null;
+}
+
 export interface Consumption {
   id: number;
   saleId: number;
@@ -142,6 +152,7 @@ export interface ClientAccount {
   client: Client;
   sales: Sale[];
   payments: Payment[];
+  cancellations: DebtCancellation[];
   consumptions: Consumption[];
   remainingFree: number;
   remainingTeacher: number;

@@ -2,16 +2,19 @@ import type { Enrollment, PlanSale } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 // Aggregates per non-voided sale. Use as `WITH ${SALE_STATS_CTE} SELECT ... FROM sale_stats`, binding @today (ISO
-// date). left_free and left_teacher are the passes that can still be used: none once the sale expired.
+// date). left_free and left_teacher are the passes that can still be used: none once the sale expired. debt_cents
+// leaves out what was cancelled.
 export const SALE_STATS_CTE = `sale_stats AS (
   SELECT *,
     CASE WHEN expires_at < @today THEN 0 ELSE free_passes - used_free END AS left_free,
-    CASE WHEN expires_at < @today THEN 0 ELSE teacher_passes - used_teacher END AS left_teacher
+    CASE WHEN expires_at < @today THEN 0 ELSE teacher_passes - used_teacher END AS left_teacher,
+    total_cents - paid_cents - cancelled_cents AS debt_cents
   FROM (
     SELECT
       s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.expires_at, s.plan_name, s.free_passes, s.teacher_passes,
       s.total_cents,
       COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paid_cents,
+      COALESCE((SELECT SUM(d.amount_cents) FROM debt_cancellations d WHERE d.sale_id = s.id AND d.voided_at IS NULL), 0) AS cancelled_cents,
       (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'free') AS used_free,
       (SELECT COUNT(*) FROM consumptions c WHERE c.sale_id = s.id AND c.voided_at IS NULL AND c.kind = 'teacher') AS used_teacher
     FROM sales s
@@ -29,7 +32,7 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
        SELECT ss.id AS saleId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.sold_at AS soldAt,
          ss.left_free AS remainingFree, ss.left_teacher AS remainingTeacher,
-         ss.total_cents - ss.paid_cents AS debtCents, ss.expires_at AS expiresAt
+         ss.debt_cents AS debtCents, ss.expires_at AS expiresAt
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id
        LEFT JOIN teachers t ON t.id = ss.teacher_id
@@ -48,7 +51,7 @@ export function listPlanSales(db: Db, filter: { from: string; to: string; planId
       `WITH ${SALE_STATS_CTE}
        SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.total_cents AS totalCents,
-         ss.total_cents - ss.paid_cents AS debtCents
+         ss.debt_cents AS debtCents
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id
        LEFT JOIN teachers t ON t.id = ss.teacher_id
@@ -72,7 +75,7 @@ export function summaryCounts(db: Db, today: string): SummaryCounts {
        per_client AS (
          SELECT ss.client_id,
            SUM(ss.left_free + ss.left_teacher) AS passes,
-           SUM(ss.total_cents - ss.paid_cents) AS debt
+           SUM(ss.debt_cents) AS debt
          FROM sale_stats ss
          JOIN clients c ON c.id = ss.client_id AND c.archived_at IS NULL
          GROUP BY ss.client_id

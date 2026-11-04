@@ -57,8 +57,8 @@ describe('buildSaleSnapshot', () => {
 
 describe('buildExtension', () => {
   const teacherOnlyPlan: PlanForSale = { id: 3, name: 'Escuelita', freePasses: 0, teacherPasses: 4, priceCents: 2_000_000, teacherAmountCents: 1_200_000, active: true };
-  const trial: SaleForExtension = { planId: 9, teacherId: null, voided: false, expired: false, used: { free: 1, teacher: 0 }, allocatedLocalCents: 700_000, allocatedTeacherCents: 0 };
-  const withTeacher: SaleForExtension = { planId: 9, teacherId: 7, voided: false, expired: false, used: { free: 0, teacher: 1 }, allocatedLocalCents: 300_000, allocatedTeacherCents: 200_000 };
+  const trial: SaleForExtension = { planId: 9, teacherId: null, voided: false, expired: false, used: { free: 1, teacher: 0 }, allocatedLocalCents: 700_000, allocatedTeacherCents: 0, cancelledCents: 0 };
+  const withTeacher: SaleForExtension = { planId: 9, teacherId: 7, voided: false, expired: false, used: { free: 0, teacher: 1 }, allocatedLocalCents: 300_000, allocatedTeacherCents: 200_000, cancelledCents: 0 };
 
   it('extends a used free trial to a free plan with the plan as it is sold today', () => {
     expect(buildExtension(trial, freePlan, null, 'proportional')).toEqual(buildSaleSnapshot(freePlan, null, 'proportional'));
@@ -105,6 +105,10 @@ describe('buildExtension', () => {
     expectDomainError(() => buildExtension({ ...withTeacher, allocatedTeacherCents: 1_000_001 }, mixedPlan, teacher, 'proportional'), 'PAID_EXCEEDS_PLAN');
   });
 
+  it('rejects a sale whose debt was cancelled, until the cancellation is voided', () => {
+    expectDomainError(() => buildExtension({ ...trial, cancelledCents: 1_300_000 }, freePlan, null, 'proportional'), 'DEBT_CANCELLED');
+  });
+
   it("rejects extending with the sale's teacher once inactive", () => {
     expectDomainError(() => buildExtension(withTeacher, mixedPlan, { id: 7, active: false }, 'proportional'), 'INACTIVE_TEACHER');
   });
@@ -112,7 +116,7 @@ describe('buildExtension', () => {
 
 describe('extensionStateOf', () => {
   it('counts used passes and only the active payments', () => {
-    const sale = { planId: 1, teacherId: null, voidedAt: null, expired: false, freePasses: 8, teacherPasses: 0, remainingFree: 6, remainingTeacher: 0 };
+    const sale = { planId: 1, teacherId: null, voidedAt: null, expired: false, freePasses: 8, teacherPasses: 0, remainingFree: 6, remainingTeacher: 0, cancelledCents: 0 };
     const payments = [
       { localCents: 700_000, teacherCents: 0, voidedAt: null },
       { localCents: 500_000, teacherCents: 0, voidedAt: '2026-10-06T10:00:00.000Z' },
@@ -125,6 +129,7 @@ describe('extensionStateOf', () => {
       used: { free: 2, teacher: 0 },
       allocatedLocalCents: 700_000,
       allocatedTeacherCents: 0,
+      cancelledCents: 0,
     });
   });
 });

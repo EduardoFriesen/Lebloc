@@ -5,8 +5,16 @@ export interface PaymentState {
   voidedAt: string | null;
 }
 
-export function saleDebt(totalCents: number, paidCents: number): number {
-  return totalCents - paidCents;
+/** What was cancelled is no longer owed, but it is not income either. */
+export function saleDebt(totalCents: number, paidCents: number, cancelledCents: number): number {
+  return totalCents - paidCents - cancelledCents;
+}
+
+/** Cancelling a debt forgives all of it, the teacher's part included. */
+export function debtToCancel(sale: { voidedAt: string | null; debtCents: number }): number {
+  if (sale.voidedAt) throw new DomainError('SALE_VOIDED');
+  if (sale.debtCents <= 0) throw new DomainError('NO_DEBT_TO_CANCEL');
+  return sale.debtCents;
 }
 
 export function assertPaymentVoidable(paymentId: number, salePayments: readonly PaymentState[]): void {
@@ -18,9 +26,10 @@ export function assertPaymentVoidable(paymentId: number, salePayments: readonly 
   if (paymentId !== lastActiveId) throw new DomainError('ONLY_LAST_PAYMENT_VOIDABLE');
 }
 
-export function assertSaleVoidable(sale: { voidedAt: string | null }, active: { payments: number; consumptions: number }): void {
+export function assertSaleVoidable(sale: { voidedAt: string | null; cancelledCents: number }, active: { payments: number; consumptions: number }): void {
   if (sale.voidedAt) throw new DomainError('ALREADY_VOIDED');
   if (active.payments > 0) throw new DomainError('SALE_HAS_ACTIVE_PAYMENTS');
+  if (sale.cancelledCents > 0) throw new DomainError('SALE_HAS_ACTIVE_CANCELLATIONS');
   if (active.consumptions > 0) throw new DomainError('SALE_HAS_ACTIVE_CONSUMPTIONS');
 }
 

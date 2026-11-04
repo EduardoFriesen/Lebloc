@@ -3,9 +3,13 @@ import { allocatePayment } from '../../domain/allocation';
 import type { SaleExtensionInput, SaleInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
-import { archiveClient, createClient } from './clients';
+import { getClientAccount } from './account';
+import { archiveClient, createClient, listClients } from './clients';
 import { consume } from './consumptions';
-import { getPayment, registerPayment, voidPayment } from './payments';
+import { getDayMovements } from './counter';
+import { getFinanceSummary } from './finance';
+import { cancelDebt, getPayment, registerPayment, voidDebtCancellation, voidPayment } from './payments';
+import { getTeacherAccount } from './payouts';
 import { createPlan, updatePlan } from './plans';
 import { extendSale, getSale, sellPlan, setSaleExpiry, voidSale } from './sales';
 import { createTeacher, updateTeacher } from './teachers';
@@ -213,6 +217,53 @@ describe('sales and payments', () => {
     expect(voided.voidedAt).not.toBeNull();
     expect(voided.debtCents).toBe(0);
     expectDomainError(() => voidSale(ctx, sale.id), 'ALREADY_VOIDED');
+  });
+
+  describe('cancelDebt', () => {
+    const october = { from: '2026-10-01', to: '2026-10-31' };
+
+    it("forgives what is owed, the teacher's part included, without counting it as income", () => {
+      const sale = sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId, initialPayment: { amountCents: 1_000_000, method: 'cash', paidAt: '2026-10-05' } }));
+      const income = getFinanceSummary(ctx, october).current;
+      const owedToTeacher = getTeacherAccount(ctx, teacherId).balanceCents;
+
+      const cancellation = cancelDebt(ctx, { saleId: sale.id });
+
+      expect(cancellation).toMatchObject({ saleId: sale.id, amountCents: sale.debtCents, cancelledAt: TEST_NOW.toISOString(), voidedAt: null });
+      expect(getSale(ctx, sale.id)).toMatchObject({ paidCents: 1_000_000, cancelledCents: sale.debtCents, debtCents: 0 });
+      expect(getClientAccount(ctx, clientId)).toMatchObject({ debtCents: 0, cancellations: [cancellation] });
+      expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: true, onlyWithPasses: false, onlyPendingWaiver: false })).toEqual([]);
+      expect(getDayMovements(ctx).rows).toMatchObject([{ kind: 'plan', amountCents: 1_000_000, debtCents: 0 }]);
+      expect(getFinanceSummary(ctx, october).current).toEqual(income);
+      expect(getTeacherAccount(ctx, teacherId).balanceCents).toBe(owedToTeacher);
+    });
+
+    it('brings the debt back when the cancellation is voided, once', () => {
+      const sale = sellPlan(ctx, saleOf({}));
+      const cancellation = cancelDebt(ctx, { saleId: sale.id });
+      expect(voidDebtCancellation(ctx, cancellation.id).voidedAt).not.toBeNull();
+      expect(getSale(ctx, sale.id)).toMatchObject({ cancelledCents: 0, debtCents: 2_000_000 });
+      expectDomainError(() => voidDebtCancellation(ctx, cancellation.id), 'ALREADY_VOIDED');
+    });
+
+    it('rejects cancelling a sale that owes nothing, and paying a cancelled debt', () => {
+      const sale = sellPlan(ctx, saleOf({}));
+      cancelDebt(ctx, { saleId: sale.id });
+      expectDomainError(() => cancelDebt(ctx, { saleId: sale.id }), 'NO_DEBT_TO_CANCEL');
+      expectDomainError(() => pay(sale.id, 100_000), 'PAYMENT_EXCEEDS_DEBT');
+    });
+
+    it('voids the sale or extends it only after voiding the cancellation', () => {
+      const sale = sellPlan(ctx, saleOf({ planId: mixedPlanId, teacherId }));
+      const cancellation = cancelDebt(ctx, { saleId: sale.id });
+      expectDomainError(() => voidSale(ctx, sale.id), 'SALE_HAS_ACTIVE_CANCELLATIONS');
+      expectDomainError(
+        () => extendSale(ctx, { saleId: sale.id, planId: freePlanId, teacherId: null, splitRule: 'proportional', expiresAt: FAR_EXPIRY, payment: null }),
+        'DEBT_CANCELLED',
+      );
+      voidDebtCancellation(ctx, cancellation.id);
+      expect(voidSale(ctx, sale.id).voidedAt).not.toBeNull();
+    });
   });
 
   describe('extendSale', () => {

@@ -439,3 +439,20 @@ test('extend a used trial into a pack, paying part now', async () => {
   await expect(page.getByText(/Extendida el .* · antes: Prueba libre/)).toBeVisible();
   await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
 });
+
+test('cancel what is owed without it being income, and void the cancellation', async () => {
+  // Carla still owes part of the pack she extended to.
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Cancelar deuda' }).click();
+  await expect(dialog).toContainText('Se cancelan los $ 4.000,00 que debe de “Pack 4 libres”. No entra como ingreso.');
+  await dialog.getByRole('button', { name: 'Cancelar deuda' }).click();
+  await expect(page.getByText('Deuda cancelada', { exact: true })).toBeVisible();
+  const cancelled = page.getByRole('list', { name: 'Deudas canceladas' });
+  await expect(cancelled).toContainText(/Deuda cancelada el \d{2}\/\d{2}\/\d{4}: \$\s4\.000,00/);
+  await expect(page.getByRole('button', { name: 'Registrar pago' })).toHaveCount(0);
+
+  await cancelled.getByRole('button', { name: 'Anular cancelación' }).click();
+  await dialog.getByRole('button', { name: 'Anular cancelación' }).click();
+  await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
+  await expect(cancelled).toContainText('· Anulada');
+});

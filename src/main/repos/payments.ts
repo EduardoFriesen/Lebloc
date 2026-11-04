@@ -1,5 +1,5 @@
 import { saleDebt } from '../../domain/ledger';
-import type { DayMovement, Payment, PaymentMethod } from '../../shared/types';
+import type { DayMovement, DebtCancellation, Payment, PaymentMethod } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 export interface NewPayment {
@@ -69,18 +69,43 @@ type PlanMovement = Extract<DayMovement, { kind: 'plan' }>;
 /** Non-voided payments made on `date`, newest first, with the sale's current debt. */
 export function listPaymentsOn(db: Db, date: string): PlanMovement[] {
   return db
-    .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; saleVoidedAt: string | null }>(
+    .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; cancelledCents: number; saleVoidedAt: string | null }>(
       `SELECT p.id AS paymentId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
          s.voided_at AS saleVoidedAt, p.recorded_at AS recordedAt,
-         COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents
+         COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents,
+         COALESCE((SELECT SUM(d.amount_cents) FROM debt_cancellations d WHERE d.sale_id = s.id AND d.voided_at IS NULL), 0) AS cancelledCents
        FROM payments p JOIN sales s ON s.id = p.sale_id JOIN clients c ON c.id = s.client_id
        WHERE p.paid_at = ? AND p.voided_at IS NULL ORDER BY p.id DESC`,
     )
     .all(date)
-    .map(({ paidCents, saleVoidedAt, ...row }) => ({
+    .map(({ paidCents, cancelledCents, saleVoidedAt, ...row }) => ({
       kind: 'plan' as const,
       ...row,
-      debtCents: saleVoidedAt ? 0 : saleDebt(row.saleTotalCents, paidCents),
+      debtCents: saleVoidedAt ? 0 : saleDebt(row.saleTotalCents, paidCents, cancelledCents),
     }));
+}
+
+const CANCELLATION_COLUMNS = `d.id, d.sale_id AS saleId, d.amount_cents AS amountCents, d.cancelled_at AS cancelledAt, d.voided_at AS voidedAt`;
+
+export function insertDebtCancellation(db: Db, saleId: number, amountCents: number, now: string): number {
+  const result = db.prepare('INSERT INTO debt_cancellations (sale_id, amount_cents, cancelled_at) VALUES (?, ?, ?)').run(saleId, amountCents, now);
+  return Number(result.lastInsertRowid);
+}
+
+export function findDebtCancellation(db: Db, id: number): DebtCancellation | undefined {
+  return db.prepare<[number], DebtCancellation>(`SELECT ${CANCELLATION_COLUMNS} FROM debt_cancellations d WHERE d.id = ?`).get(id);
+}
+
+export function listDebtCancellationsForClient(db: Db, clientId: number): DebtCancellation[] {
+  return db
+    .prepare<[number], DebtCancellation>(
+      `SELECT ${CANCELLATION_COLUMNS} FROM debt_cancellations d JOIN sales s ON s.id = d.sale_id
+       WHERE s.client_id = ? ORDER BY d.id DESC`,
+    )
+    .all(clientId);
+}
+
+export function voidDebtCancellation(db: Db, id: number, now: string): void {
+  db.prepare('UPDATE debt_cancellations SET voided_at = ? WHERE id = ?').run(now, id);
 }

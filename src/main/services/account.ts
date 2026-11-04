@@ -3,7 +3,7 @@ import { waiverStatus } from '../../domain/waiver';
 import type { ClientAccount } from '../../shared/types';
 import { type Context, today } from '../context';
 import { listConsumptionsForClient } from '../repos/consumptions';
-import { listPaymentsForClient } from '../repos/payments';
+import { listDebtCancellationsForClient, listPaymentsForClient } from '../repos/payments';
 import { listSalesForClient } from '../repos/sales';
 import { listWaiversForClient } from '../repos/waivers';
 import { getClient } from './clients';
@@ -28,6 +28,7 @@ export function getClientAccount(ctx: Context, clientId: number): ClientAccount 
     client,
     sales,
     payments: listPaymentsForClient(ctx.db, clientId),
+    cancellations: listDebtCancellationsForClient(ctx.db, clientId),
     consumptions: listConsumptionsForClient(ctx.db, clientId),
     remainingFree,
     remainingTeacher,

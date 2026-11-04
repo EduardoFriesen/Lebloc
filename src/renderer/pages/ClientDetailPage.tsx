@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
-import type { Client, ClientAccount, Consumption, Payment, Sale, WaiverSignature } from '../../shared/types';
+import type { Client, ClientAccount, Consumption, DebtCancellation, Payment, Sale, WaiverSignature } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
@@ -159,8 +159,27 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
             key={account.sales.length}
             sales={account.sales}
             payments={account.payments}
+            cancellations={account.cancellations}
             disabled={archived}
             onPay={setPayingSale}
+            onCancelDebt={(sale) =>
+              setPending({
+                title: 'Cancelar deuda',
+                message: `Se cancelan los ${formatMoney(sale.debtCents)} que debe de “${sale.planName}”. No entra como ingreso${
+                  sale.teacherSurchargeCents > 0 ? ' y el profesor no cobra la parte que faltaba' : ''
+                }. Se puede anular después.`,
+                confirmLabel: 'Cancelar deuda',
+                action: () => call('debts:cancel', { saleId: sale.id }),
+              })
+            }
+            onVoidCancellation={(cancellation) =>
+              setPending({
+                title: 'Anular cancelación',
+                message: `La deuda de ${formatMoney(cancellation.amountCents)} vuelve a quedar pendiente.`,
+                confirmLabel: 'Anular cancelación',
+                action: () => call('debts:voidCancellation', { id: cancellation.id }),
+              })
+            }
             onRenew={(sale) => setSelling({ renewFrom: sale })}
             onChangeExpiry={setExpiringSale}
             onExtend={setExtendingSale}
@@ -333,8 +352,11 @@ function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps)
 interface SalesPanelProps {
   sales: Sale[];
   payments: Payment[];
+  cancellations: DebtCancellation[];
   disabled: boolean;
   onPay: (sale: Sale) => void;
+  onCancelDebt: (sale: Sale) => void;
+  onVoidCancellation: (cancellation: DebtCancellation) => void;
   onRenew: (sale: Sale) => void;
   onChangeExpiry: (sale: Sale) => void;
   onExtend: (sale: Sale) => void;
@@ -343,7 +365,7 @@ interface SalesPanelProps {
 }
 
 /** One plan at a time, newest first; the arrows go back through the older ones. */
-function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
+function SalesPanel({ sales, payments, cancellations, ...actions }: SalesPanelProps) {
   const { visible, page, pages, setPage } = usePage(sales, 1);
   return (
     <section aria-labelledby="ventas-title" className="flex flex-col gap-3">
@@ -359,7 +381,13 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
         </EmptyState>
       ) : (
         visible.map((sale) => (
-          <SaleCard key={sale.id} sale={sale} payments={payments.filter((payment) => payment.saleId === sale.id)} {...actions} />
+          <SaleCard
+            key={sale.id}
+            sale={sale}
+            payments={payments.filter((payment) => payment.saleId === sale.id)}
+            cancellations={cancellations.filter((cancellation) => cancellation.saleId === sale.id)}
+            {...actions}
+          />
         ))
       )}
     </section>
@@ -369,7 +397,20 @@ function SalesPanel({ sales, payments, ...actions }: SalesPanelProps) {
 // Smaller than other tables: there is one per sale.
 const PAYMENTS_PAGE_SIZE = 5;
 
-function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, onExtend, onVoidPayment, onVoidSale }: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
+function SaleCard({
+  sale,
+  payments,
+  cancellations,
+  disabled,
+  onPay,
+  onCancelDebt,
+  onVoidCancellation,
+  onRenew,
+  onChangeExpiry,
+  onExtend,
+  onVoidPayment,
+  onVoidSale,
+}: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
   const voided = sale.voidedAt !== null;
   const lastActive = payments
     .filter((payment) => !payment.voidedAt)
@@ -418,8 +459,25 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, on
         (sale.debtCents > 0 ? (
           <p className="font-semibold text-accent-ink">Deuda: {formatMoney(sale.debtCents)}</p>
         ) : (
-          <p className="font-semibold text-moss">Saldada</p>
+          <p className="font-semibold text-moss">{sale.cancelledCents > 0 ? 'Deuda cancelada' : 'Saldada'}</p>
         ))}
+      {cancellations.length > 0 && (
+        <ul aria-label="Deudas canceladas" className="flex flex-col gap-1 text-sm">
+          {cancellations.map((cancellation) => (
+            <li key={cancellation.id} className={`flex items-center justify-between gap-2 ${cancellation.voidedAt ? 'text-ink-soft' : ''}`}>
+              <span>
+                Deuda cancelada el {formatDate(cancellation.cancelledAt)}: {formatMoney(cancellation.amountCents)}
+                {cancellation.voidedAt && ' · Anulada'}
+              </span>
+              {!cancellation.voidedAt && !voided && !disabled && (
+                <Button variant="ghost" className="px-3! py-0.5! text-xs" onClick={() => onVoidCancellation(cancellation)}>
+                  Anular cancelación
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       <table className={tableClass}>
         <caption className="sr-only">Pagos de la venta</caption>
         <thead>
@@ -450,6 +508,11 @@ function SaleCard({ sale, payments, disabled, onPay, onRenew, onChangeExpiry, on
       {!voided && !disabled && (
         <div className="flex flex-wrap gap-2">
           {sale.debtCents > 0 && <Button onClick={() => onPay(sale)}>Registrar pago</Button>}
+          {sale.debtCents > 0 && (
+            <Button variant="ghost" onClick={() => onCancelDebt(sale)}>
+              Cancelar deuda
+            </Button>
+          )}
           {sale.remainingFree + sale.remainingTeacher === 0 && (
             <Button variant="secondary" onClick={() => onRenew(sale)}>
               Renovar

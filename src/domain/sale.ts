@@ -62,6 +62,7 @@ export interface SaleForExtension {
   used: PassCounts;
   allocatedLocalCents: number;
   allocatedTeacherCents: number;
+  cancelledCents: number;
 }
 
 export function extensionStateOf(
@@ -74,6 +75,7 @@ export function extensionStateOf(
     teacherPasses: number;
     remainingFree: number;
     remainingTeacher: number;
+    cancelledCents: number;
   },
   payments: readonly { localCents: number; teacherCents: number; voidedAt: string | null }[],
 ): SaleForExtension {
@@ -86,6 +88,7 @@ export function extensionStateOf(
     used: { free: sale.freePasses - sale.remainingFree, teacher: sale.teacherPasses - sale.remainingTeacher },
     allocatedLocalCents: active.reduce((sum, payment) => sum + payment.localCents, 0),
     allocatedTeacherCents: active.reduce((sum, payment) => sum + payment.teacherCents, 0),
+    cancelledCents: sale.cancelledCents,
   };
 }
 
@@ -107,6 +110,8 @@ export function extensionKindError(
 export function buildExtension(sale: SaleForExtension, plan: PlanForSale, teacher: TeacherForSale | null, splitRule: SplitRule): SaleSnapshot {
   if (sale.voided) throw new DomainError('SALE_VOIDED');
   if (sale.expired) throw new DomainError('SALE_EXPIRED');
+  // Whether the forgiven amount should come off the new plan is the admin's call: void the cancellation first.
+  if (sale.cancelledCents > 0) throw new DomainError('DEBT_CANCELLED');
   const kindError = extensionKindError(sale, plan);
   if (kindError) throw new DomainError(kindError);
   if (sale.teacherId !== null && teacher?.id !== sale.teacherId) throw new DomainError('TEACHER_CHANGE_NOT_ALLOWED');

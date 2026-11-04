@@ -30,7 +30,7 @@ import { createExpense, getExpenseMonth, voidExpense } from '../services/expense
 import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { pickImport, runImport } from '../services/legacyImport';
-import { registerPayment, voidPayment } from '../services/payments';
+import { cancelDebt, registerPayment, voidDebtCancellation, voidPayment } from '../services/payments';
 import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } from '../services/payouts';
 import { getDayEntries, getDayMovements } from '../services/counter';
 import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
@@ -83,6 +83,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'sales:extend': (input) => extendSale(ctx, input),
     'payments:create': (input) => registerPayment(ctx, input),
     'payments:void': ({ id }) => voidPayment(ctx, id),
+    'debts:cancel': (input) => cancelDebt(ctx, input),
+    'debts:voidCancellation': ({ id }) => voidDebtCancellation(ctx, id),
     'consumptions:create': (input) => consume(ctx, input),
     'consumptions:void': ({ id }) => voidConsumption(ctx, id),
     'payouts:create': (input) => registerPayout(ctx, input),
