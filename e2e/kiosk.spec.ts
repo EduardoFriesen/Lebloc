@@ -150,7 +150,8 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
   await detail.getByLabel('Medio de pago').selectOption('transfer');
   await detail.getByRole('button', { name: 'Confirmar pago' }).click();
   await expect(detail.getByText('Pagada', { exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await detail.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await expect(detail).toBeHidden();
   await expect(page.getByText(/Se le debe al proveedor: \$\s0,00/)).toBeVisible();
 
   // Each payment is an expense of the month, and opens its delivery.

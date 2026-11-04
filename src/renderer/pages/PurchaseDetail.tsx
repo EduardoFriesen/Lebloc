@@ -27,6 +27,12 @@ export function PurchaseDetailDialog({ purchaseId, onChanged, onClose }: Purchas
   return (
     <Dialog wide open={purchaseId !== null} title="Detalle de la entrega" onClose={onClose}>
       {purchaseId !== null && <PurchaseDetail purchaseId={purchaseId} onChanged={onChanged} />}
+      {/* Outside the detail, so it is there while it loads or if it fails too. */}
+      <div className="flex justify-end">
+        <Button variant="ghost" onClick={onClose}>
+          Cerrar
+        </Button>
+      </div>
     </Dialog>
   );
 }
