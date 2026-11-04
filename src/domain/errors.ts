@@ -34,6 +34,13 @@ export const ERROR_MESSAGES = {
   IMPORT_NOT_EMPTY: 'Ya hay clientes cargados: la planilla solo se importa en una base vacía. Restaurá un backup sin clientes para importarla.',
   DRIVE_UNAVAILABLE: 'Google Drive no está disponible en esta versión de Lebloc o en esta PC.',
   DRIVE_CONNECT_FAILED: 'No se pudo conectar con Google. Probá de nuevo.',
+  SALE_EXPIRED: 'La venta está vencida: no se puede extender.',
+  SAME_PLAN: 'La venta ya es de ese plan.',
+  TEACHER_CHANGE_NOT_ALLOWED: 'El profesor de la venta no se puede cambiar.',
+  EXTENSION_NEEDS_TEACHER_PLAN: 'Una venta con profesor solo se extiende a un plan con clases con profesor.',
+  EXTENSION_NEEDS_FREE_PASSES: 'Una venta libre solo se extiende a un plan con clases libres.',
+  USED_PASSES_DONT_FIT: 'Las clases que ya usó no entran en el plan nuevo.',
+  PAID_EXCEEDS_PLAN: 'Lo que ya pagó supera el precio del plan nuevo.',
   NOT_FOUND: 'No se encontró el registro.',
 } as const;
 
