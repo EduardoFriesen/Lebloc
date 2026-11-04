@@ -421,15 +421,23 @@ export function seedDatabase(db: Db, now: Date): void {
     ticket(0, 15, 'transfer', [[isotonica, 1], [barrita, 2]]);
     ticket(0, 18, 'cash', [[alfajor, 3], [cinta, 1]]);
 
-    // Hoy llegó el proveedor: agua y barritas al mismo costo que tenían.
+    // Hace 10 días llegaron alfajores y se pagó una parte: todavía se le debe al proveedor.
+    at(10, 11);
+    createPurchase(ctx, {
+      receivedAt: dayIso(10),
+      items: [{ productId: alfajor, quantity: 30, costCents: pesos(24_000) }],
+      initialPayment: { amountCents: pesos(10_000), method: 'transfer', paidAt: dayIso(10) },
+    });
+
+    // Hoy llegó el proveedor: agua y barritas al mismo costo que tenían, pagadas en el momento.
     at(0, Math.min(9, now.getHours()));
     createPurchase(ctx, {
-      paidAt: toIsoDate(now),
-      method: 'cash',
+      receivedAt: toIsoDate(now),
       items: [
         { productId: agua, quantity: 24, costCents: pesos(24_000) },
         { productId: barrita, quantity: 24, costCents: pesos(14_400) },
       ],
+      initialPayment: { amountCents: pesos(38_400), method: 'cash', paidAt: toIsoDate(now) },
     });
 
     // Carla paga hoy otra cuota (debía $24.000, queda en $20.000): fila de plan en "Movimientos de hoy".

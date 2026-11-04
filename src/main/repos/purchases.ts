@@ -1,11 +1,10 @@
-import type { PaymentMethod } from '../../shared/types';
+import type { KioskPurchasePayment, PaymentMethod } from '../../shared/types';
 import type { Db } from '../db/connection';
 import { monthBounds } from './expenses';
 
 export interface PurchaseRow {
   id: number;
-  paidAt: string;
-  method: PaymentMethod;
+  receivedAt: string;
   recordedAt: string;
   voidedAt: string | null;
 }
@@ -17,12 +16,11 @@ export interface PurchaseItemRow {
   costCents: number;
 }
 
-const COLUMNS = 'id, paid_at AS paidAt, method, recorded_at AS recordedAt, voided_at AS voidedAt';
+const COLUMNS = 'id, received_at AS receivedAt, recorded_at AS recordedAt, voided_at AS voidedAt';
+const PAYMENT_COLUMNS = 'id, purchase_id AS purchaseId, paid_at AS paidAt, amount_cents AS amountCents, method, voided_at AS voidedAt';
 
-export function insertPurchase(db: Db, purchase: { paidAt: string; method: PaymentMethod; recordedAt: string }): number {
-  const result = db
-    .prepare('INSERT INTO kiosk_purchases (paid_at, method, recorded_at) VALUES (@paidAt, @method, @recordedAt)')
-    .run(purchase);
+export function insertPurchase(db: Db, purchase: { receivedAt: string; recordedAt: string }): number {
+  const result = db.prepare('INSERT INTO kiosk_purchases (received_at, recorded_at) VALUES (@receivedAt, @recordedAt)').run(purchase);
   return Number(result.lastInsertRowid);
 }
 
@@ -49,11 +47,43 @@ export function listPurchaseItems(db: Db, purchaseId: number): PurchaseItemRow[]
 export function listPurchasesInMonth(db: Db, month: string): PurchaseRow[] {
   return db
     .prepare<[{ from: string; to: string }], PurchaseRow>(
-      `SELECT ${COLUMNS} FROM kiosk_purchases WHERE paid_at BETWEEN @from AND @to ORDER BY paid_at DESC, id DESC`,
+      `SELECT ${COLUMNS} FROM kiosk_purchases WHERE received_at BETWEEN @from AND @to ORDER BY received_at DESC, id DESC`,
     )
     .all(monthBounds(month));
 }
 
+/** Every non-voided delivery, newest first. */
+export function listActivePurchases(db: Db): PurchaseRow[] {
+  return db.prepare<[], PurchaseRow>(`SELECT ${COLUMNS} FROM kiosk_purchases WHERE voided_at IS NULL ORDER BY received_at DESC, id DESC`).all();
+}
+
 export function voidPurchaseRow(db: Db, id: number, now: string): void {
   db.prepare('UPDATE kiosk_purchases SET voided_at = ? WHERE id = ?').run(now, id);
+}
+
+export function insertPurchasePayment(
+  db: Db,
+  payment: { purchaseId: number; paidAt: string; amountCents: number; method: PaymentMethod; recordedAt: string },
+): number {
+  const result = db
+    .prepare(
+      `INSERT INTO kiosk_purchase_payments (purchase_id, paid_at, amount_cents, method, recorded_at)
+       VALUES (@purchaseId, @paidAt, @amountCents, @method, @recordedAt)`,
+    )
+    .run(payment);
+  return Number(result.lastInsertRowid);
+}
+
+export function findPurchasePayment(db: Db, id: number): KioskPurchasePayment | undefined {
+  return db.prepare<[number], KioskPurchasePayment>(`SELECT ${PAYMENT_COLUMNS} FROM kiosk_purchase_payments WHERE id = ?`).get(id);
+}
+
+export function listPurchasePayments(db: Db, purchaseId: number): KioskPurchasePayment[] {
+  return db
+    .prepare<[number], KioskPurchasePayment>(`SELECT ${PAYMENT_COLUMNS} FROM kiosk_purchase_payments WHERE purchase_id = ? ORDER BY paid_at, id`)
+    .all(purchaseId);
+}
+
+export function voidPurchasePaymentRow(db: Db, id: number, now: string): void {
+  db.prepare('UPDATE kiosk_purchase_payments SET voided_at = ? WHERE id = ?').run(now, id);
 }

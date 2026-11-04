@@ -22,7 +22,7 @@ import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
 import { createPlan, listPlanSales } from './plans';
 import { createProduct } from './products';
-import { createPurchase, voidPurchase } from './purchases';
+import { createPurchase, payPurchase, voidPurchase } from './purchases';
 import { sellPlan, setSaleInvoiced } from './sales';
 import { createTeacher } from './teachers';
 
@@ -80,7 +80,11 @@ function scenario(ctx: TestContext) {
 
   const water = createProduct(ctx, { name: 'Agua', description: null, unitCostCents: 200_000, markupPercent: 50, priceCents: 300_000, active: true }).id;
   createProduct(ctx, { name: 'Barrita', description: null, unitCostCents: 100_000, markupPercent: 50, priceCents: 150_000, active: true });
-  createPurchase(ctx, { paidAt: '2026-10-02', method: 'cash', items: [{ productId: water, quantity: 6, costCents: 1_200_000 }] });
+  createPurchase(ctx, {
+    receivedAt: '2026-10-02',
+    items: [{ productId: water, quantity: 6, costCents: 1_200_000 }],
+    initialPayment: { amountCents: 1_200_000, method: 'cash', paidAt: '2026-10-02' },
+  });
   sellKiosk(ctx, { items: [{ productId: water, quantity: 1 }], method: 'cash' });
   voidKioskSale(ctx, sellKiosk(ctx, { items: [{ productId: water, quantity: 5 }], method: 'cash' }).id);
   updateCounterPrices(ctx, { dayPassCents: 800_000, shoeRentalCents: 300_000 });
@@ -118,12 +122,31 @@ describe('finance', () => {
       sellKiosk(fresh, { items: [{ productId: product, quantity: 1 }], method: 'cash' });
       fresh.clock.set(TEST_NOW);
       sellKiosk(fresh, { items: [{ productId: product, quantity: 1 }], method: 'cash' });
-      createPurchase(fresh, { paidAt: '2026-10-05', method: 'transfer', items: [{ productId: product, quantity: 3, costCents: 300_000 }] });
-      voidPurchase(fresh, createPurchase(fresh, { paidAt: '2026-10-05', method: 'cash', items: [{ productId: product, quantity: 1, costCents: 999_900 }] }).id);
+      createPurchase(fresh, {
+        receivedAt: '2026-10-05',
+        items: [{ productId: product, quantity: 3, costCents: 300_000 }],
+        initialPayment: { amountCents: 300_000, method: 'transfer', paidAt: '2026-10-05' },
+      });
+      voidPurchase(fresh, createPurchase(fresh, { receivedAt: '2026-10-05', items: [{ productId: product, quantity: 1, costCents: 999_900 }], initialPayment: null }).id);
 
       expect(getFinanceSummary(fresh, OCTOBER).totals.kiosk_cost).toBe(400_000);
       expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'transfer' }).totals.kiosk_cost).toBe(300_000);
       expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'cash' }).totals.kiosk_cost).toBe(0);
+    });
+  });
+
+  describe('kiosk stock paid in parts', () => {
+    it('counts the kiosk stock by supplier payment, on its date and method', () => {
+      const fresh = createTestContext();
+      setKioskPurchasesFrom(fresh, '2026-10-01');
+      const product = createProduct(fresh, { name: 'Agua', description: null, unitCostCents: 100_000, markupPercent: 50, priceCents: 150_000, active: true }).id;
+      const { id } = createPurchase(fresh, { receivedAt: '2026-10-02', items: [{ productId: product, quantity: 4, costCents: 400_000 }], initialPayment: null });
+      expect(getFinanceSummary(fresh, OCTOBER).totals.kiosk_cost).toBe(0);
+      payPurchase(fresh, { purchaseId: id, amountCents: 150_000, method: 'transfer', paidAt: '2026-10-04' });
+      expect(getFinanceSummary(fresh, OCTOBER).totals.kiosk_cost).toBe(150_000);
+      expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'transfer' }).totals.kiosk_cost).toBe(150_000);
+      expect(getFinanceSummary(fresh, { ...OCTOBER, method: 'cash' }).totals.kiosk_cost).toBe(0);
+      expect(getFinanceSummary(fresh, { from: '2026-10-01', to: '2026-10-03' }).totals.kiosk_cost).toBe(0);
     });
   });
 

@@ -152,7 +152,7 @@ describe('schemas', () => {
   });
 
   it('takes a delivery with at least one line and whole positive quantities', () => {
-    const delivery = { paidAt: '2026-10-02', method: 'cash', items: [{ productId: 1, quantity: 24, costCents: 1_200_000 }] };
+    const delivery = { receivedAt: '2026-10-02', items: [{ productId: 1, quantity: 24, costCents: 1_200_000 }], initialPayment: null };
     expect(purchaseInput.safeParse(delivery).success).toBe(true);
     expect(purchaseInput.safeParse({ ...delivery, items: [] }).success).toBe(false);
     expect(purchaseInput.safeParse({ ...delivery, items: [{ productId: 1, quantity: 0, costCents: 100 }] }).error?.issues[0]?.message).toBe('Ingresá al menos 1');
@@ -160,8 +160,8 @@ describe('schemas', () => {
 
   it('rejects the same product twice in a delivery, pointing at the repeated line', () => {
     const repeated = purchaseInput.safeParse({
-      paidAt: '2026-10-02',
-      method: 'cash',
+      receivedAt: '2026-10-02',
+      initialPayment: null,
       items: [
         { productId: 1, quantity: 24, costCents: 1_200_000 },
         { productId: 1, quantity: 12, costCents: 600_000 },

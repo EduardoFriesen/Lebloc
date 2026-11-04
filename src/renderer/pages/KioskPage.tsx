@@ -465,7 +465,7 @@ function PurchasesTable({ purchases, onVoid }: { purchases: KioskPurchase[]; onV
           <tr>
             <th scope="col">Fecha</th>
             <th scope="col">Productos</th>
-            <th scope="col">Medio</th>
+            <th scope="col">Debe</th>
             <th scope="col">Total</th>
             <th scope="col">
               <span className="sr-only">Acciones</span>
@@ -475,9 +475,9 @@ function PurchasesTable({ purchases, onVoid }: { purchases: KioskPurchase[]; onV
         <tbody>
           {visible.map((purchase) => (
             <tr key={purchase.id} className={purchase.voidedAt ? 'text-ink-soft line-through' : ''}>
-              <td>{formatDate(purchase.paidAt)}</td>
+              <td>{formatDate(purchase.receivedAt)}</td>
               <td>{purchase.items.map((item) => `${item.quantity} × ${item.productName}`).join(', ')}</td>
-              <td>{PAYMENT_METHOD_LABELS[purchase.method]}</td>
+              <td>{purchase.debtCents > 0 ? formatMoney(purchase.debtCents) : 'Pagada'}</td>
               <td className="font-semibold">{formatMoney(purchase.totalCents)}</td>
               <td className="text-right">
                 {purchase.voidedAt ? (
@@ -485,7 +485,7 @@ function PurchasesTable({ purchases, onVoid }: { purchases: KioskPurchase[]; onV
                     <Badge>Anulada</Badge>
                   </span>
                 ) : (
-                  <Button variant="ghost" aria-label={`Anular entrega del ${formatDate(purchase.paidAt)}`} onClick={() => onVoid(purchase)}>
+                  <Button variant="ghost" aria-label={`Anular entrega del ${formatDate(purchase.receivedAt)}`} onClick={() => onVoid(purchase)}>
                     Anular
                   </Button>
                 )}
@@ -510,7 +510,7 @@ function PurchasesBlock({ version }: { version: number }) {
   function askVoid(purchase: KioskPurchase) {
     setPending({
       title: 'Anular entrega',
-      message: `Se anula la entrega de ${formatMoney(purchase.totalCents)} del ${formatDate(purchase.paidAt)}. Deja de contar en el balance; el costo de los productos no cambia.`,
+      message: `Se anula la entrega de ${formatMoney(purchase.totalCents)} del ${formatDate(purchase.receivedAt)}. Deja de contar en el balance; el costo de los productos no cambia.`,
       confirmLabel: 'Anular entrega',
       action: () => call('purchases:void', { id: purchase.id }),
     });

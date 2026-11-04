@@ -163,10 +163,7 @@ export const kioskSellInput = z.object({
   method: paymentMethodSchema,
 });
 export const kioskSalesInput = z.object({ date: isoDate });
-export const purchaseInput = z.object({
-  paidAt: isoDate,
-  method: paymentMethodSchema,
-  items: z
+const purchaseItems = z
     .array(z.object({ productId: id, quantity: z.number().int('Ingresá un número entero').min(1, 'Ingresá al menos 1').max(10_000), costCents: cents }))
     .min(1, 'Agregá al menos un producto')
     .max(50)
@@ -176,8 +173,11 @@ export const purchaseInput = z.object({
         if (seen.has(item.productId)) ctx.addIssue({ code: 'custom', path: [index, 'productId'], message: 'Ese producto ya está en la entrega' });
         seen.add(item.productId);
       });
-    }),
-});
+    });
+export const purchaseInput = z.object({ receivedAt: isoDate, items: purchaseItems, initialPayment: z.object(newPaymentFields).nullable() });
+export const purchaseUpdate = z.object({ id, receivedAt: isoDate, items: purchaseItems });
+export const purchasePaymentInput = z.object({ purchaseId: id, ...newPaymentFields });
+export const purchaseListInput = z.object({ month, onlyOwed: z.boolean().default(false) });
 export const counterPricesInput = z.object({ dayPassCents: cents, shoeRentalCents: cents });
 export const counterSellInput = z.object({
   kinds: z
@@ -261,6 +261,9 @@ export type WaiverInput = z.infer<typeof waiverInput>;
 export type ProductInput = z.infer<typeof productInput>;
 export type ProductUpdate = z.infer<typeof productUpdate>;
 export type PurchaseInput = z.infer<typeof purchaseInput>;
+export type PurchaseUpdate = z.infer<typeof purchaseUpdate>;
+export type PurchasePaymentInput = z.infer<typeof purchasePaymentInput>;
+export type PurchaseListInput = z.infer<typeof purchaseListInput>;
 export type KioskSellInput = z.infer<typeof kioskSellInput>;
 export type CounterSellInput = z.infer<typeof counterSellInput>;
 export type MonthInput = z.infer<typeof monthInput>;

@@ -345,23 +345,38 @@ export interface KioskPurchaseItem {
   unitCostCents: number;
 }
 
-/** A supplier delivery: the kiosk stock bought and paid on `paidAt`. */
+export interface KioskPurchasePayment {
+  id: number;
+  purchaseId: number;
+  paidAt: string;
+  amountCents: number;
+  method: PaymentMethod;
+  voidedAt: string | null;
+}
+
+/** A supplier delivery: the kiosk stock that came in on `receivedAt`, paid in one or more payments. */
 export interface KioskPurchase {
   id: number;
-  paidAt: string;
-  method: PaymentMethod;
+  receivedAt: string;
   recordedAt: string;
   voidedAt: string | null;
   items: KioskPurchaseItem[];
   /** Derived from the items: never stored. */
   totalCents: number;
+  /** Voided ones included, oldest first. */
+  payments: KioskPurchasePayment[];
+  /** Active payments only; the debt is total minus this. */
+  paidCents: number;
+  debtCents: number;
 }
 
 export interface KioskPurchaseMonth {
-  /** Voided ones included, newest first. */
+  /** Voided ones included, newest first: those received in the month, or every one still owed. */
   purchases: KioskPurchase[];
   /** Non-voided only. */
   totalCents: number;
+  /** Owed to the supplier for every active delivery, whatever its month. */
+  owedCents: number;
 }
 
 export type CounterSaleKind = 'day_pass' | 'shoe_rental';

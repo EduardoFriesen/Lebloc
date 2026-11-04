@@ -79,7 +79,9 @@ export function PurchaseForm({ onSaved, onCancel, onProductCreated }: PurchaseFo
       quantity: Number(line.quantity),
       costCents: parseMoneyInput(line.cost) ?? -1,
     }));
-    const parsed = purchaseInput.safeParse({ paidAt, method, items });
+    // ponytail: paid in full on the day, as before; Task 5 brings partial payments to the form.
+    const total = items.reduce((sum, item) => sum + Math.max(item.costCents, 0), 0);
+    const parsed = purchaseInput.safeParse({ receivedAt: paidAt, items, initialPayment: total > 0 ? { amountCents: total, method, paidAt } : null });
     const lineErrors: FieldErrors = {};
     lines.forEach((line, index) => {
       if (line.productId === '') lineErrors[`items.${index}.productId`] = 'Elegí un producto';

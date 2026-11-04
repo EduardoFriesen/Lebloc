@@ -27,7 +27,7 @@ const OF_METHOD = '(@method IS NULL OR method = @method)';
 
 /**
  * Every money movement of the range, summed per day and source. With a method, salaries are the settlements paid
- * that way. The kiosk stock counts when the supplier is paid; tickets sold before `kiosk_purchases_from` (the day
+ * that way. The kiosk stock counts as each supplier payment is made; tickets sold before `kiosk_purchases_from` (the day
  * that rule was installed) still count their cost, which was never paid with a method.
  */
 export function moneyByDay(db: Db, range: DateRange, method?: PaymentMethod): MoneyRow[] {
@@ -47,8 +47,8 @@ export function moneyByDay(db: Db, range: DateRange, method?: PaymentMethod): Mo
            AND k.sold_at < (SELECT value FROM settings WHERE key = 'kiosk_purchases_from')
          GROUP BY k.sold_at
        UNION ALL
-       SELECT p.paid_at, 'kiosk_cost', SUM(i.cost_cents) FROM kiosk_purchases p JOIN kiosk_purchase_items i ON i.purchase_id = p.id
-         WHERE p.voided_at IS NULL AND p.paid_at BETWEEN @from AND @to AND ${OF_METHOD} GROUP BY p.paid_at
+       SELECT paid_at, 'kiosk_cost', SUM(amount_cents) FROM kiosk_purchase_payments
+         WHERE voided_at IS NULL AND paid_at BETWEEN @from AND @to AND ${OF_METHOD} GROUP BY paid_at
        UNION ALL
        SELECT sold_at, kind, SUM(price_cents) FROM counter_sales
          WHERE voided_at IS NULL AND sold_at BETWEEN @from AND @to AND ${OF_METHOD} GROUP BY sold_at, kind

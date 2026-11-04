@@ -50,8 +50,11 @@ export const apiSchemas = {
   'kiosk:top': schemas.emptyInput,
   'kiosk:stats': schemas.emptyInput,
   'purchases:create': schemas.purchaseInput,
-  'purchases:list': schemas.monthInput,
+  'purchases:list': schemas.purchaseListInput,
   'purchases:void': schemas.idInput,
+  'purchases:get': schemas.idInput,
+  'purchases:pay': schemas.purchasePaymentInput,
+  'purchases:voidPayment': schemas.idInput,
   'counter:today': schemas.emptyInput,
   'counter:entries': schemas.emptyInput,
   'counter:sell': schemas.counterSellInput,
@@ -140,6 +143,9 @@ export interface ApiOutputs {
   'purchases:create': T.KioskPurchase;
   'purchases:list': T.KioskPurchaseMonth;
   'purchases:void': T.KioskPurchase;
+  'purchases:get': T.KioskPurchase;
+  'purchases:pay': T.KioskPurchase;
+  'purchases:voidPayment': T.KioskPurchase;
   'counter:today': T.DayMovements;
   'counter:entries': T.DayEntry[];
   'counter:sell': T.CounterSale[];

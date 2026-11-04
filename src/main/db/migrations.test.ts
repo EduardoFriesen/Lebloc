@@ -207,7 +207,7 @@ describe('migrations', () => {
     expect(columns).not.toContain('pack_size');
     expect(columns).not.toContain('pack_cost_cents');
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'kiosk_purchase%' ORDER BY name").all();
-    expect(tables).toEqual([{ name: 'kiosk_purchase_items' }, { name: 'kiosk_purchases' }]);
+    expect(tables).toEqual([{ name: 'kiosk_purchase_items' }, { name: 'kiosk_purchase_payments' }, { name: 'kiosk_purchases' }]);
     expect(db.prepare("SELECT value FROM settings WHERE key = 'kiosk_purchases_from'").get()).toEqual({ value: toIsoDate(new Date()) });
   });
 
@@ -220,6 +220,31 @@ describe('migrations', () => {
     const columns = (db.prepare('PRAGMA table_info(clients)').all() as { name: string }[]).map((column) => column.name);
     expect(columns).not.toContain('updated_at');
     expect(db.prepare('SELECT first_name AS firstName FROM clients').all()).toEqual([{ firstName: 'Ana' }]);
+  });
+
+  it('moves each delivery payment to its own row and keeps the totals', () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 17).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 17');
+    db.exec(`
+      INSERT INTO products (id, name, markup_percent, price_cents) VALUES (1, 'Agua', 50, 200);
+      INSERT INTO kiosk_purchases (id, paid_at, method, recorded_at) VALUES (1, '2026-10-01', 'cash', 'r1');
+      INSERT INTO kiosk_purchases (id, paid_at, method, recorded_at, voided_at) VALUES (2, '2026-10-02', 'transfer', 'r2', 'x');
+      INSERT INTO kiosk_purchases (id, paid_at, method, recorded_at) VALUES (3, '2026-10-03', 'cash', 'r3');
+      INSERT INTO kiosk_purchase_items (purchase_id, product_id, product_name, quantity, cost_cents) VALUES
+        (1, 1, 'Agua', 10, 60000), (1, 1, 'Agua', 5, 40000), (2, 1, 'Agua', 5, 50000), (3, 1, 'Agua', 1, 0);
+    `);
+    migrate(db);
+    const columns = (db.prepare('PRAGMA table_info(kiosk_purchases)').all() as { name: string }[]).map((column) => column.name);
+    expect(columns).toContain('received_at');
+    expect(columns).not.toContain('paid_at');
+    expect(columns).not.toContain('method');
+    expect(
+      db.prepare('SELECT purchase_id, amount_cents, method, paid_at, recorded_at, voided_at FROM kiosk_purchase_payments ORDER BY id').all(),
+    ).toEqual([
+      { purchase_id: 1, amount_cents: 100000, method: 'cash', paid_at: '2026-10-01', recorded_at: 'r1', voided_at: null },
+      { purchase_id: 2, amount_cents: 50000, method: 'transfer', paid_at: '2026-10-02', recorded_at: 'r2', voided_at: 'x' },
+    ]);
   });
 
   it('refuses a database created by a newer app version', () => {
