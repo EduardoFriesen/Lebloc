@@ -73,7 +73,7 @@ test('big amounts stay inside the finance tiles and the counter summary', async 
   await expect(page.getByText('$ 99.999.999,00').first()).toBeVisible();
   expect(await overflowing()).toEqual([]);
 
-  await open('/', 'Mostrador');
+  await open('/pases', 'Pases');
   await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
   expect(await overflowing()).toEqual([]);
 });

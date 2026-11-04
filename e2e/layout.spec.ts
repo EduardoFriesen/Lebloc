@@ -21,10 +21,13 @@ test.afterAll(async () => {
 });
 
 const SCREENS = [
-  ['/', 'Mostrador'],
+  ['/pases', 'Pases'],
+  ['/pases/movimientos', 'Pases'],
   ['/clientes', 'Clientes'],
   ['/planes', 'Planes'],
   ['/kiosco', 'Kiosco'],
+  ['/kiosco/productos', 'Kiosco'],
+  ['/kiosco/entregas', 'Kiosco'],
   ['/profesores', 'Profesores'],
   ['/empleados', 'Empleados'],
   ['/gastos', 'Gastos'],

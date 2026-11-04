@@ -19,9 +19,12 @@ test.afterAll(async () => {
 });
 
 const label = (text: string) => page.getByLabel(text, { exact: true });
+const kioskTab = (name: string) => page.getByRole('navigation', { name: 'Secciones del kiosco' }).getByRole('link', { name, exact: true }).click();
+const passesTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de pases' }).getByRole('link', { name, exact: true }).click();
 test('create a product, sell it from the kiosk screen and void the ticket', async () => {
   const nav = page.getByRole('navigation', { name: 'Principal' });
   await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await kioskTab('Productos');
   await page.getByRole('button', { name: 'Nuevo producto' }).click();
   await label('Nombre').fill('Agua');
   await label('Costo unitario').fill('1.000');
@@ -39,6 +42,7 @@ test('create a product, sell it from the kiosk screen and void the ticket', asyn
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.getByRole('row', { name: /Magnesio/ })).toBeVisible();
 
+  await kioskTab('Ventas');
   const product = page.getByRole('button', { name: /^Agua ·/ });
   await product.click();
   await product.click();
@@ -60,9 +64,11 @@ test('create a product, sell it from the kiosk screen and void the ticket', asyn
   await expect(summary.getByRole('row', { name: /Ventas de hoy/ })).not.toContainText('$');
 
   // The counter is only for passes: no kiosk checkout and no tickets in its movements.
-  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await nav.getByRole('link', { name: 'Pases', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Pases', exact: true })).toBeVisible();
   await expect(label('Buscar producto')).toHaveCount(0);
+  await passesTab('Movimientos');
+  await expect(page.getByRole('region', { name: 'Movimientos de hoy' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Agua/ })).toHaveCount(0);
 
   // A product that was never sold is found by searching and can be charged.
@@ -81,6 +87,7 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
   const merchandise = () => page.getByRole('complementary', { name: 'Resumen' }).getByRole('row', { name: /Mercadería del kiosco/ });
 
   await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await kioskTab('Entregas');
   await page.getByRole('button', { name: 'Cargar entrega del proveedor' }).click();
   const dialog = page.getByRole('dialog', { name: 'Entrega del proveedor' });
   const first = dialog.getByRole('group', { name: 'Línea 1' });
@@ -113,8 +120,10 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
   await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(dialog).toBeHidden();
 
+  await kioskTab('Productos');
   await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
   await expect(products.getByRole('row', { name: /Chicle/ })).toContainText(/\$\s200,00/);
+  await kioskTab('Entregas');
   const row = deliveries.getByRole('row', { name: /24 × Agua, 20 × Chicle/ });
   await expect(row).toContainText(/\$\s30\.400,00\s*\$\s20\.400,00/);
   await expect(page.getByText(/Se le debe al proveedor: \$\s20\.400,00/)).toBeVisible();
@@ -155,6 +164,7 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
 
   // Voiding: its payments first, then the delivery; Gastos goes back to nothing for the stock.
   await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await kioskTab('Entregas');
   await deliveries.getByRole('row', { name: /24 × Agua, 10 × Chicle/ }).getByRole('button', { name: /^Ver entrega/ }).click();
   for (let left = 2; left > 0; left--) {
     await detail.getByRole('button', { name: /^Anular pago de/ }).first().click();
@@ -165,6 +175,7 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
   await page.getByRole('dialog', { name: 'Anular entrega' }).getByRole('button', { name: 'Anular entrega' }).click();
   await expect(detail).toContainText('Anulada');
   await page.keyboard.press('Escape');
+  await kioskTab('Productos');
   await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
   await nav.getByRole('link', { name: 'Gastos', exact: true }).click();
   await expect(merchandise()).toContainText(/\$\s0,00/);
@@ -172,6 +183,7 @@ test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and
 
 test('a product created from a delivery shows up even if the delivery is cancelled', async () => {
   await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Kiosco', exact: true }).click();
+  await kioskTab('Entregas');
   await page.getByRole('button', { name: 'Cargar entrega del proveedor' }).click();
   const dialog = page.getByRole('dialog', { name: 'Entrega del proveedor' });
   await dialog.getByRole('button', { name: 'Nuevo producto' }).click();
@@ -184,7 +196,9 @@ test('a product created from a delivery shows up even if the delivery is cancell
   await dialog.getByRole('button', { name: 'Cancelar' }).click();
   await expect(dialog).toBeHidden();
 
+  await kioskTab('Productos');
   await expect(page.getByRole('table', { name: 'Productos', exact: true }).getByRole('row', { name: /Turrón/ })).toBeVisible();
+  await kioskTab('Ventas');
   await label('Buscar producto').fill('turr');
   await expect(page.getByRole('button', { name: /^Turrón ·/ })).toBeVisible();
   await label('Buscar producto').fill('');
@@ -204,7 +218,7 @@ test("the built app drops Electron's default English menu", async () => {
 
 test('a walk-in day pass with shoes is priced in Planes and lands in today movements', async () => {
   const nav = page.getByRole('navigation', { name: 'Principal' });
-  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await nav.getByRole('link', { name: 'Pases', exact: true }).click();
   await expect(page.getByRole('button', { name: /Pase del día/ })).toBeDisabled();
 
   await nav.getByRole('link', { name: 'Planes', exact: true }).click();
@@ -213,20 +227,21 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
   await page.getByRole('button', { name: 'Guardar precios' }).click();
   await expect(page.getByText('Precios guardados.')).toBeVisible();
 
-  await nav.getByRole('link', { name: 'Mostrador', exact: true }).click();
+  await nav.getByRole('link', { name: 'Pases', exact: true }).click();
   await page.getByRole('button', { name: /Pase del día/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Medio de pago').selectOption('transfer');
   await dialog.getByRole('button', { name: /Sí, con pédulas/ }).click();
   await expect(dialog).toBeHidden();
+  // The walk-in is an entry of the day; the shoes are not.
+  await expect(page.getByRole('table', { name: 'Ingresos de hoy' }).getByRole('row', { name: /Pase suelto/ })).toHaveCount(1);
 
+  await passesTab('Movimientos');
   const movements = page.getByRole('table', { name: 'Movimientos de hoy' });
   await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText('Transferencia');
   await expect(movements.getByRole('row', { name: /Pase del día/ })).toContainText(/\d{2}:\d{2}/);
   await expect(movements.getByRole('row', { name: /Pédulas/ })).toContainText(/3\.000/);
   await expect(page.getByText(/Pases sueltos \$\s11\.000,00/)).toBeVisible();
-  // The walk-in is an entry of the day; the shoes are not.
-  await expect(page.getByRole('table', { name: 'Ingresos de hoy' }).getByRole('row', { name: /Pase suelto/ })).toHaveCount(1);
 
   await movements.getByRole('button', { name: /Anular pédulas/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Anular', exact: true }).click();

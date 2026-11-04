@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react';
+import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Card';
 import {
@@ -9,6 +10,7 @@ import { Dialog } from '../components/ui/Dialog';
 import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
+import { TabNav } from '../components/ui/TabNav';
 import { AsyncView } from '../components/ui/States';
 import { Stripe } from '../components/ui/Stripe';
 import {
@@ -38,86 +40,61 @@ import { PurchaseForm } from './PurchaseForm';
 
 const HEADING = 'font-display text-2xl font-semibold';
 
+/** What the tabs get from the page: the summary reloads after a sale or a product change; its filter for the products. */
+interface KioskContext {
+  reloadStats: () => void;
+  onlyActive: boolean | null;
+}
+
+const TABS = [
+  { to: '/kiosco', label: 'Ventas', end: true },
+  { to: '/kiosco/productos', label: 'Productos' },
+  { to: '/kiosco/entregas', label: 'Entregas' },
+] as const;
+
+/** Header, tabs and the summary; the open tab goes in between. */
 export function KioskPage() {
-  // Picked from the summary: only active (true), only inactive (false) or all (null).
+  const navigate = useNavigate();
+  // Picked from the summary: only active (true), only inactive (false) or all (null) products.
   const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
-  // Bumped when a ticket or a delivery is saved, so its list reloads.
-  const [sales, setSales] = useState(0);
-  const [purchases, setPurchases] = useState(0);
-  // Bumped when a product is created or edited (also from a delivery), so the checkout shows it.
-  const [catalog, setCatalog] = useState(0);
-  const bumpCatalog = () => setCatalog((count) => count + 1);
   const stats = useAsync(() => call('kiosk:stats', {}), []);
+
+  function pickProducts(active: boolean) {
+    setOnlyActive(active);
+    void navigate('/kiosco/productos');
+  }
 
   return (
     <section className={WITH_SUMMARY}>
       <div className={SUMMARY_TOP}>
-        <PageHeader
-          title="Kiosco"
-          subtitle="Vendé, mirá los tickets del día, los productos y las entregas del proveedor."
-        />
-        {onlyActive !== null && (
-          <ClearFilter
-            label={onlyActive ? 'Activos' : 'Inactivos'}
-            onClear={() => setOnlyActive(null)}
-          />
-        )}
+        <PageHeader title="Kiosco" subtitle="Vendé, mirá los tickets del día, los productos y las entregas del proveedor." />
+        <div className="mb-4 border-b border-ink/10">
+          <TabNav label="Secciones del kiosco" tabs={TABS} />
+        </div>
+        {onlyActive !== null && <ClearFilter label={onlyActive ? 'Activos' : 'Inactivos'} onClear={() => setOnlyActive(null)} />}
       </div>
       {/* The scroll padding keeps focused rows out from under the sticky headings. */}
       <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
-        <SellBlock
-          catalog={catalog}
-          onSold={() => {
-            stats.reload();
-            setSales((count) => count + 1);
-          }}
-        />
-        <Stripe />
-        <SalesBlock version={sales} onChanged={stats.reload} />
-        <Stripe />
-        <ProductsBlock
-          onlyActive={onlyActive}
-          catalog={catalog}
-          onChanged={() => {
-            stats.reload();
-            bumpCatalog();
-          }}
-          onPurchased={() => {
-            setPurchases((count) => count + 1);
-            bumpCatalog();
-          }}
-        />
-        <Stripe />
-        <PurchasesBlock version={purchases} onChanged={bumpCatalog} />
+        <Outlet context={{ reloadStats: stats.reload, onlyActive } satisfies KioskContext} />
       </div>
       <SummaryTable
         state={stats}
         rows={(data) => [
           {
             label: 'Ventas de hoy',
-            value: (
-              <SummaryValue
-                count={data.todayCount}
-                amount={
-                  data.todayCount > 0 ? formatMoney(data.todayCents) : undefined
-                }
-              />
-            ),
+            value: <SummaryValue count={data.todayCount} amount={data.todayCount > 0 ? formatMoney(data.todayCents) : undefined} />,
           },
-          {
-            label: 'Ganancia de hoy',
-            value: <SummaryValue count={formatMoney(data.todayProfitCents)} />,
-          },
+          { label: 'Ganancia de hoy', value: <SummaryValue count={formatMoney(data.todayProfitCents)} /> },
           {
             label: 'Activos',
             value: <SummaryValue count={data.activeProducts} />,
-            onSelect: () => setOnlyActive(true),
+            onSelect: () => pickProducts(true),
             selected: onlyActive === true,
           },
           {
             label: 'Inactivos',
             value: <SummaryValue count={data.inactiveProducts} />,
-            onSelect: () => setOnlyActive(false),
+            onSelect: () => pickProducts(false),
             selected: onlyActive === false,
           },
         ]}
@@ -126,8 +103,37 @@ export function KioskPage() {
   );
 }
 
+/** Sell, and today's tickets. */
+export function KioskSalesTab() {
+  const { reloadStats } = useOutletContext<KioskContext>();
+  // Bumped when a ticket is charged, so the list below reloads.
+  const [sales, setSales] = useState(0);
+  return (
+    <>
+      <SellBlock
+        onSold={() => {
+          reloadStats();
+          setSales((count) => count + 1);
+        }}
+      />
+      <Stripe />
+      <SalesBlock version={sales} onChanged={reloadStats} />
+    </>
+  );
+}
+
+export function KioskProductsTab() {
+  const { reloadStats, onlyActive } = useOutletContext<KioskContext>();
+  return <ProductsBlock onlyActive={onlyActive} onChanged={reloadStats} />;
+}
+
+export function KioskPurchasesTab() {
+  const { reloadStats } = useOutletContext<KioskContext>();
+  return <PurchasesBlock onChanged={reloadStats} />;
+}
+
 /** Checkout: tap products into a ticket and charge it. The search box stays under the sticky heading. */
-function SellBlock({ catalog, onSold }: { catalog: number; onSold: () => void }) {
+function SellBlock({ onSold }: { onSold: () => void }) {
   const headingId = useId();
   const [search, setSearch] = useState('');
   const panel = useRef<HTMLDivElement>(null);
@@ -149,7 +155,7 @@ function SellBlock({ catalog, onSold }: { catalog: number; onSold: () => void })
         />
       </div>
       <div ref={panel}>
-        <KioskSalePanel search={search} onSearchChange={setSearch} onSold={onSold} catalog={catalog} />
+        <KioskSalePanel search={search} onSearchChange={setSearch} onSold={onSold} />
       </div>
     </section>
   );
@@ -222,27 +228,11 @@ function ProductsTable({
   );
 }
 
-function ProductsBlock({
-  onlyActive,
-  catalog,
-  onChanged,
-  onPurchased,
-}: {
-  onlyActive: boolean | null;
-  /** Bumped when products change elsewhere, e.g. a delivery edited from its detail sets new unit costs. */
-  catalog: number;
-  onChanged: () => void;
-  onPurchased: () => void;
-}) {
+function ProductsBlock({ onlyActive, onChanged }: { onlyActive: boolean | null; onChanged: () => void }) {
   const headingId = useId();
-  const products = useAsync(
-    () => call('products:list', { includeInactive: true }),
-    [catalog],
-    { keepPreviousData: true },
-  );
+  const products = useAsync(() => call('products:list', { includeInactive: true }), [], { keepPreviousData: true });
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
-  const [purchasing, setPurchasing] = useState(false);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -259,9 +249,6 @@ function ProductsBlock({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <Button variant="secondary" onClick={() => setPurchasing(true)}>
-            Cargar entrega del proveedor
-          </Button>
           <Button onClick={() => setEditing('new')}>Nuevo producto</Button>
         </div>
       </div>
@@ -297,22 +284,6 @@ function ProductsBlock({
               onChanged();
             }}
             onCancel={() => setEditing(null)}
-          />
-        )}
-      </Dialog>
-      <Dialog open={purchasing} wide title="Entrega del proveedor" onClose={() => setPurchasing(false)}>
-        {purchasing && (
-          <PurchaseForm
-            onSaved={() => {
-              setPurchasing(false);
-              products.reload();
-              onPurchased();
-            }}
-            onCancel={() => setPurchasing(false)}
-            onProductCreated={() => {
-              products.reload();
-              onChanged();
-            }}
           />
         )}
       </Dialog>
@@ -508,13 +479,14 @@ function PurchasesTable({ purchases, empty, onOpen }: { purchases: KioskPurchase
   );
 }
 
-function PurchasesBlock({ version, onChanged }: { version: number; onChanged: () => void }) {
+function PurchasesBlock({ onChanged }: { onChanged: () => void }) {
   const headingId = useId();
   const [month, setMonth] = useState(currentMonthIso());
   // Every delivery still owed, whatever its month, so no debt hides in an older one.
   const [onlyOwed, setOnlyOwed] = useState(false);
-  const purchases = useAsync(() => call('purchases:list', { month, onlyOwed }), [month, onlyOwed, version], { keepPreviousData: true });
+  const purchases = useAsync(() => call('purchases:list', { month, onlyOwed }), [month, onlyOwed], { keepPreviousData: true });
   const [open, setOpen] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -523,6 +495,9 @@ function PurchasesBlock({ version, onChanged }: { version: number; onChanged: ()
           Entregas del proveedor
         </h2>
         <div className="flex flex-wrap items-end gap-4">
+          <Button variant="secondary" onClick={() => setLoading(true)}>
+            Cargar entrega del proveedor
+          </Button>
           <CheckboxField label="Solo con deuda" checked={onlyOwed} onChange={(event) => setOnlyOwed(event.target.checked)} />
           <TextField
             label="Mes"
@@ -555,6 +530,19 @@ function PurchasesBlock({ version, onChanged }: { version: number; onChanged: ()
           </>
         )}
       </AsyncView>
+      <Dialog open={loading} wide title="Entrega del proveedor" onClose={() => setLoading(false)}>
+        {loading && (
+          <PurchaseForm
+            onSaved={() => {
+              setLoading(false);
+              purchases.reload();
+              onChanged();
+            }}
+            onCancel={() => setLoading(false)}
+            onProductCreated={onChanged}
+          />
+        )}
+      </Dialog>
       <PurchaseDetailDialog
         purchaseId={open}
         onClose={() => setOpen(null)}

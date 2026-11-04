@@ -49,7 +49,7 @@ test('tick an expense as paid by clicking its row, and untick it', async () => {
   await expect(paid).toBeChecked();
 
   // It stays after leaving the screen.
-  await page.getByRole('navigation').getByRole('link', { name: 'Mostrador' }).click();
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Pases', exact: true }).click();
   await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
   await expect(paid).toBeChecked();
 

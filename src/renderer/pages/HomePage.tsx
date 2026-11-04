@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Outlet, useOutletContext } from 'react-router-dom';
 import type { PassKind } from '../../domain/passes';
 import type { ClientSummary, Dashboard, DashboardSummary } from '../../shared/types';
 import { DayEntriesTable } from '../components/DayEntriesTable';
@@ -11,7 +11,8 @@ import { TextField } from '../components/ui/Field';
 import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PagedList } from '../components/ui/Pager';
-import { STICKY_HEADING, SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
+import { SUMMARY_LIST, SUMMARY_SIDE, SUMMARY_TOP, WITH_SUMMARY } from '../components/ui/SummaryTable';
+import { TabNav } from '../components/ui/TabNav';
 import { AsyncView, SkeletonRows } from '../components/ui/States';
 import { call } from '../lib/api';
 import { debtLabel, formatDate, formatMoney, fullName, PASS_KIND_LABELS, waiverLabel } from '../lib/format';
@@ -19,8 +20,43 @@ import { errorMessage } from '../lib/formErrors';
 import { type AsyncResult, useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
 
+/** What the tabs get from the page: the side panel reloads after a pass, a walk-in or a void. */
+interface PassesContext {
+  refreshDashboard: () => void;
+}
+
+const TABS = [
+  { to: '/pases', label: 'Pases', end: true },
+  { to: '/pases/movimientos', label: 'Movimientos' },
+] as const;
+
+/** Header, tabs and the side panel (summary and today's debtors); the open tab goes in between. */
 export function HomePage() {
-  const pasesId = useId();
+  const dashboard = useAsync(() => call('dashboard:get', {}), []);
+  return (
+    <section className={WITH_SUMMARY}>
+      <div className={SUMMARY_TOP}>
+        <PageHeader title="Pases" subtitle="Buscá al cliente y marcá el pase que usa." />
+        <div className="mb-4 border-b border-ink/10">
+          <TabNav label="Secciones de pases" tabs={TABS} />
+        </div>
+      </div>
+      {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
+        <Outlet context={{ refreshDashboard: dashboard.reload } satisfies PassesContext} />
+      </div>
+      <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
+        <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
+          {(data) => <DashboardPanels dashboard={data} />}
+        </AsyncView>
+      </aside>
+    </section>
+  );
+}
+
+/** Find the client and mark the pass; walk-ins; and who came in today. */
+export function PassesTab() {
+  const { refreshDashboard } = useOutletContext<PassesContext>();
   const [search, setSearch] = useState('');
   // Escape, a click outside or a failed pass close the results; typing or clicking the box opens them again.
   const [dismissed, setDismissed] = useState(false);
@@ -31,8 +67,6 @@ export function HomePage() {
   const [creating, setCreating] = useState(false);
   const query = search.trim();
   const open = query !== '' && !dismissed;
-  const dashboard = useAsync(() => call('dashboard:get', {}), []);
-  const movements = useAsync(() => call('counter:today', {}), []);
   const entries = useAsync(() => call('counter:entries', {}), []);
   const results = useAsync(
     () => (query ? call('clients:list', { search: query, includeArchived: false }) : Promise.resolve([])),
@@ -57,72 +91,67 @@ export function HomePage() {
     }
   }
 
-  // Passes, walk-ins and voids touch the entries, the cash, the colors of the results and today's debtors at once.
+  // Passes, walk-ins and voids touch the entries, the colors of the results and today's debtors at once.
   function refresh() {
-    dashboard.reload();
-    movements.reload();
+    refreshDashboard();
     entries.reload();
     results.reload();
   }
 
   return (
-    <section className={WITH_SUMMARY}>
-      <div className={SUMMARY_TOP}>
-        <PageHeader title="Mostrador" subtitle="Buscá al cliente y marcá el pase que usa." />
-        <NewClientDialog open={creating} onClose={() => setCreating(false)} />
+    <section aria-label="Pases" className="flex flex-col gap-6">
+      <NewClientDialog open={creating} onClose={() => setCreating(false)} />
+      <div className="flex flex-wrap items-end gap-3">
+        <div
+          className="relative w-full max-w-xl"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setDismissed(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape' || !open) return;
+            setDismissed(true);
+            searchBox.current?.focus();
+          }}
+        >
+          <TextField
+            ref={searchBox}
+            label="Buscar cliente"
+            type="search"
+            autoFocus
+            placeholder="Nombre, apellido o DNI"
+            aria-expanded={open}
+            aria-controls={resultsId}
+            value={search}
+            onClick={() => setDismissed(false)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setDismissed(false);
+            }}
+          />
+          {open && <SearchResults id={resultsId} state={results} busy={busy} onConsume={consume} onCreate={() => setCreating(true)} />}
+        </div>
+        <WalkInButtons onSold={refresh} />
       </div>
-      {/* The scroll padding keeps focused or scrolled-to rows out from under the sticky headings. */}
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-40`}>
-        <section aria-labelledby={pasesId} className="flex flex-col gap-6">
-          <h2 id={pasesId} className={`${STICKY_HEADING} font-display text-2xl font-semibold`}>
-            Pases
-          </h2>
-          <div className="-mt-5 flex flex-wrap items-end gap-3">
-            <div
-              className="relative w-full max-w-xl"
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setDismissed(true);
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== 'Escape' || !open) return;
-                setDismissed(true);
-                searchBox.current?.focus();
-              }}
-            >
-              <TextField
-                ref={searchBox}
-                label="Buscar cliente"
-                type="search"
-                autoFocus
-                placeholder="Nombre, apellido o DNI"
-                aria-expanded={open}
-                aria-controls={resultsId}
-                value={search}
-                onClick={() => setDismissed(false)}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setDismissed(false);
-                }}
-              />
-              {open && (
-                <SearchResults id={resultsId} state={results} busy={busy} onConsume={consume} onCreate={() => setCreating(true)} />
-              )}
-            </div>
-            <WalkInButtons onSold={refresh} />
-          </div>
-          {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-          <ListSection title="Ingresos de hoy">
-            <DayEntriesTable state={entries} onChanged={refresh} />
-          </ListSection>
-          <DayMovementsTable state={movements} onChanged={refresh} />
-        </section>
-      </div>
-      <aside aria-label="Alertas" className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
-        <AsyncView state={dashboard} skeleton={<SkeletonRows rows={6} />}>
-          {(data) => <DashboardPanels dashboard={data} />}
-        </AsyncView>
-      </aside>
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+      <ListSection title="Ingresos de hoy">
+        <DayEntriesTable state={entries} onChanged={refresh} />
+      </ListSection>
     </section>
+  );
+}
+
+/** Today's money at the counter: plan payments and walk-ins, with their voids. */
+export function MovementsTab() {
+  const { refreshDashboard } = useOutletContext<PassesContext>();
+  const movements = useAsync(() => call('counter:today', {}), []);
+  return (
+    <DayMovementsTable
+      state={movements}
+      onChanged={() => {
+        movements.reload();
+        refreshDashboard();
+      }}
+    />
   );
 }
 

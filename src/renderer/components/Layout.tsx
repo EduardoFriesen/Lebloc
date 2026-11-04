@@ -4,7 +4,7 @@ import logo from '../assets/logo.jpg';
 import { buttonClass } from './ui/Button';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Mostrador', end: true },
+  { to: '/pases', label: 'Pases', end: false },
   { to: '/clientes', label: 'Clientes', end: false },
   { to: '/planes', label: 'Planes', end: false },
   { to: '/kiosco', label: 'Kiosco', end: false },

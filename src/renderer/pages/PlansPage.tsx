@@ -371,7 +371,7 @@ function CounterPricesSection() {
       <h2 id={headingId} className="mb-1 font-display text-xl font-semibold">
         Precios sueltos
       </h2>
-      <p className="mb-3 text-sm text-ink-soft">Se cobran en el Mostrador sin registrar cliente.</p>
+      <p className="mb-3 text-sm text-ink-soft">Se cobran en Pases sin registrar cliente.</p>
       <AsyncView state={prices}>{(data) => <CounterPricesForm prices={data} />}</AsyncView>
     </section>
   );

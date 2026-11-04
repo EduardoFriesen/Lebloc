@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import { PERIOD_PRESETS, type PeriodPreset, presetRange, previousRange } from '../../domain/periods';
 import { financeRangeInput } from '../../shared/schemas';
 import type { DateRange } from '../../shared/types';
 import { TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
+import { TabNav } from '../components/ui/TabNav';
 import { formatDate, todayIso } from '../lib/format';
 import { toFieldErrors } from '../lib/formErrors';
 import { SegmentedControl } from './finance/shared';
@@ -64,22 +65,7 @@ export function FinancePage() {
           <CustomRange range={range} onChange={pick} />
         </div>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink/10">
-          <nav aria-label="Secciones de finanzas" className="flex gap-6">
-            {TABS.map((tab) => (
-              <NavLink
-                key={tab.to}
-                to={{ pathname: tab.to, search: location.search }}
-                end={tab.end}
-                className={({ isActive }) =>
-                  `-mb-px border-b-2 px-1 pb-2 font-display text-lg transition-colors ${
-                    isActive ? 'border-accent text-ink' : 'border-transparent text-ink-soft hover:text-ink'
-                  }`
-                }
-              >
-                {tab.label}
-              </NavLink>
-            ))}
-          </nav>
+          <TabNav label="Secciones de finanzas" tabs={TABS} search={location.search} />
           <p className="pb-2 text-sm text-ink-soft">
             Comparado con {formatDate(previous.from)} – {formatDate(previous.to)}
           </p>

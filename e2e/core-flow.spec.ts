@@ -19,6 +19,8 @@ test.afterAll(async () => {
 });
 
 const label = (text: string) => page.getByLabel(text, { exact: true });
+const goToPasses = () => page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Pases', exact: true }).click();
+const passesTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de pases' }).getByRole('link', { name, exact: true }).click();
 
 test('sell with teacher, pay in parts, consume, void the last payment and pay the teacher', async () => {
   await page.getByRole('link', { name: 'Planes' }).click();
@@ -194,7 +196,8 @@ test('cards open from anywhere, not only from the name', async () => {
 });
 
 test('debtors live in Clientes behind "Solo con deuda", linked from the counter summary', async () => {
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
+  await passesTab('Movimientos');
   await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Plan.*Ana Roca · Pack 2\+2.*debe \$\s15\.000,00.*\$\s15\.000,00/ })).toBeVisible();
   await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: 'Deudores' }).click();
   await expect(page.getByLabel('Solo con deuda')).toBeChecked();
@@ -235,7 +238,7 @@ test("the counter tints clients by passes left, lists today's debtors, and Clien
   await page.getByRole('button', { name: 'Guardar cliente' }).click();
   await expect(page.getByRole('heading', { name: 'Clara Nube' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   const results = page.getByRole('list', { name: 'Resultados' });
   await label('Buscar cliente').fill('Clara');
   await expect(results.getByRole('listitem').filter({ hasText: 'Clara Nube' }).getByText('Sin pases')).toBeVisible();
@@ -254,7 +257,7 @@ test("the counter tints clients by passes left, lists today's debtors, and Clien
 });
 
 test('a pass marked at the counter shows in today entries and can be voided there', async () => {
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   const search = label('Buscar cliente');
   const results = page.getByRole('list', { name: 'Resultados' });
   const entries = page.getByRole('table', { name: 'Ingresos de hoy' });
@@ -310,7 +313,7 @@ test('the plans page lists who bought which plan and when', async () => {
 });
 
 test('the counter summary opens the detail behind each number', async () => {
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   const summary = page.getByRole('region', { name: 'Resumen' });
   const clients = page.getByRole('list', { name: 'Clientes' });
 
@@ -318,13 +321,13 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(page.getByLabel('Solo con deuda')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   await summary.getByRole('link', { name: 'Clientes con pases' }).click();
   await expect(page.getByLabel('Solo con pases')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
 
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   await summary.getByRole('link', { name: 'Sin ficha' }).click();
   await expect(page.getByLabel('Sin ficha')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
@@ -344,7 +347,7 @@ test('the counter finds a client without typing the accents, or by DNI', async (
   await expect(page.getByText('27999111')).toBeVisible();
   await expect(page.getByText('Trae su propio arnés.')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   await label('Buscar cliente').fill('gonzalez lucia');
   await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
   await label('Buscar cliente').fill('27999');
@@ -376,7 +379,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
   await pick(join(userData, 'pendrive-desenchufado'));
   await page.getByRole('button', { name: 'Elegir carpeta' }).click();
   await expect(page.getByText(/No se pudo copiar el backup a la carpeta externa/)).toBeVisible();
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   await expect(warning).toBeVisible();
 
   const pendrive = join(userData, 'pendrive');
@@ -386,7 +389,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
   await page.getByRole('button', { name: 'Elegir carpeta' }).click();
   await expect(page.getByText(/Última copia externa:/)).toBeVisible();
   expect(readdirSync(join(pendrive, 'lebloc-backups'))).toHaveLength(1);
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await goToPasses();
   await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
   await expect(warning).toHaveCount(0);
 });

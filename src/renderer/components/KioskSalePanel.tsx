@@ -26,14 +26,13 @@ interface KioskSalePanelProps {
   search: string;
   onSearchChange: (search: string) => void;
   onSold: () => void;
-  /** Changes when a product is created or edited, so the buttons show it. */
-  catalog: number;
 }
 
 /** Kiosk checkout: tap products into a ticket, pick the method, charge. Heading and search box are the caller's. */
-export function KioskSalePanel({ search, onSearchChange, onSold, catalog }: KioskSalePanelProps) {
-  const products = useAsync(() => call('products:list', { includeInactive: false }), [catalog], { keepPreviousData: true });
-  const top = useAsync(() => call('kiosk:top', {}), [catalog], { keepPreviousData: true });
+export function KioskSalePanel({ search, onSearchChange, onSold }: KioskSalePanelProps) {
+  // Products are created and edited in another tab, so they are read fresh each time this one opens.
+  const products = useAsync(() => call('products:list', { includeInactive: false }), [], { keepPreviousData: true });
+  const top = useAsync(() => call('kiosk:top', {}), [], { keepPreviousData: true });
   const [cart, setCart] = useState<Cart>({});
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [busy, setBusy] = useState(false);

@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { EmptyState } from './components/ui/States';
 import { ClientDetailPage } from './pages/ClientDetailPage';
@@ -11,8 +11,8 @@ import { SalesTab } from './pages/finance/SalesTab';
 import { SummaryTab } from './pages/finance/SummaryTab';
 import { TeachersTab } from './pages/finance/TeachersTab';
 import { TrafficTab } from './pages/finance/TrafficTab';
-import { HomePage } from './pages/HomePage';
-import { KioskPage } from './pages/KioskPage';
+import { HomePage, MovementsTab, PassesTab } from './pages/HomePage';
+import { KioskPage, KioskProductsTab, KioskPurchasesTab, KioskSalesTab } from './pages/KioskPage';
 import { PlansPage } from './pages/PlansPage';
 import { PlanDetailPage } from './pages/PlanDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -23,8 +23,8 @@ function NotFoundPage() {
   return (
     <section className="p-8">
       <EmptyState title="Página no encontrada">
-        <Link className="underline" to="/">
-          Volver al mostrador
+        <Link className="underline" to="/pases">
+          Volver a Pases
         </Link>
       </EmptyState>
     </section>
@@ -35,12 +35,20 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<HomePage />} />
+        <Route index element={<Navigate to="/pases" replace />} />
+        <Route path="pases" element={<HomePage />}>
+          <Route index element={<PassesTab />} />
+          <Route path="movimientos" element={<MovementsTab />} />
+        </Route>
         <Route path="clientes" element={<ClientsPage />} />
         <Route path="clientes/:id" element={<ClientDetailPage />} />
         <Route path="planes" element={<PlansPage />} />
         <Route path="planes/:id" element={<PlanDetailPage />} />
-        <Route path="kiosco" element={<KioskPage />} />
+        <Route path="kiosco" element={<KioskPage />}>
+          <Route index element={<KioskSalesTab />} />
+          <Route path="productos" element={<KioskProductsTab />} />
+          <Route path="entregas" element={<KioskPurchasesTab />} />
+        </Route>
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
         <Route path="empleados" element={<EmployeesPage />} />
