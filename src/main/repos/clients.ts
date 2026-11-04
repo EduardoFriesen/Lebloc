@@ -16,7 +16,7 @@ export type ClientRow = Omit<Client, 'guardians'>;
 
 const CLIENT_COLUMNS = `id, first_name AS firstName, last_name AS lastName, birth_date AS birthDate, dni, notes, address, phone,
   emergency_name AS emergencyName, emergency_phone AS emergencyPhone, emergency_relation AS emergencyRelation,
-  enrolled_at AS enrolledAt, updated_at AS updatedAt, archived_at AS archivedAt, anonymized_at AS anonymizedAt`;
+  enrolled_at AS enrolledAt, archived_at AS archivedAt, anonymized_at AS anonymizedAt`;
 
 function clientParams(fields: ClientFields) {
   return {
@@ -34,26 +34,26 @@ function clientParams(fields: ClientFields) {
   };
 }
 
-export function insertClient(db: Db, fields: ClientFields, now: string): number {
+export function insertClient(db: Db, fields: ClientFields): number {
   const result = db
     .prepare(
       `INSERT INTO clients (first_name, last_name, birth_date, dni, notes, address, phone, emergency_name, emergency_phone,
-         emergency_relation, enrolled_at, updated_at)
+         emergency_relation, enrolled_at)
        VALUES (@firstName, @lastName, @birthDate, @dni, @notes, @address, @phone, @emergencyName, @emergencyPhone,
-         @emergencyRelation, @enrolledAt, @now)`,
+         @emergencyRelation, @enrolledAt)`,
     )
-    .run({ ...clientParams(fields), now });
+    .run(clientParams(fields));
   return Number(result.lastInsertRowid);
 }
 
-export function updateClient(db: Db, id: number, fields: ClientFields, now: string): void {
+export function updateClient(db: Db, id: number, fields: ClientFields): void {
   db.prepare(
     `UPDATE clients SET first_name = @firstName, last_name = @lastName, birth_date = @birthDate, dni = @dni, notes = @notes,
        address = @address,
        phone = @phone, emergency_name = @emergencyName, emergency_phone = @emergencyPhone,
-       emergency_relation = @emergencyRelation, enrolled_at = @enrolledAt, updated_at = @now
+       emergency_relation = @emergencyRelation, enrolled_at = @enrolledAt
      WHERE id = @id`,
-  ).run({ ...clientParams(fields), now, id });
+  ).run({ ...clientParams(fields), id });
 }
 
 export function countClients(db: Db): number {
@@ -91,8 +91,8 @@ export function replaceGuardians(db: Db, clientId: number, guardians: readonly G
   }
 }
 
-export function setArchivedAt(db: Db, id: number, archivedAt: string | null, now: string): void {
-  db.prepare('UPDATE clients SET archived_at = @archivedAt, updated_at = @now WHERE id = @id').run({ id, archivedAt, now });
+export function setArchivedAt(db: Db, id: number, archivedAt: string | null): void {
+  db.prepare('UPDATE clients SET archived_at = @archivedAt WHERE id = @id').run({ id, archivedAt });
 }
 
 export function anonymizeClient(db: Db, id: number, now: string): void {
@@ -100,7 +100,7 @@ export function anonymizeClient(db: Db, id: number, now: string): void {
     `UPDATE clients SET first_name = 'Cliente', last_name = 'anonimizado #' || id, birth_date = NULL, dni = NULL, notes = NULL,
        address = NULL,
        phone = NULL, emergency_name = NULL, emergency_phone = NULL, emergency_relation = NULL,
-       anonymized_at = @now, updated_at = @now
+       anonymized_at = @now
      WHERE id = @id`,
   ).run({ id, now });
   db.prepare('DELETE FROM guardians WHERE client_id = ?').run(id);

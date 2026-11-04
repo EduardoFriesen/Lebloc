@@ -25,12 +25,11 @@ describe('clients service', () => {
     ctx = createTestContext();
   });
 
-  it('creates an adult without guardians and stamps updatedAt', () => {
+  it('creates an adult without guardians', () => {
     const client = createClient(ctx, adultClient);
     expect(client.id).toBeGreaterThan(0);
     expect(client.firstName).toBe('Ana');
     expect(client.guardians).toEqual([]);
-    expect(client.updatedAt).toBe(TEST_NOW.toISOString());
   });
 
   it('creates a minor with guardians', () => {
@@ -49,10 +48,8 @@ describe('clients service', () => {
     expect(getClient(ctx, client.id).guardians).toHaveLength(1);
   });
 
-  it('updates fields, replaces guardians and stamps updatedAt', () => {
+  it('updates fields and replaces guardians', () => {
     const client = createClient(ctx, minorClient);
-    const later = new Date(2026, 9, 6, 9, 0, 0);
-    ctx.clock.set(later);
     const updated = updateClient(ctx, {
       ...minorClient,
       id: client.id,
@@ -61,7 +58,6 @@ describe('clients service', () => {
     });
     expect(updated.phone).toBe('1166660000');
     expect(updated.guardians.map((g) => g.firstName)).toEqual(['Pablo']);
-    expect(updated.updatedAt).toBe(later.toISOString());
   });
 
   it('keeps the DNI and the notes, and updates them', () => {

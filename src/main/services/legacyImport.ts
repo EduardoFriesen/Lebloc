@@ -73,7 +73,6 @@ function applyImport(ctx: Context, plan: ImportPlan, file: string): void {
     const clientId = insertClient(
       ctx.db,
       { firstName, lastName, dni, notes, enrolledAt, birthDate: null, address: null, phone: null, emergencyName: null, emergencyPhone: null, emergencyRelation: null },
-      now,
     );
     if (waiverSignedAt) signWaiver(ctx, { clientId, signedAt: waiverSignedAt });
     if (!pass) continue;

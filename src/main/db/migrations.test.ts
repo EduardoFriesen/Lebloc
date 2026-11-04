@@ -211,6 +211,17 @@ describe('migrations', () => {
     expect(db.prepare("SELECT value FROM settings WHERE key = 'kiosk_purchases_from'").get()).toEqual({ value: toIsoDate(new Date()) });
   });
 
+  it("drops the client's last update date and keeps the client", () => {
+    const db = new Database(':memory:');
+    MIGRATIONS.slice(0, 15).forEach((sql) => db.exec(sql));
+    db.pragma('user_version = 15');
+    db.exec("INSERT INTO clients (id, first_name, last_name, enrolled_at, updated_at) VALUES (1, 'Ana', 'Roca', '2026-01-01', 'x')");
+    migrate(db);
+    const columns = (db.prepare('PRAGMA table_info(clients)').all() as { name: string }[]).map((column) => column.name);
+    expect(columns).not.toContain('updated_at');
+    expect(db.prepare('SELECT first_name AS firstName FROM clients').all()).toEqual([{ firstName: 'Ana' }]);
+  });
+
   it('refuses a database created by a newer app version', () => {
     const db = openDatabase(':memory:');
     db.pragma('user_version = 99');

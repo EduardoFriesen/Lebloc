@@ -14,6 +14,7 @@ import { migration012 } from './migrations/012_sale_expiry';
 import { migration013 } from './migrations/013_kiosk_purchases';
 import { migration014 } from './migrations/014_sale_extensions';
 import { migration015 } from './migrations/015_debt_cancellations';
+import { migration016 } from './migrations/016_drop_client_updated_at';
 
 export const MIGRATIONS: readonly string[] = [
   migration001,
@@ -31,6 +32,7 @@ export const MIGRATIONS: readonly string[] = [
   migration013,
   migration014,
   migration015,
+  migration016,
 ];
 
 export function migrate(db: Db): void {

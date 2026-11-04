@@ -32,7 +32,6 @@ export interface Client {
   emergencyPhone: string | null;
   emergencyRelation: string | null;
   enrolledAt: string;
-  updatedAt: string;
   archivedAt: string | null;
   anonymizedAt: string | null;
   guardians: Guardian[];

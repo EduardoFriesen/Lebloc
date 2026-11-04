@@ -54,7 +54,7 @@ export function createClient(ctx: Context, input: ClientInput): Client {
   assertNotFuture(ctx, input.birthDate, input.enrolledAt);
   assertGuardianRule(input.birthDate, input.guardians.length, today(ctx));
   return ctx.db.transaction(() => {
-    const id = repo.insertClient(ctx.db, input, nowIso(ctx));
+    const id = repo.insertClient(ctx.db, input);
     repo.replaceGuardians(ctx.db, id, input.guardians);
     return getClient(ctx, id);
   })();
@@ -65,7 +65,7 @@ export function updateClient(ctx: Context, input: ClientUpdate): Client {
   assertNotFuture(ctx, input.birthDate, input.enrolledAt);
   assertGuardianRule(input.birthDate, input.guardians.length, today(ctx));
   return ctx.db.transaction(() => {
-    repo.updateClient(ctx.db, input.id, input, nowIso(ctx));
+    repo.updateClient(ctx.db, input.id, input);
     repo.replaceGuardians(ctx.db, input.id, input.guardians);
     return getClient(ctx, input.id);
   })();
@@ -73,15 +73,14 @@ export function updateClient(ctx: Context, input: ClientUpdate): Client {
 
 export function archiveClient(ctx: Context, id: number): Client {
   requireActiveClient(ctx, id);
-  const now = nowIso(ctx);
-  repo.setArchivedAt(ctx.db, id, now, now);
+  repo.setArchivedAt(ctx.db, id, nowIso(ctx));
   return getClient(ctx, id);
 }
 
 export function unarchiveClient(ctx: Context, id: number): Client {
   const client = getClient(ctx, id);
   if (client.anonymizedAt) throw new DomainError('CLIENT_ANONYMIZED');
-  repo.setArchivedAt(ctx.db, id, null, nowIso(ctx));
+  repo.setArchivedAt(ctx.db, id, null);
   return getClient(ctx, id);
 }
 

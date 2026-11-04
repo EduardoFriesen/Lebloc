@@ -641,7 +641,6 @@ function ClientInfoPanel({ client, children }: { client: Client; children: React
         ? `${client.emergencyName}${client.emergencyRelation ? ` (${client.emergencyRelation})` : ''} ${client.emergencyPhone ?? ''}`
         : '—',
     ],
-    ['Última actualización', formatDateTime(client.updatedAt)],
   ];
   return (
     <section aria-labelledby="ficha-title" className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-warm">
