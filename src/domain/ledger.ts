@@ -41,3 +41,9 @@ export function assertPayoutFits(balanceCents: number, amountCents: number): voi
   if (!Number.isInteger(amountCents) || amountCents <= 0) throw new DomainError('INVALID_AMOUNT');
   if (amountCents > balanceCents) throw new DomainError('PAYOUT_EXCEEDS_BALANCE');
 }
+
+/** Only transfers get invoiced: a sale can be marked once any of its active payments is one. */
+export function assertInvoiceable(sale: { voidedAt: string | null }, payments: readonly { method: 'cash' | 'transfer'; voidedAt: string | null }[]): void {
+  if (sale.voidedAt) throw new DomainError('SALE_VOIDED');
+  if (!payments.some((payment) => payment.method === 'transfer' && !payment.voidedAt)) throw new DomainError('NOT_PAID_BY_TRANSFER');
+}

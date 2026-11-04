@@ -6,13 +6,15 @@ import { Badge } from '../components/ui/Card';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
 import { Dialog } from '../components/ui/Dialog';
 import { TextField } from '../components/ui/Field';
+import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView } from '../components/ui/States';
 import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
-import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
+import { clickRowBox, FillerRows, MARKED_ROW, ROW_BOX, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { currentMonthIso, EXPENSE_CATEGORY_LABELS, formatDate, formatMoney, PAYMENT_METHOD_LABELS } from '../lib/format';
+import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { ExpenseForm } from './ExpenseForm';
 
@@ -24,6 +26,7 @@ export function ExpensesPage() {
   // Open form: a new expense (repeat null) or a copy of an earlier one.
   const [form, setForm] = useState<{ repeat: Expense | null } | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const data = useAsync(() => call('expenses:month', { month }), [month], { keepPreviousData: true });
   const staff = useAsync(() => call('staff:stats', { month }), [month], { keepPreviousData: true });
   const purchases = useAsync(() => call('purchases:list', { month }), [month], { keepPreviousData: true });
@@ -40,6 +43,23 @@ export function ExpensesPage() {
       confirmLabel: 'Anular gasto',
       action: () => call('expenses:void', { id: expense.id }),
     });
+  }
+
+  // Ticking saves right away; unticking asks first, in case the row was clicked by mistake.
+  function setPaid(expense: Expense, paid: boolean) {
+    if (!paid) {
+      setPending({
+        title: 'Desmarcar pagado',
+        message: `El gasto de ${formatMoney(expense.amountCents)} del ${formatDate(expense.paidAt)} vuelve a quedar sin marcar como pagado.`,
+        confirmLabel: 'Desmarcar',
+        action: () => call('expenses:setPaid', { id: expense.id, paid: false }),
+      });
+      return;
+    }
+    setNotice(null);
+    call('expenses:setPaid', { id: expense.id, paid: true }).then(data.reload, (caught: unknown) =>
+      setNotice({ tone: 'error', text: errorMessage(caught) }),
+    );
   }
 
   return (
@@ -65,6 +85,7 @@ export function ExpensesPage() {
         {category && <ClearFilter label={EXPENSE_CATEGORY_LABELS[category]} onClear={() => setCategory(null)} />}
       </div>
       <div className={SUMMARY_LIST}>
+        {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
         <AsyncView state={data}>
           {({ expenses }) => (
             <ExpensesTable
@@ -73,6 +94,7 @@ export function ExpensesPage() {
               empty={category ? 'Ningún gasto de esa categoría este mes' : 'No hay gastos cargados este mes. Sumá el primero con “Nuevo gasto”.'}
               onRepeat={(expense) => setForm({ repeat: expense })}
               onVoid={askVoid}
+              onPaid={setPaid}
             />
           )}
         </AsyncView>
@@ -128,9 +150,11 @@ interface ExpensesTableProps {
   empty: string;
   onRepeat: (expense: Expense) => void;
   onVoid: (expense: Expense) => void;
+  onPaid: (expense: Expense, paid: boolean) => void;
 }
 
-function ExpensesTable({ expenses, empty, onRepeat, onVoid }: ExpensesTableProps) {
+/** The box by the payment method, ticked (by the box or anywhere on the row), means it was actually paid. */
+function ExpensesTable({ expenses, empty, onRepeat, onVoid, onPaid }: ExpensesTableProps) {
   const { visible, page, pages, setPage } = usePage(expenses, TABLE_PAGE_SIZE);
   return (
     <div className="flex flex-col gap-3">
@@ -152,11 +176,30 @@ function ExpensesTable({ expenses, empty, onRepeat, onVoid }: ExpensesTableProps
           {visible.map((expense) => {
             const label = `${EXPENSE_CATEGORY_LABELS[expense.category]} del ${formatDate(expense.paidAt)}`;
             return (
-              <tr key={expense.id} className={expense.voidedAt ? 'text-ink-soft line-through' : ''}>
-                <td>{formatDate(expense.paidAt)}</td>
+              <tr
+                key={expense.id}
+                className={expense.voidedAt ? 'text-ink-soft line-through' : `cursor-pointer ${expense.markedPaidAt ? MARKED_ROW : ''}`}
+                onClick={expense.voidedAt ? undefined : clickRowBox}
+              >
+                {/* The month is picked above: day and month are enough, and keep the table within the page. */}
+                <td className="tabular-nums">{formatDate(expense.paidAt).slice(0, 5)}</td>
                 <td className="font-semibold">{EXPENSE_CATEGORY_LABELS[expense.category]}</td>
                 <td>{expense.description ?? '—'}</td>
-                <td>{PAYMENT_METHOD_LABELS[expense.method]}</td>
+                <td>
+                  <span className="flex items-center gap-1.5">
+                    {!expense.voidedAt && (
+                      <input
+                        type="checkbox"
+                        className={ROW_BOX}
+                        title="Pagado"
+                        checked={expense.markedPaidAt !== null}
+                        aria-label={`Pagado: ${label}`}
+                        onChange={(event) => onPaid(expense, event.target.checked)}
+                      />
+                    )}
+                    {PAYMENT_METHOD_LABELS[expense.method]}
+                  </span>
+                </td>
                 <td className="font-semibold">{formatMoney(expense.amountCents)}</td>
                 <td className="text-right whitespace-nowrap">
                   {/* Two actions share the cell: tighter buttons keep the table inside the list beside the summary. */}

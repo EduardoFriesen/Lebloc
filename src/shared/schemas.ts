@@ -135,6 +135,8 @@ export const saleExtensionInput = z.object({
 });
 export const paymentInput = z.object({ saleId: id, ...newPaymentFields });
 export const debtCancellationInput = z.object({ saleId: id });
+export const saleInvoicedInput = z.object({ saleId: id, invoiced: z.boolean() });
+export const expensePaidInput = z.object({ id, paid: z.boolean() });
 export const consumptionInput = z.object({ clientId: id, kind: passKindSchema, note: optionalText(200) });
 export const payoutInput = z.object({ teacherId: id, ...newPaymentFields, note: optionalText(200) });
 export const settingsInput = z.object({
@@ -250,6 +252,8 @@ export type SaleExpiryInput = z.infer<typeof saleExpiryInput>;
 export type SaleExtensionInput = z.infer<typeof saleExtensionInput>;
 export type PaymentInput = z.infer<typeof paymentInput>;
 export type DebtCancellationInput = z.infer<typeof debtCancellationInput>;
+export type SaleInvoicedInput = z.infer<typeof saleInvoicedInput>;
+export type ExpensePaidInput = z.infer<typeof expensePaidInput>;
 export type ConsumptionInput = z.infer<typeof consumptionInput>;
 export type PayoutInput = z.infer<typeof payoutInput>;
 export type SettingsInput = z.infer<typeof settingsInput>;

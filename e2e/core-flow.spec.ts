@@ -428,6 +428,7 @@ test('extend a used trial into a pack, paying part now', async () => {
   await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pack 4 libres' });
   await dialog.getByLabel('Pago parcial').check();
   await dialog.getByLabel('Monto del pago').fill('3.000');
+  await dialog.getByLabel('Medio de pago').selectOption('transfer');
   await dialog.getByRole('button', { name: 'Confirmar extensión' }).click();
   await expect(page.getByText('Plan extendido.')).toBeVisible();
   await expect(page.getByText('Pases: 3 libres · 0 con profesor')).toBeVisible();
@@ -450,4 +451,29 @@ test('cancel what is owed without it being income, and void the cancellation', a
   await dialog.getByRole('button', { name: 'Anular cancelación' }).click();
   await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
   await expect(cancelled).toContainText('· Anulada');
+});
+
+test('the plans page shows how each sale was paid and ticks transfers as invoiced', async () => {
+  await page.getByRole('link', { name: 'Planes' }).click();
+  const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
+  // Carla paid the trial in cash and part of the pack by transfer.
+  const carla = sales.getByRole('row', { name: /Carla Méndez\s+Pack 4 libres/ });
+  await expect(carla).toContainText('Efectivo y transferencia');
+  const invoiced = carla.getByRole('checkbox', { name: /^Facturada: Carla Méndez/ });
+  await expect(invoiced).not.toBeChecked();
+  await carla.getByRole('cell', { name: 'Pack 4 libres', exact: true }).click();
+  await expect(invoiced).toBeChecked();
+
+  // It stays after leaving the screen.
+  await page.getByRole('link', { name: 'Mostrador' }).click();
+  await page.getByRole('link', { name: 'Planes' }).click();
+  await expect(invoiced).toBeChecked();
+
+  await invoiced.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Desmarcar' }).click();
+  await expect(invoiced).not.toBeChecked();
+
+  // Paid in cash only: nothing to invoice.
+  await expect(sales.getByRole('row', { name: /Bruno Sierra/ }).first()).toContainText('Efectivo');
+  await expect(sales.getByRole('row', { name: /Bruno Sierra/ }).getByRole('checkbox')).toHaveCount(0);
 });

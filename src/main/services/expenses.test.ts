@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { ExpenseInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
-import { createExpense, getExpenseMonth, voidExpense } from './expenses';
+import { createExpense, getExpenseMonth, setExpensePaid, voidExpense } from './expenses';
 
 const rent: ExpenseInput = { category: 'rent', description: 'Octubre', amountCents: 50_000_000, method: 'transfer', paidAt: '2026-10-01' };
 
@@ -18,8 +18,18 @@ describe('expenses', () => {
       id: expect.any(Number),
       ...rent,
       recordedAt: ctx.clock.now().toISOString(),
+      markedPaidAt: null,
       voidedAt: null,
     });
+  });
+
+  it('marks an expense as paid and back, but not a voided one', () => {
+    const { id } = createExpense(ctx, rent);
+    expect(setExpensePaid(ctx, { id, paid: true }).markedPaidAt).toBe(ctx.clock.now().toISOString());
+    expect(getExpenseMonth(ctx, '2026-10').expenses[0]?.markedPaidAt).toBe(ctx.clock.now().toISOString());
+    expect(setExpensePaid(ctx, { id, paid: false }).markedPaidAt).toBeNull();
+    voidExpense(ctx, id);
+    expectDomainError(() => setExpensePaid(ctx, { id, paid: true }), 'ALREADY_VOIDED');
   });
 
   it('accepts today and rejects future dates', () => {

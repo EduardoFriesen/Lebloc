@@ -26,7 +26,7 @@ import {
   voidShift,
   voidStaffPayout,
 } from '../services/employees';
-import { createExpense, getExpenseMonth, voidExpense } from '../services/expenses';
+import { createExpense, getExpenseMonth, setExpensePaid, voidExpense } from '../services/expenses';
 import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { pickImport, runImport } from '../services/legacyImport';
@@ -37,7 +37,7 @@ import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } f
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
 import { createPurchase, getPurchaseMonth, voidPurchase } from '../services/purchases';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
-import { extendSale, sellPlan, setSaleExpiry, voidSale } from '../services/sales';
+import { extendSale, sellPlan, setSaleExpiry, setSaleInvoiced, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { getClientStats, getPlanStats, getTeacherStats } from '../services/stats';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
@@ -85,6 +85,8 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'payments:void': ({ id }) => voidPayment(ctx, id),
     'debts:cancel': (input) => cancelDebt(ctx, input),
     'debts:voidCancellation': ({ id }) => voidDebtCancellation(ctx, id),
+    'sales:setInvoiced': (input) => setSaleInvoiced(ctx, input),
+    'expenses:setPaid': (input) => setExpensePaid(ctx, input),
     'consumptions:create': (input) => consume(ctx, input),
     'consumptions:void': ({ id }) => voidConsumption(ctx, id),
     'payouts:create': (input) => registerPayout(ctx, input),

@@ -1,7 +1,7 @@
 import { DomainError } from '../../domain/errors';
-import { assertSaleVoidable } from '../../domain/ledger';
+import { assertInvoiceable, assertSaleVoidable } from '../../domain/ledger';
 import { buildExtension, buildSaleSnapshot, extensionStateOf } from '../../domain/sale';
-import type { SaleExpiryInput, SaleExtensionInput, SaleInput } from '../../shared/schemas';
+import type { SaleExpiryInput, SaleExtensionInput, SaleInput, SaleInvoicedInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
 import * as paymentsRepo from '../repos/payments';
@@ -68,5 +68,15 @@ export function voidSale(ctx: Context, id: number): Sale {
     assertSaleVoidable(sale, salesRepo.countActiveMovements(ctx.db, id));
     salesRepo.voidSale(ctx.db, id, nowIso(ctx));
     return getSale(ctx, id);
+  })();
+}
+
+/** Ticks (or unticks) that a sale paid by transfer was invoiced. Unticking always works, in case it was a mistake. */
+export function setSaleInvoiced(ctx: Context, input: SaleInvoicedInput): Sale {
+  return ctx.db.transaction(() => {
+    const sale = getSale(ctx, input.saleId);
+    if (input.invoiced) assertInvoiceable(sale, paymentsRepo.listPaymentsForSale(ctx.db, sale.id));
+    salesRepo.setInvoicedAt(ctx.db, sale.id, input.invoiced ? nowIso(ctx) : null);
+    return getSale(ctx, sale.id);
   })();
 }

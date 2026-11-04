@@ -42,6 +42,22 @@ test('record an expense, repeat it and void the copy', async () => {
   await expect(page.getByRole('row', { name: /Anulado/ })).toBeVisible();
 });
 
+test('tick an expense as paid by clicking its row, and untick it', async () => {
+  const paid = page.getByRole('checkbox', { name: /^Pagado: Alquiler/ });
+  await expect(paid).not.toBeChecked();
+  await page.getByRole('row').filter({ has: paid }).getByRole('cell', { name: 'Octubre' }).click();
+  await expect(paid).toBeChecked();
+
+  // It stays after leaving the screen.
+  await page.getByRole('navigation').getByRole('link', { name: 'Mostrador' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
+  await expect(paid).toBeChecked();
+
+  await paid.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Desmarcar' }).click();
+  await expect(paid).not.toBeChecked();
+});
+
 test('add an employee and record a shift', async () => {
   await page.getByRole('navigation').getByRole('link', { name: 'Empleados' }).click();
   await page.getByRole('button', { name: 'Nuevo empleado' }).click();

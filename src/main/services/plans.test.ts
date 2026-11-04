@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
-import { registerPayment } from './payments';
+import { registerPayment, voidPayment } from './payments';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from './plans';
-import { sellPlan, voidSale } from './sales';
+import { sellPlan, setSaleInvoiced, voidSale } from './sales';
 import { createTeacher } from './teachers';
 
 describe('plans service', () => {
@@ -116,6 +116,9 @@ describe('plans service', () => {
           teacherName: 'Juan Pared',
           totalCents: 3_000_000,
           debtCents: 3_000_000,
+          paidByCash: false,
+          paidByTransfer: false,
+          invoicedAt: null,
         },
         {
           saleId: anaSale.id,
@@ -126,9 +129,26 @@ describe('plans service', () => {
           teacherName: null,
           totalCents: 2_000_000,
           debtCents: 1_500_000,
+          paidByCash: true,
+          paidByTransfer: false,
+          invoicedAt: null,
         },
       ]);
       expect(listPlanSales(ctx, { month: '2026-09' }).map((sale) => sale.soldAt)).toEqual(['2026-09-30']);
+    });
+
+    it('marks a sale paid by transfer as invoiced, for good, until it is unmarked', () => {
+      const { anaSale } = scenario();
+      const transfer = registerPayment(ctx, { saleId: anaSale.id, amountCents: 500_000, method: 'transfer', paidAt: '2026-10-03' });
+      const anaRow = () => listPlanSales(ctx, { month: '2026-10' }).find((sale) => sale.saleId === anaSale.id);
+
+      setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true });
+      expect(anaRow()).toMatchObject({ paidByCash: true, paidByTransfer: true, invoicedAt: TEST_NOW.toISOString() });
+      // Unmarking always works, even once the transfer is gone.
+      voidPayment(ctx, transfer.id);
+      setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: false });
+      expect(anaRow()).toMatchObject({ paidByTransfer: false, invoicedAt: null });
+      expectDomainError(() => setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true }), 'NOT_PAID_BY_TRANSFER');
     });
 
     it('filters by plan and rejects an unknown plan', () => {

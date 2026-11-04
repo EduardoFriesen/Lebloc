@@ -35,6 +35,8 @@ export const apiSchemas = {
   'payments:void': schemas.idInput,
   'debts:cancel': schemas.debtCancellationInput,
   'debts:voidCancellation': schemas.idInput,
+  'sales:setInvoiced': schemas.saleInvoicedInput,
+  'expenses:setPaid': schemas.expensePaidInput,
   'consumptions:create': schemas.consumptionInput,
   'consumptions:void': schemas.idInput,
   'payouts:create': schemas.payoutInput,
@@ -121,6 +123,8 @@ export interface ApiOutputs {
   'payments:void': T.Payment;
   'debts:cancel': T.DebtCancellation;
   'debts:voidCancellation': T.DebtCancellation;
+  'sales:setInvoiced': T.Sale;
+  'expenses:setPaid': T.Expense;
   'consumptions:create': T.Consumption;
   'consumptions:void': T.Consumption;
   'payouts:create': T.TeacherPayout;

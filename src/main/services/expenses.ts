@@ -1,5 +1,5 @@
 import { DomainError } from '../../domain/errors';
-import type { ExpenseInput } from '../../shared/schemas';
+import type { ExpenseInput, ExpensePaidInput } from '../../shared/schemas';
 import type { Expense, ExpenseCategory, ExpenseMonth } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso } from '../context';
 import * as repo from '../repos/expenses';
@@ -19,6 +19,13 @@ export function voidExpense(ctx: Context, id: number): Expense {
   if (getExpense(ctx, id).voidedAt) throw new DomainError('ALREADY_VOIDED');
   repo.voidExpenseRow(ctx.db, id, nowIso(ctx));
   return getExpense(ctx, id);
+}
+
+/** Ticks (or unticks) that the expense was actually paid; only a mark, the balance doesn't change. */
+export function setExpensePaid(ctx: Context, input: ExpensePaidInput): Expense {
+  if (getExpense(ctx, input.id).voidedAt) throw new DomainError('ALREADY_VOIDED');
+  repo.setMarkedPaidAt(ctx.db, input.id, input.paid ? nowIso(ctx) : null);
+  return getExpense(ctx, input.id);
 }
 
 export function getExpenseMonth(ctx: Context, month: string): ExpenseMonth {

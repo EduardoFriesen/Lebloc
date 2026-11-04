@@ -30,6 +30,8 @@ export const CHANNELS = [
   'payments:void',
   'debts:cancel',
   'debts:voidCancellation',
+  'sales:setInvoiced',
+  'expenses:setPaid',
   'consumptions:create',
   'consumptions:void',
   'payouts:create',

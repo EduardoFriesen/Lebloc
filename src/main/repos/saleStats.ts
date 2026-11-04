@@ -11,7 +11,7 @@ export const SALE_STATS_CTE = `sale_stats AS (
     total_cents - paid_cents - cancelled_cents AS debt_cents
   FROM (
     SELECT
-      s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.expires_at, s.plan_name, s.free_passes, s.teacher_passes,
+      s.id, s.client_id, s.plan_id, s.teacher_id, s.sold_at, s.expires_at, s.plan_name, s.free_passes, s.teacher_passes, s.invoiced_at,
       s.total_cents,
       COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.sale_id = s.id AND p.voided_at IS NULL), 0) AS paid_cents,
       COALESCE((SELECT SUM(d.amount_cents) FROM debt_cancellations d WHERE d.sale_id = s.id AND d.voided_at IS NULL), 0) AS cancelled_cents,
@@ -44,21 +44,28 @@ export function listMonthEnrollments(db: Db, filter: { planId?: number; teacherI
     .all({ planId: filter.planId ?? null, teacherId: filter.teacherId ?? null, from: filter.from, today: filter.today });
 }
 
+type PlanSaleRow = Omit<PlanSale, 'paidByCash' | 'paidByTransfer'> & { paidByCash: number; paidByTransfer: number };
+
+const PAID_BY_SQL = (method: string) =>
+  `EXISTS (SELECT 1 FROM payments p WHERE p.sale_id = ss.id AND p.voided_at IS NULL AND p.method = '${method}')`;
+
 /** Non-voided sales between two dates (inclusive), of one plan or all, archived clients included, newest first. */
 export function listPlanSales(db: Db, filter: { from: string; to: string; planId: number | null; today: string }): PlanSale[] {
   return db
-    .prepare<[{ from: string; to: string; planId: number | null; today: string }], PlanSale>(
+    .prepare<[{ from: string; to: string; planId: number | null; today: string }], PlanSaleRow>(
       `WITH ${SALE_STATS_CTE}
        SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.total_cents AS totalCents,
-         ss.debt_cents AS debtCents
+         ss.debt_cents AS debtCents, ${PAID_BY_SQL('cash')} AS paidByCash, ${PAID_BY_SQL('transfer')} AS paidByTransfer,
+         ss.invoiced_at AS invoicedAt
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id
        LEFT JOIN teachers t ON t.id = ss.teacher_id
        WHERE ss.sold_at BETWEEN @from AND @to AND (@planId IS NULL OR ss.plan_id = @planId)
        ORDER BY ss.sold_at DESC, ss.id DESC`,
     )
-    .all(filter);
+    .all(filter)
+    .map((row) => ({ ...row, paidByCash: row.paidByCash === 1, paidByTransfer: row.paidByTransfer === 1 }));
 }
 
 export interface SummaryCounts {

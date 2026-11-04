@@ -109,6 +109,7 @@ export interface Sale {
   /** Last day the passes can be used; after it the ones left are lost (remaining shows 0). */
   expiresAt: string;
   expired: boolean;
+  invoicedAt: string | null;
   paidCents: number;
   /** Forgiven: no longer owed, but not paid either. */
   cancelledCents: number;
@@ -235,6 +236,11 @@ export interface PlanSale {
   teacherName: string | null;
   totalCents: number;
   debtCents: number;
+  /** Has an active payment in cash / by transfer. */
+  paidByCash: boolean;
+  paidByTransfer: boolean;
+  /** When it was marked as invoiced (only sales paid by transfer get invoiced); null if not yet. */
+  invoicedAt: string | null;
 }
 
 export interface DashboardSummary {
@@ -469,6 +475,8 @@ export interface Expense {
   method: PaymentMethod;
   paidAt: string;
   recordedAt: string;
+  /** Ticked by hand once it was actually paid; null if not yet. */
+  markedPaidAt: string | null;
   voidedAt: string | null;
 }
 
