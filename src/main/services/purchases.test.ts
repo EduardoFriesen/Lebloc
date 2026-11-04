@@ -4,7 +4,7 @@ import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
 import { listKioskSales, sellKiosk } from './kiosk';
 import { createProduct, getProduct } from './products';
-import { createPurchase, getPurchase, getPurchaseMonth, payPurchase, voidPurchase, voidPurchasePayment } from './purchases';
+import { createPurchase, getPurchase, getPurchaseMonth, payPurchase, updatePurchase, voidPurchase, voidPurchasePayment } from './purchases';
 
 describe('supplier deliveries', () => {
   let ctx: TestContext;
@@ -128,6 +128,46 @@ describe('supplier deliveries', () => {
     expect(month('2026-10').purchases.map((purchase) => purchase.receivedAt)).toEqual(['2026-10-04', '2026-10-03', '2026-10-02']);
     expect(month('2026-10').owedCents).toBe(1_200_000 + 1_000_000);
     expect(month('2026-10', true).purchases.map((purchase) => purchase.id)).toEqual([october, september]);
+  });
+
+  describe('editing a delivery', () => {
+    it('changes the date and the lines, and the debt follows', () => {
+      const { id } = createPurchase(ctx, delivery('2026-10-02', undefined, paid(500_000)));
+      expect(updatePurchase(ctx, { id, receivedAt: '2026-10-03', items: [{ productId: agua, quantity: 10, costCents: 800_000 }] })).toMatchObject({
+        receivedAt: '2026-10-03',
+        totalCents: 800_000,
+        paidCents: 500_000,
+        debtCents: 300_000,
+        items: [{ productId: agua, quantity: 10, costCents: 800_000, unitCostCents: 80_000 }],
+      });
+      expect(getProduct(ctx, agua).unitCostCents).toBe(80_000);
+    });
+
+    it('does not overwrite a newer cost when fixing an old delivery, and keeps the cost of a product taken out', () => {
+      const old = createPurchase(ctx, delivery('2026-10-01', [
+        { productId: agua, quantity: 24, costCents: 1_200_000 },
+        { productId: barrita, quantity: 10, costCents: 420_000 },
+      ])).id;
+      createPurchase(ctx, delivery('2026-10-04', [{ productId: agua, quantity: 10, costCents: 600_000 }]));
+      updatePurchase(ctx, { id: old, receivedAt: '2026-10-01', items: [{ productId: agua, quantity: 24, costCents: 960_000 }] });
+      expect(getProduct(ctx, agua).unitCostCents).toBe(60_000);
+      expect(getProduct(ctx, barrita).unitCostCents).toBe(42_000);
+    });
+
+    it('rejects a total below what was paid, a voided delivery, future dates and inactive products, changing nothing', () => {
+      const { id } = createPurchase(ctx, delivery('2026-10-02', undefined, paid(500_000)));
+      const off = createProduct(ctx, { name: 'Viejo', description: null, unitCostCents: 1_000, markupPercent: 0, priceCents: 1_000, active: false }).id;
+      const edit = (receivedAt: string, items: PurchaseInput['items']) => () => updatePurchase(ctx, { id, receivedAt, items });
+      expectDomainError(edit('2026-10-02', [{ productId: agua, quantity: 1, costCents: 499_999 }]), 'PAID_EXCEEDS_PURCHASE');
+      expectDomainError(edit('2026-10-06', [{ productId: agua, quantity: 24, costCents: 1_200_000 }]), 'DATE_IN_FUTURE');
+      expectDomainError(edit('2026-10-02', [{ productId: off, quantity: 1, costCents: 600_000 }]), 'PRODUCT_INACTIVE');
+      expect(getPurchase(ctx, id)).toMatchObject({ receivedAt: '2026-10-02', totalCents: 1_200_000 });
+      expect(getProduct(ctx, agua).unitCostCents).toBe(50_000);
+
+      const voided = createPurchase(ctx, delivery('2026-10-02')).id;
+      voidPurchase(ctx, voided);
+      expectDomainError(() => updatePurchase(ctx, { id: voided, receivedAt: '2026-10-02', items: [{ productId: agua, quantity: 1, costCents: 1 }] }), 'PURCHASE_VOIDED');
+    });
   });
 
   it('a ticket sold after a delivery snapshots the new cost', () => {

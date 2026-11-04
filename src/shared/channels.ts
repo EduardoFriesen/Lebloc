@@ -48,6 +48,7 @@ export const CHANNELS = [
   'purchases:list',
   'purchases:void',
   'purchases:get',
+  'purchases:update',
   'purchases:pay',
   'purchases:voidPayment',
   'counter:today',

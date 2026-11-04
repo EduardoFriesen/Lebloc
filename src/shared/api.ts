@@ -53,6 +53,7 @@ export const apiSchemas = {
   'purchases:list': schemas.purchaseListInput,
   'purchases:void': schemas.idInput,
   'purchases:get': schemas.idInput,
+  'purchases:update': schemas.purchaseUpdate,
   'purchases:pay': schemas.purchasePaymentInput,
   'purchases:voidPayment': schemas.idInput,
   'counter:today': schemas.emptyInput,
@@ -144,6 +145,7 @@ export interface ApiOutputs {
   'purchases:list': T.KioskPurchaseMonth;
   'purchases:void': T.KioskPurchase;
   'purchases:get': T.KioskPurchase;
+  'purchases:update': T.KioskPurchase;
   'purchases:pay': T.KioskPurchase;
   'purchases:voidPayment': T.KioskPurchase;
   'counter:today': T.DayMovements;

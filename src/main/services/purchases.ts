@@ -1,6 +1,6 @@
 import { DomainError } from '../../domain/errors';
-import { assertPurchasePayable, assertPurchaseVoidable, purchaseDebtCents, purchaseTotalCents, unitCostCents } from '../../domain/kiosk';
-import type { PurchaseInput, PurchaseListInput, PurchasePaymentInput } from '../../shared/schemas';
+import { assertPurchaseEditable, assertPurchasePayable, assertPurchaseVoidable, purchaseDebtCents, purchaseTotalCents, unitCostCents } from '../../domain/kiosk';
+import type { PurchaseInput, PurchaseListInput, PurchasePaymentInput, PurchaseUpdate } from '../../shared/schemas';
 import type { KioskPurchase, KioskPurchaseMonth } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso } from '../context';
 import * as products from '../repos/products';
@@ -28,20 +28,40 @@ function insertPayment(ctx: Context, purchase: KioskPurchase, payment: Omit<Purc
   repo.insertPurchasePayment(ctx.db, { purchaseId: purchase.id, ...payment, recordedAt: nowIso(ctx) });
 }
 
+/** Saves the lines; `setsCost` says which products take the unit cost of their line. */
+function insertItems(ctx: Context, purchaseId: number, items: PurchaseInput['items'], setsCost: (productId: number) => boolean): void {
+  for (const { productId, quantity, costCents } of items) {
+    const product = products.findProduct(ctx.db, productId);
+    if (!product) throw new DomainError('NOT_FOUND');
+    if (!product.active) throw new DomainError('PRODUCT_INACTIVE');
+    repo.insertPurchaseItem(ctx.db, purchaseId, { productId, productName: product.name, quantity, costCents });
+    if (setsCost(productId)) products.setProductUnitCost(ctx.db, productId, unitCostCents(costCents, quantity));
+  }
+}
+
 /** Records what the supplier brought, and what was paid then; each product takes the unit cost of this delivery. */
 export function createPurchase(ctx: Context, input: PurchaseInput): KioskPurchase {
   assertNotFuture(ctx, input.receivedAt);
   return ctx.db.transaction(() => {
     const id = repo.insertPurchase(ctx.db, { receivedAt: input.receivedAt, recordedAt: nowIso(ctx) });
-    for (const { productId, quantity, costCents } of input.items) {
-      const product = products.findProduct(ctx.db, productId);
-      if (!product) throw new DomainError('NOT_FOUND');
-      if (!product.active) throw new DomainError('PRODUCT_INACTIVE');
-      repo.insertPurchaseItem(ctx.db, id, { productId, productName: product.name, quantity, costCents });
-      products.setProductUnitCost(ctx.db, productId, unitCostCents(costCents, quantity));
-    }
+    insertItems(ctx, id, input.items, () => true);
     if (input.initialPayment) insertPayment(ctx, getPurchase(ctx, id), input.initialPayment);
     return getPurchase(ctx, id);
+  })();
+}
+
+/**
+ * Fixes the date or the lines. Payments stay, so the new total has to cover them. A product takes the new unit cost
+ * only if this is still its latest delivery; one taken out keeps the cost it has.
+ */
+export function updatePurchase(ctx: Context, input: PurchaseUpdate): KioskPurchase {
+  assertNotFuture(ctx, input.receivedAt);
+  return ctx.db.transaction(() => {
+    assertPurchaseEditable(getPurchase(ctx, input.id), purchaseTotalCents(input.items));
+    repo.updatePurchaseRow(ctx.db, input.id, input.receivedAt);
+    repo.deletePurchaseItems(ctx.db, input.id);
+    insertItems(ctx, input.id, input.items, (productId) => repo.latestActivePurchaseWith(ctx.db, productId) === input.id);
+    return getPurchase(ctx, input.id);
   })();
 }
 

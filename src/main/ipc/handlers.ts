@@ -35,7 +35,7 @@ import { getTeacherAccount, listTeacherBalances, registerPayout, voidPayout } fr
 import { getDayEntries, getDayMovements } from '../services/counter';
 import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } from '../services/counterSales';
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
-import { createPurchase, getPurchase, getPurchaseMonth, payPurchase, voidPurchase, voidPurchasePayment } from '../services/purchases';
+import { createPurchase, getPurchase, getPurchaseMonth, payPurchase, updatePurchase, voidPurchase, voidPurchasePayment } from '../services/purchases';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
 import { extendSale, sellPlan, setSaleExpiry, setSaleInvoiced, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
@@ -102,6 +102,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'purchases:create': (input) => createPurchase(ctx, input),
     'purchases:list': (input) => getPurchaseMonth(ctx, input),
     'purchases:get': ({ id }) => getPurchase(ctx, id),
+    'purchases:update': (input) => updatePurchase(ctx, input),
     'purchases:pay': (input) => payPurchase(ctx, input),
     'purchases:voidPayment': ({ id }) => voidPurchasePayment(ctx, id),
     'purchases:void': ({ id }) => voidPurchase(ctx, id),

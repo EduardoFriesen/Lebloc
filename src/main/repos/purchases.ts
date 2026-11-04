@@ -57,6 +57,24 @@ export function listActivePurchases(db: Db): PurchaseRow[] {
   return db.prepare<[], PurchaseRow>(`SELECT ${COLUMNS} FROM kiosk_purchases WHERE voided_at IS NULL ORDER BY received_at DESC, id DESC`).all();
 }
 
+export function updatePurchaseRow(db: Db, id: number, receivedAt: string): void {
+  db.prepare('UPDATE kiosk_purchases SET received_at = ? WHERE id = ?').run(receivedAt, id);
+}
+
+export function deletePurchaseItems(db: Db, purchaseId: number): void {
+  db.prepare('DELETE FROM kiosk_purchase_items WHERE purchase_id = ?').run(purchaseId);
+}
+
+/** The newest non-voided delivery that brought the product (by date, then by load order). */
+export function latestActivePurchaseWith(db: Db, productId: number): number | undefined {
+  return db
+    .prepare<[number], { id: number }>(
+      `SELECT p.id FROM kiosk_purchases p JOIN kiosk_purchase_items i ON i.purchase_id = p.id
+       WHERE i.product_id = ? AND p.voided_at IS NULL ORDER BY p.received_at DESC, p.id DESC LIMIT 1`,
+    )
+    .get(productId)?.id;
+}
+
 export function voidPurchaseRow(db: Db, id: number, now: string): void {
   db.prepare('UPDATE kiosk_purchases SET voided_at = ? WHERE id = ?').run(now, id);
 }
