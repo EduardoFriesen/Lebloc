@@ -74,7 +74,7 @@ test('create a product, sell it from the kiosk screen and void the ticket', asyn
   await expect(sales.getByRole('row', { name: /1 × Magnesio/ })).toBeVisible();
 });
 
-test('a supplier delivery sets the unit cost and shows in Gastos', async () => {
+test('a supplier delivery paid in parts: its detail, an edit, the rest paid, and its payments in Gastos', async () => {
   const nav = page.getByRole('navigation', { name: 'Principal' });
   const products = page.getByRole('table', { name: 'Productos', exact: true });
   const deliveries = page.getByRole('table', { name: 'Entregas del proveedor', exact: true });
@@ -106,22 +106,65 @@ test('a supplier delivery sets the unit cost and shows in Gastos', async () => {
   await expect(second.getByLabel('Producto').locator('option:checked')).toHaveText('Chicle');
   await second.getByLabel('Cantidad').fill('20');
   await second.getByLabel('Costo total').fill('4.000');
-  await expect(dialog).toContainText(/Total pagado: \$\s30\.400,00/);
+  await expect(dialog).toContainText(/Total: \$\s30\.400,00/);
+  // Paid in part: the rest is owed to the supplier.
+  await dialog.getByLabel('Pago parcial').check();
+  await dialog.getByLabel('Monto del pago').fill('10.000');
   await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(dialog).toBeHidden();
 
   await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
   await expect(products.getByRole('row', { name: /Chicle/ })).toContainText(/\$\s200,00/);
-  await expect(deliveries.getByRole('row', { name: /24 × Agua, 20 × Chicle/ })).toContainText(/\$\s30\.400,00/);
+  const row = deliveries.getByRole('row', { name: /24 × Agua, 20 × Chicle/ });
+  await expect(row).toContainText(/\$\s30\.400,00\s*\$\s20\.400,00/);
+  await expect(page.getByText(/Se le debe al proveedor: \$\s20\.400,00/)).toBeVisible();
 
+  // The row opens the delivery: what came in and how it was paid.
+  await row.getByRole('cell', { name: '24 × Agua, 20 × Chicle' }).click();
+  const detail = page.getByRole('dialog', { name: 'Detalle de la entrega' });
+  await expect(detail.getByRole('table', { name: 'Productos de la entrega' })).toContainText(/Chicle\s*20\s*\$\s4\.000,00\s*\$\s200,00/);
+  await expect(detail.getByRole('table', { name: 'Pagos de la entrega' })).toContainText(/Efectivo\s*\$\s10\.000,00/);
+  await expect(detail).toContainText(/Debe \$\s20\.400,00/);
+
+  // Half the gum came: the delivery is fixed and what is owed follows.
+  await detail.getByRole('button', { name: 'Modificar' }).click();
+  const edit = page.getByRole('dialog', { name: 'Modificar entrega' });
+  await expect(edit.getByLabel('Pago parcial')).toHaveCount(0);
+  await edit.getByRole('group', { name: 'Línea 2' }).getByLabel('Cantidad').fill('10');
+  await edit.getByRole('group', { name: 'Línea 2' }).getByLabel('Costo total').fill('2.000');
+  await edit.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(edit).toBeHidden();
+  await expect(detail).toContainText(/Debe \$\s18\.400,00/);
+
+  await detail.getByRole('button', { name: 'Registrar pago' }).click();
+  await expect(detail.getByLabel('Monto')).toHaveValue('18.400,00');
+  await detail.getByLabel('Medio de pago').selectOption('transfer');
+  await detail.getByRole('button', { name: 'Confirmar pago' }).click();
+  await expect(detail.getByText('Pagada', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText(/Se le debe al proveedor: \$\s0,00/)).toBeVisible();
+
+  // Each payment is an expense of the month, and opens its delivery.
   await nav.getByRole('link', { name: 'Gastos', exact: true }).click();
-  await expect(merchandise()).toContainText(/\$\s30\.400,00/);
+  await expect(merchandise()).toContainText(/\$\s28\.400,00/);
+  const paid = page.getByRole('table', { name: 'Gastos del mes' }).getByRole('row', { name: /Mercadería del kiosco/ });
+  await expect(paid).toHaveCount(2);
+  await paid.first().getByRole('button', { name: /^Ver entrega/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Detalle de la entrega' })).toContainText('Agua');
+  await page.keyboard.press('Escape');
 
-  // Voiding it takes it out of the month but leaves the product cost as it is.
+  // Voiding: its payments first, then the delivery; Gastos goes back to nothing for the stock.
   await nav.getByRole('link', { name: 'Kiosco', exact: true }).click();
-  await deliveries.getByRole('button', { name: /Anular entrega/ }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Anular entrega' }).click();
-  await expect(deliveries.getByText('Anulada')).toBeVisible();
+  await deliveries.getByRole('row', { name: /24 × Agua, 10 × Chicle/ }).getByRole('button', { name: /^Ver entrega/ }).click();
+  for (let left = 2; left > 0; left--) {
+    await detail.getByRole('button', { name: /^Anular pago de/ }).first().click();
+    await page.getByRole('dialog', { name: 'Anular pago' }).getByRole('button', { name: 'Anular pago' }).click();
+    await expect(page.getByRole('dialog', { name: 'Anular pago' })).toBeHidden();
+  }
+  await detail.getByRole('button', { name: 'Anular entrega' }).click();
+  await page.getByRole('dialog', { name: 'Anular entrega' }).getByRole('button', { name: 'Anular entrega' }).click();
+  await expect(detail).toContainText('Anulada');
+  await page.keyboard.press('Escape');
   await expect(products.getByRole('row', { name: /Agua/ })).toContainText(/\$\s1\.100,00/);
   await nav.getByRole('link', { name: 'Gastos', exact: true }).click();
   await expect(merchandise()).toContainText(/\$\s0,00/);
