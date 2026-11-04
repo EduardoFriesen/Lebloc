@@ -26,13 +26,13 @@ describe('seedDatabase', () => {
     expect(listPlans(ctx, true).some((plan) => !plan.active)).toBe(true);
   });
 
-  it('feeds every number of the counter summary and the renewals list', () => {
-    const { summary, renewals } = getDashboard(ctx);
+  it("feeds every number of the counter summary and today's debtors", () => {
+    const { summary, todayDebtors } = getDashboard(ctx);
     expect(summary.activeClients).toBeGreaterThan(0);
     expect(summary.debtorCount).toBeGreaterThan(0);
     expect(summary.pendingWaivers).toBeGreaterThan(0);
     expect(summary.teacherBalanceCents).toBeGreaterThan(0);
-    expect(renewals.length).toBeGreaterThan(0);
+    expect(todayDebtors.length).toBeGreaterThan(0);
   });
 
   it('loads two months of expenses and employee shifts', () => {

@@ -1,5 +1,5 @@
 import { assertGuardianRule, minorBirthCutoff } from '../../domain/client';
-import { attendanceWindows, monthStart } from '../../domain/attendance';
+import { monthStart, todayStart } from '../../domain/attendance';
 import { daysBetween } from '../../domain/dates';
 import { DomainError } from '../../domain/errors';
 import { passStatus } from '../../domain/passes';
@@ -44,13 +44,10 @@ export function listClients(ctx: Context, input: ClientListInput): ClientSummary
   return input.onlyPendingWaiver ? clients.filter((client) => client.waiver.state === 'missing') : clients;
 }
 
-/** Who has to renew: low or no passes, and came in the last 30 days. Those with no passes first. */
-export function listRenewals(ctx: Context): ClientSummary[] {
-  const { renewalFrom } = attendanceWindows(ctx.clock.now());
-  const recent = summaries(ctx, { search: '', includeArchived: false, onlyDebtors: false, attendedFrom: renewalFrom.toISOString() });
-  return recent
-    .filter((client) => client.passStatus !== 'ok')
-    .sort((a, b) => Number(b.passStatus === 'none') - Number(a.passStatus === 'none'));
+/** Who owes money and had a pass marked today, oldest debt first. */
+export function listTodayDebtors(ctx: Context): ClientSummary[] {
+  const attendedFrom = todayStart(ctx.clock.now()).toISOString();
+  return summaries(ctx, { search: '', includeArchived: false, onlyDebtors: true, attendedFrom });
 }
 
 export function createClient(ctx: Context, input: ClientInput): Client {

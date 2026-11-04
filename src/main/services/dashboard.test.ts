@@ -36,24 +36,31 @@ describe('debtors and dashboard', () => {
     };
   }
 
-  it('shows who has to renew among active clients', () => {
-    const single = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1, priceCents: 500_000 });
-    sellPlan(ctx, saleOf({ planId: single.id }));
+  it('lists the debtors who came in today, oldest debt first', () => {
+    const named = (firstName: string) => createClient(ctx, { ...adultClient, firstName, lastName: 'Test' }).id;
+    const [brunoId, carlaId, daniId, evaId] = [named('Bruno'), named('Carla'), named('Dani'), named('Eva')];
+    const paid = { amountCents: freePlan.priceCents, method: 'cash' as const, paidAt: '2026-10-05' };
+
+    // Came yesterday: not today's debtor.
+    sellPlan(ctx, saleOf({ clientId: evaId, soldAt: '2026-10-01' }));
+    const now = ctx.clock.now();
+    ctx.clock.set(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 20));
+    consume(ctx, { clientId: evaId, kind: 'free', note: null });
+    ctx.clock.set(now);
+
+    sellPlan(ctx, saleOf({ soldAt: '2026-10-04' }));
     consume(ctx, { clientId: anaId, kind: 'free', note: null });
-
-    const brunoId = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
-    const juanId = createTeacher(ctx, basicTeacher).id;
-    createTeacher(ctx, { ...basicTeacher, firstName: 'Eva', lastName: 'Bloque' });
-    const mixedId = createPlan(ctx, mixedPlan).id;
-    sellPlan(ctx, saleOf({ clientId: brunoId, planId: mixedId, teacherId: juanId, initialPayment: { amountCents: 1_500_000, method: 'cash', paidAt: '2026-10-05' } }));
-
-    const carlaId = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Vía' }).id;
-    sellPlan(ctx, saleOf({ clientId: carlaId, planId: single.id }));
+    sellPlan(ctx, saleOf({ clientId: brunoId, soldAt: '2026-10-02' }));
+    consume(ctx, { clientId: brunoId, kind: 'free', note: null });
+    // Paid in full, owes nothing.
+    sellPlan(ctx, saleOf({ clientId: carlaId, initialPayment: paid }));
     consume(ctx, { clientId: carlaId, kind: 'free', note: null });
-    archiveClient(ctx, carlaId);
+    // Archived clients drop off every list.
+    sellPlan(ctx, saleOf({ clientId: daniId }));
+    consume(ctx, { clientId: daniId, kind: 'free', note: null });
+    archiveClient(ctx, daniId);
 
-    const dashboard = getDashboard(ctx);
-    expect(dashboard.renewals.map((client) => [client.id, client.passStatus])).toEqual([[anaId, 'none']]);
+    expect(getDashboard(ctx).todayDebtors.map((client) => client.id)).toEqual([brunoId, anaId]);
   });
 
   it('summarizes clients with passes, debtors once each, pending waivers and the teacher balance', () => {

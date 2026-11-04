@@ -8,7 +8,6 @@ import {
   createClient,
   getClient,
   listClients,
-  listRenewals,
   unarchiveClient,
   updateClient,
 } from './clients';
@@ -283,48 +282,11 @@ describe('clients service', () => {
     expectDomainError(() => getClient(ctx, 999), 'NOT_FOUND');
   });
 
-  describe('counter lists', () => {
-    // TEST_NOW is Monday 5/10/2026 12:00 local time.
-    function clientWith(firstName: string, passes: number): number {
-      const planId = createPlan(ctx, { name: `Pack ${passes}`, freePasses: passes, teacherPasses: 0, priceCents: 0, teacherAmountCents: 0, active: true }).id;
-      const clientId = createClient(ctx, { ...adultClient, firstName, lastName: 'Test' }).id;
-      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-08-01', expiresAt: FAR_EXPIRY, initialPayment: null });
-      return clientId;
-    }
-
-    function climbAt(clientId: number, when: Date) {
-      ctx.clock.set(when);
-      const consumption = consume(ctx, { clientId, kind: 'free', note: null });
-      ctx.clock.set(TEST_NOW);
-      return consumption;
-    }
-
-    it('lists who has to renew: low or no passes and came in the last 30 days, no passes first', () => {
-      const luis = clientWith('Luis', 3);
-      climbAt(luis, new Date(2026, 8, 25, 18, 0));
-      climbAt(luis, new Date(2026, 8, 25, 19, 0));
-      const mara = clientWith('Mara', 1);
-      climbAt(mara, new Date(2026, 8, 30, 18, 0));
-      climbAt(clientWith('Nora', 8), new Date(2026, 9, 2, 18, 0));
-      const omar = clientWith('Omar', 3);
-      climbAt(omar, new Date(2026, 7, 20, 18, 0));
-      climbAt(omar, new Date(2026, 7, 21, 18, 0));
-
-      expect(listRenewals(ctx).map((client) => [client.firstName, client.passStatus])).toEqual([
-        ['Mara', 'none'],
-        ['Luis', 'low'],
-      ]);
-    });
-
-    it('lists who has to renew because their passes expire soon', () => {
-      const pia = clientWith('Pía', 8);
-      climbAt(pia, new Date(2026, 9, 2, 18, 0));
-      expect(listRenewals(ctx)).toEqual([]);
-      const quim = createClient(ctx, { ...adultClient, firstName: 'Quim', lastName: 'Test' }).id;
-      const planId = createPlan(ctx, freePlan).id;
-      sellPlan(ctx, { clientId: quim, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: '2026-10-09', initialPayment: null });
-      climbAt(quim, new Date(2026, 9, 3, 18, 0));
-      expect(listRenewals(ctx).map((client) => [client.firstName, client.passStatus, client.expiresAt])).toEqual([['Quim', 'expiring', '2026-10-09']]);
-    });
+  it('flags passes that expire soon in the counter search', () => {
+    const quim = createClient(ctx, { ...adultClient, firstName: 'Quim', lastName: 'Test' }).id;
+    const planId = createPlan(ctx, freePlan).id;
+    sellPlan(ctx, { clientId: quim, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: '2026-10-09', initialPayment: null });
+    const found = listClients(ctx, { search: 'Quim', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(found.map((client) => [client.passStatus, client.expiresAt])).toEqual([['expiring', '2026-10-09']]);
   });
 });

@@ -280,8 +280,8 @@ export interface PlanStats {
 
 export interface Dashboard {
   summary: DashboardSummary;
-  /** Low or no passes and came in the last 30 days. */
-  renewals: ClientSummary[];
+  /** Owe money and had a pass marked today. */
+  todayDebtors: ClientSummary[];
 }
 
 export interface Product {

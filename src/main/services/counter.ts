@@ -1,4 +1,4 @@
-import { attendanceWindows } from '../../domain/attendance';
+import { todayStart } from '../../domain/attendance';
 import { passStatus } from '../../domain/passes';
 import type { DayEntry, DayMovement, DayMovements } from '../../shared/types';
 import { type Context, today } from '../context';
@@ -29,7 +29,7 @@ export function getDayMovements(ctx: Context): DayMovements {
 export function getDayEntries(ctx: Context): DayEntry[] {
   const settings = getSettings(ctx);
   const date = today(ctx);
-  const passes = listConsumptionsSince(ctx.db, attendanceWindows(ctx.clock.now()).todayStart.toISOString(), date).map((row) => ({
+  const passes = listConsumptionsSince(ctx.db, todayStart(ctx.clock.now()).toISOString(), date).map((row) => ({
     kind: 'pass' as const,
     ...row,
     passStatus: passStatus(row.remainingFree + row.remainingTeacher, row.expiresAt, date, settings),

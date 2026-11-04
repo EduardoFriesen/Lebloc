@@ -57,7 +57,7 @@ export function HomePage() {
     }
   }
 
-  // Passes, walk-ins and voids touch the entries, the cash, the colors of the results and the renewals at once.
+  // Passes, walk-ins and voids touch the entries, the cash, the colors of the results and today's debtors at once.
   function refresh() {
     dashboard.reload();
     movements.reload();
@@ -287,27 +287,25 @@ function DashboardPanels({ dashboard }: { dashboard: Dashboard }) {
         </Notice>
       )}
       <SummaryPanel summary={dashboard.summary} />
-      <Panel title="Tienen que renovar">
-        {dashboard.renewals.length === 0 ? (
-          <p className="text-sm text-ink-soft">Nadie que haya venido este mes se está quedando sin pases.</p>
+      <Panel title="Deudores de hoy">
+        {dashboard.todayDebtors.length === 0 ? (
+          <p className="text-sm text-ink-soft">Nadie que vino hoy debe plata.</p>
         ) : (
-          <PagedList items={dashboard.renewals} label="Tienen que renovar" render={(client) => <RenewalStrip key={client.id} client={client} />} />
+          <PagedList items={dashboard.todayDebtors} label="Deudores de hoy" render={(client) => <DebtorStrip key={client.id} client={client} />} />
         )}
       </Panel>
     </>
   );
 }
 
-/** Compact tinted card for the side panel: no pass buttons (they don't fit); it opens the client to renew. */
-function RenewalStrip({ client }: { client: ClientSummary }) {
+/** Compact card for the side panel; it opens the client to collect. */
+function DebtorStrip({ client }: { client: ClientSummary }) {
   return (
     <Card
       strip
-      tone={client.passStatus}
       to={`/clientes/${client.id}`}
       title={fullName(client)}
-      subtitle={`Libres: ${client.remainingFree} · Con profesor: ${client.remainingTeacher}`}
-      badges={<PassBadge status={client.passStatus} expiresAt={client.expiresAt} />}
+      subtitle={<span className="font-semibold text-accent-ink">{debtLabel(client)}</span>}
     />
   );
 }
