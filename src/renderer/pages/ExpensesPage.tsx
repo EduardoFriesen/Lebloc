@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Expense, ExpenseCategory } from '../../shared/types';
+import type { Expense, ExpenseCategory, ExpenseMonth, SupplierPaymentRow } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Card';
 import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
@@ -17,19 +17,38 @@ import { currentMonthIso, EXPENSE_CATEGORY_LABELS, formatDate, formatMoney, PAYM
 import { errorMessage } from '../lib/formErrors';
 import { useAsync } from '../lib/useAsync';
 import { ExpenseForm } from './ExpenseForm';
+import { PurchaseDetailDialog } from './PurchaseDetail';
+
+/** The supplier payments, picked from the summary like a category. */
+const MERCHANDISE = 'merchandise';
+type CategoryFilter = ExpenseCategory | typeof MERCHANDISE;
+const filterLabel = (filter: CategoryFilter) => (filter === MERCHANDISE ? 'Mercadería del kiosco' : EXPENSE_CATEGORY_LABELS[filter]);
+
+type ExpenseRow = { kind: 'expense'; expense: Expense } | { kind: 'supplier'; payment: SupplierPaymentRow };
+
+/** Expenses and supplier payments of the month, newest first, narrowed to the picked category. */
+function monthRows({ expenses, supplierPayments }: ExpenseMonth, category: CategoryFilter | null): ExpenseRow[] {
+  const rows: ExpenseRow[] = [
+    ...expenses.filter((expense) => category === null || expense.category === category).map((expense) => ({ kind: 'expense' as const, expense })),
+    ...(category === null || category === MERCHANDISE ? supplierPayments.map((payment) => ({ kind: 'supplier' as const, payment })) : []),
+  ];
+  const date = (row: ExpenseRow) => (row.kind === 'expense' ? row.expense.paidAt : row.payment.paidAt);
+  return rows.sort((a, b) => date(b).localeCompare(date(a)));
+}
 
 export function ExpensesPage() {
   const navigate = useNavigate();
   const [month, setMonth] = useState(currentMonthIso());
-  // Picked from the summary: only this category's expenses.
-  const [category, setCategory] = useState<ExpenseCategory | null>(null);
+  // Picked from the summary: only this category's expenses, or only the supplier payments.
+  const [category, setCategory] = useState<CategoryFilter | null>(null);
+  // The supplier delivery whose detail is open, from one of its payments.
+  const [delivery, setDelivery] = useState<number | null>(null);
   // Open form: a new expense (repeat null) or a copy of an earlier one.
   const [form, setForm] = useState<{ repeat: Expense | null } | null>(null);
   const [pending, setPending] = useState<ConfirmRequest | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const data = useAsync(() => call('expenses:month', { month }), [month], { keepPreviousData: true });
   const staff = useAsync(() => call('staff:stats', { month }), [month], { keepPreviousData: true });
-  const purchases = useAsync(() => call('purchases:list', { month }), [month], { keepPreviousData: true });
 
   function reload() {
     data.reload();
@@ -82,19 +101,26 @@ export function ExpensesPage() {
             }}
           />
         </div>
-        {category && <ClearFilter label={EXPENSE_CATEGORY_LABELS[category]} onClear={() => setCategory(null)} />}
+        {category && <ClearFilter label={filterLabel(category)} onClear={() => setCategory(null)} />}
       </div>
       <div className={SUMMARY_LIST}>
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
         <AsyncView state={data}>
-          {({ expenses }) => (
+          {(totals) => (
             <ExpensesTable
               key={`${month}|${category ?? ''}`}
-              expenses={expenses.filter((expense) => category === null || expense.category === category)}
-              empty={category ? 'Ningún gasto de esa categoría este mes' : 'No hay gastos cargados este mes. Sumá el primero con “Nuevo gasto”.'}
+              rows={monthRows(totals, category)}
+              empty={
+                category === MERCHANDISE
+                  ? 'No se le pagó al proveedor este mes'
+                  : category
+                    ? 'Ningún gasto de esa categoría este mes'
+                    : 'No hay gastos cargados este mes. Sumá el primero con “Nuevo gasto”.'
+              }
               onRepeat={(expense) => setForm({ repeat: expense })}
               onVoid={askVoid}
               onPaid={setPaid}
+              onOpenDelivery={setDelivery}
             />
           )}
         </AsyncView>
@@ -116,8 +142,9 @@ export function ExpensesPage() {
           },
           {
             label: 'Mercadería del kiosco',
-            value: <span className="font-semibold">{purchases.status === 'success' ? formatMoney(purchases.data.totalCents) : '—'}</span>,
-            onSelect: () => void navigate('/kiosco'),
+            value: <span className="font-semibold">{formatMoney(totals.supplierCents)}</span>,
+            onSelect: () => setCategory(MERCHANDISE),
+            selected: category === MERCHANDISE,
           },
         ]}
       />
@@ -133,6 +160,7 @@ export function ExpensesPage() {
           />
         )}
       </Dialog>
+      <PurchaseDetailDialog purchaseId={delivery} onClose={() => setDelivery(null)} onChanged={data.reload} />
       <ConfirmDialog
         request={pending}
         onClose={() => setPending(null)}
@@ -146,16 +174,18 @@ export function ExpensesPage() {
 }
 
 interface ExpensesTableProps {
-  expenses: Expense[];
+  rows: ExpenseRow[];
   empty: string;
   onRepeat: (expense: Expense) => void;
   onVoid: (expense: Expense) => void;
   onPaid: (expense: Expense, paid: boolean) => void;
+  /** A supplier payment's row opens its delivery. */
+  onOpenDelivery: (purchaseId: number) => void;
 }
 
 /** The box by the payment method, ticked (by the box or anywhere on the row), means it was actually paid. */
-function ExpensesTable({ expenses, empty, onRepeat, onVoid, onPaid }: ExpensesTableProps) {
-  const { visible, page, pages, setPage } = usePage(expenses, TABLE_PAGE_SIZE);
+function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }: ExpensesTableProps) {
+  const { visible, page, pages, setPage } = usePage(rows, TABLE_PAGE_SIZE);
   return (
     <div className="flex flex-col gap-3">
       <table className={tableClass}>
@@ -173,7 +203,9 @@ function ExpensesTable({ expenses, empty, onRepeat, onVoid, onPaid }: ExpensesTa
           </tr>
         </thead>
         <tbody>
-          {visible.map((expense) => {
+          {visible.map((row) => {
+            if (row.kind === 'supplier') return <SupplierPaymentTableRow key={`s${row.payment.id}`} payment={row.payment} onOpen={onOpenDelivery} />;
+            const { expense } = row;
             const label = `${EXPENSE_CATEGORY_LABELS[expense.category]} del ${formatDate(expense.paidAt)}`;
             return (
               <tr
@@ -224,5 +256,30 @@ function ExpensesTable({ expenses, empty, onRepeat, onVoid, onPaid }: ExpensesTa
       </table>
       <PageBar keep label="Gastos" page={page} pages={pages} onChange={setPage} />
     </div>
+  );
+}
+
+/** Paid from the kiosk's deliveries: no box, no repeat or void here; the row (or "Ver") opens the delivery. */
+function SupplierPaymentTableRow({ payment, onOpen }: { payment: SupplierPaymentRow; onOpen: (purchaseId: number) => void }) {
+  return (
+    <tr
+      className="cursor-pointer"
+      onClick={(event) => {
+        if (!(event.target as HTMLElement).closest('a, button')) onOpen(payment.purchaseId);
+      }}
+    >
+      <td className="tabular-nums">{formatDate(payment.paidAt).slice(0, 5)}</td>
+      <td className="font-semibold">Mercadería del kiosco</td>
+      <td>
+        Entrega del {formatDate(payment.receivedAt).slice(0, 5)}: {payment.productsLabel}
+      </td>
+      <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
+      <td className="font-semibold">{formatMoney(payment.amountCents)}</td>
+      <td className="text-right">
+        <Button variant="ghost" className="px-3!" aria-label={`Ver entrega del ${formatDate(payment.receivedAt)}`} onClick={() => onOpen(payment.purchaseId)}>
+          Ver
+        </Button>
+      </td>
+    </tr>
   );
 }
