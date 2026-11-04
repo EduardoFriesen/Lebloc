@@ -236,6 +236,8 @@ export interface PlanSale {
   teacherName: string | null;
   totalCents: number;
   debtCents: number;
+  /** Forgiven: no longer owed, but not paid either. */
+  cancelledCents: number;
   /** Has an active payment in cash / by transfer. */
   paidByCash: boolean;
   paidByTransfer: boolean;
@@ -582,6 +584,8 @@ export interface FinanceSummary {
   totals: SourceTotals;
   expensesByCategory: { category: ExpenseCategory; cents: number }[];
   series: FinanceSeriesPoint[];
+  /** Plan payments by transfer in the range, whatever the method picked: all of them and those of invoiced sales. */
+  invoicing: { invoicedCents: number; transferCents: number };
 }
 
 export interface PlanRanking {

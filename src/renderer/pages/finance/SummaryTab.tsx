@@ -79,6 +79,12 @@ function SummaryView({ data, byMethod }: { data: FinanceSummary; byMethod: boole
           changeUnit="pts"
           hint="Resultado sobre ingresos"
         />
+        {/* Only transfers get invoiced, so it doesn't follow the payment method picked. */}
+        <KpiTile
+          label="Facturado"
+          value={formatMoney(data.invoicing.invoicedCents)}
+          hint={`de ${formatMoney(data.invoicing.transferCents)} en planes cobrados por transferencia`}
+        />
       </KpiRow>
 
       <ChartCard

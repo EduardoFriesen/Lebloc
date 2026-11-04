@@ -56,7 +56,7 @@ export function listPlanSales(db: Db, filter: { from: string; to: string; planId
       `WITH ${SALE_STATS_CTE}
        SELECT ss.id AS saleId, ss.sold_at AS soldAt, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
          ss.plan_name AS planName, trim(t.first_name || ' ' || t.last_name) AS teacherName, ss.total_cents AS totalCents,
-         ss.debt_cents AS debtCents, ${PAID_BY_SQL('cash')} AS paidByCash, ${PAID_BY_SQL('transfer')} AS paidByTransfer,
+         ss.debt_cents AS debtCents, ss.cancelled_cents AS cancelledCents, ${PAID_BY_SQL('cash')} AS paidByCash, ${PAID_BY_SQL('transfer')} AS paidByTransfer,
          ss.invoiced_at AS invoicedAt
        FROM sale_stats ss
        JOIN clients c ON c.id = ss.client_id

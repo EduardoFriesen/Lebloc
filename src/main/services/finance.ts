@@ -32,6 +32,7 @@ export function getFinanceSummary(ctx: Context, { method, ...range }: FinanceSum
     totals,
     expensesByCategory: repo.expensesByCategory(ctx.db, range, method),
     series: bucketize(range, granularity, daily, SERIES_FIELDS),
+    invoicing: repo.invoicingTotals(ctx.db, range),
   };
 }
 

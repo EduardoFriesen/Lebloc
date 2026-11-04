@@ -334,7 +334,7 @@ function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
                 <td>{sale.teacherName ?? '—'}</td>
                 <td className="tabular-nums">{formatMoney(sale.totalCents)}</td>
                 <td className={`tabular-nums ${sale.debtCents > 0 ? 'font-semibold text-danger' : 'text-ink-soft'}`}>
-                  {sale.debtCents > 0 ? formatMoney(sale.debtCents) : 'Pagado'}
+                  {sale.debtCents > 0 ? formatMoney(sale.debtCents) : sale.cancelledCents > 0 ? 'Deuda cancelada' : 'Pagado'}
                 </td>
                 <td>
                   <span className="flex items-center gap-1.5">

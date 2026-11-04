@@ -464,8 +464,9 @@ test('the plans page shows how each sale was paid and ticks transfers as invoice
   await carla.getByRole('cell', { name: 'Pack 4 libres', exact: true }).click();
   await expect(invoiced).toBeChecked();
 
-  // It stays after leaving the screen.
-  await page.getByRole('link', { name: 'Mostrador' }).click();
+  // It stays after leaving the screen, and Finanzas adds up her transfer as invoiced.
+  await page.getByRole('link', { name: 'Finanzas' }).click();
+  await expect(page.getByLabel('Totales del período')).toContainText(/Facturado\s*\$\s3\.000,00\s*de \$\s3\.000,00 en planes cobrados por transferencia/);
   await page.getByRole('link', { name: 'Planes' }).click();
   await expect(invoiced).toBeChecked();
 

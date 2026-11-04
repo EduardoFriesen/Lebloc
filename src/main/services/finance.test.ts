@@ -20,10 +20,10 @@ import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeache
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
-import { createPlan } from './plans';
+import { createPlan, listPlanSales } from './plans';
 import { createProduct } from './products';
 import { createPurchase, voidPurchase } from './purchases';
-import { sellPlan } from './sales';
+import { sellPlan, setSaleInvoiced } from './sales';
 import { createTeacher } from './teachers';
 
 const OCTOBER = { from: '2026-10-01', to: '2026-10-05' };
@@ -142,6 +142,15 @@ describe('finance', () => {
       });
       expect(summary.current).toEqual({ incomeCents: 4_400_000, expensesCents: 7_200_000, resultCents: -2_800_000 });
       expect(summary.expensesByCategory).toEqual([{ category: 'rent', cents: 4_000_000 }]);
+    });
+
+    it('adds up the transfers of the sales ticked as invoiced, out of all the plan transfers, whatever the method picked', () => {
+      expect(getFinanceSummary(ctx, OCTOBER).invoicing).toEqual({ invoicedCents: 0, transferCents: 3_000_000 });
+      const mixed = must(listPlanSales(ctx, { month: '2026-10' }).find((sale) => sale.paidByTransfer));
+      setSaleInvoiced(ctx, { saleId: mixed.saleId, invoiced: true });
+      // The whole transfer, the teacher's part included: it is what the client paid.
+      expect(getFinanceSummary(ctx, { ...OCTOBER, method: 'cash' }).invoicing).toEqual({ invoicedCents: 3_000_000, transferCents: 3_000_000 });
+      expect(getFinanceSummary(ctx, { from: '2026-10-04', to: '2026-10-05' }).invoicing).toEqual({ invoicedCents: 0, transferCents: 0 });
     });
 
     it('splits by payment method, with salaries from the settlements paid that way and the kiosk deliveries paid that way', () => {

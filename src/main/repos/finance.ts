@@ -65,6 +65,18 @@ export function moneyByDay(db: Db, range: DateRange, method?: PaymentMethod): Mo
     .all({ ...range, method: method ?? null });
 }
 
+/** Plan payments by transfer made in the range, in full (the teacher's part too): all, and those of invoiced sales. */
+export function invoicingTotals(db: Db, range: DateRange): { invoicedCents: number; transferCents: number } {
+  return db
+    .prepare<[DateRange], { invoicedCents: number; transferCents: number }>(
+      `SELECT COALESCE(SUM(CASE WHEN s.invoiced_at IS NOT NULL THEN p.amount_cents END), 0) AS invoicedCents,
+         COALESCE(SUM(p.amount_cents), 0) AS transferCents
+       FROM payments p JOIN sales s ON s.id = p.sale_id
+       WHERE p.voided_at IS NULL AND p.method = 'transfer' AND p.paid_at BETWEEN @from AND @to`,
+    )
+    .get(range) as { invoicedCents: number; transferCents: number };
+}
+
 export function expensesByCategory(db: Db, range: DateRange, method?: PaymentMethod): { category: ExpenseCategory; cents: number }[] {
   return db
     .prepare<[MethodRange], { category: ExpenseCategory; cents: number }>(

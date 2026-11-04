@@ -3,7 +3,7 @@ import { expectDomainError } from '../../test/helpers';
 import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
-import { registerPayment, voidPayment } from './payments';
+import { cancelDebt, registerPayment, voidPayment } from './payments';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from './plans';
 import { sellPlan, setSaleInvoiced, voidSale } from './sales';
 import { createTeacher } from './teachers';
@@ -116,6 +116,7 @@ describe('plans service', () => {
           teacherName: 'Juan Pared',
           totalCents: 3_000_000,
           debtCents: 3_000_000,
+          cancelledCents: 0,
           paidByCash: false,
           paidByTransfer: false,
           invoicedAt: null,
@@ -129,6 +130,7 @@ describe('plans service', () => {
           teacherName: null,
           totalCents: 2_000_000,
           debtCents: 1_500_000,
+          cancelledCents: 0,
           paidByCash: true,
           paidByTransfer: false,
           invoicedAt: null,
@@ -149,6 +151,12 @@ describe('plans service', () => {
       setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: false });
       expect(anaRow()).toMatchObject({ paidByTransfer: false, invoicedAt: null });
       expectDomainError(() => setSaleInvoiced(ctx, { saleId: anaSale.id, invoiced: true }), 'NOT_PAID_BY_TRANSFER');
+    });
+
+    it('tells a cancelled debt apart from a paid one', () => {
+      const { anaSale } = scenario();
+      cancelDebt(ctx, { saleId: anaSale.id });
+      expect(listPlanSales(ctx, { month: '2026-10' }).find((sale) => sale.saleId === anaSale.id)).toMatchObject({ debtCents: 0, cancelledCents: 1_500_000 });
     });
 
     it('filters by plan and rejects an unknown plan', () => {
