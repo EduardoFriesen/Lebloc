@@ -132,24 +132,22 @@ export function KioskPurchasesTab() {
   return <PurchasesBlock onChanged={reloadStats} />;
 }
 
-/** Checkout: tap products into a ticket and charge it. The search box stays under the sticky heading. */
+/** Checkout: search or tap products into a ticket and charge it. The search box stays on top while the list scrolls. */
 function SellBlock({ onSold }: { onSold: () => void }) {
-  const headingId = useId();
   const [search, setSearch] = useState('');
   const panel = useRef<HTMLDivElement>(null);
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <div className={`${STICKY_HEADING} flex flex-wrap items-end justify-between gap-3`}>
-        <h2 id={headingId} className={HEADING}>
-          Vender
-        </h2>
+    <section aria-label="Cobrar" className="flex flex-col gap-3">
+      <div className={`${STICKY_HEADING} w-full max-w-xl`}>
         <TextField
           label="Buscar producto"
           type="search"
+          placeholder="Nombre del producto"
+          className="text-base"
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
-            // Typing from further down: bring the matches (right under the sticky heading) into view.
+            // Typing from further down: bring the matches (right under the box) into view.
             panel.current?.scrollIntoView({ block: 'nearest' });
           }}
         />
