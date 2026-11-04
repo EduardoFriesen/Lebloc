@@ -15,6 +15,7 @@ Hoy una entrega del proveedor se carga ya pagada: tiene una fecha de pago y un m
 - Los pagos al proveedor pueden ser parciales, y la deuda no se puede perder ("buscá la mejor forma").
 - Aprobó la propuesta: la entrega es lo que llegó y los pagos van aparte, como las ventas de planes; Gastos muestra cada pago como "Mercadería del kiosco" y **suma al total del mes**.
 - Al tocar una fila de las entregas se ve el detalle del ingreso.
+- Al aprobar el diseño pidió que **las entregas se puedan modificar**.
 
 ## Decisiones mías (el usuario no las contestó)
 
@@ -28,11 +29,13 @@ Hoy una entrega del proveedor se carga ya pagada: tiene una fecha de pago y un m
 3. Detalle de la entrega desde Kiosco y desde Gastos.
 4. En Gastos, cada pago al proveedor del mes como fila "Mercadería del kiosco", sumando al total del mes.
 5. Finanzas cuenta la mercadería cuando se paga cada pago, en su fecha y con su medio.
+6. Modificar una entrega: fecha de entrega y productos (cantidades y costos).
 
 ## No objetivos
 
 - Varios proveedores.
-- Editar una entrega ya cargada (productos, cantidades o costos): se anula y se carga de nuevo, como hoy.
+- Editar los pagos: se anulan y se cargan de nuevo.
+- Guardar el historial de cambios de una entrega: se guarda cómo quedó.
 - Saldo a favor o pagos adelantados sin entrega.
 - Avisos de vencimiento de la deuda con el proveedor.
 
@@ -60,10 +63,12 @@ Mismo esquema que las ventas de planes: la entrega es el "qué llegó" y los pag
 - Anular una entrega: solo sin pagos activos → `PURCHASE_HAS_ACTIVE_PAYMENTS` (nuevo, "La entrega tiene pagos activos. Anulalos primero."). Ya anulada → `ALREADY_VOIDED`.
 - Anular un pago: cualquiera activo; ya anulado → `ALREADY_VOIDED`.
 - El costo unitario del producto sigue saliendo de la entrega (costo ÷ cantidad) al cargarla, no de los pagos.
+- Modificar una entrega: no anulada (`PURCHASE_VOIDED`); fecha no futura; mismas validaciones de ítems que al cargarla; el total nuevo no puede quedar por debajo de lo pagado (`PAID_EXCEEDS_PURCHASE`, nuevo: "Lo pagado supera el total de la entrega."). Los ítems se reemplazan (no son movimientos de plata). El costo unitario de cada producto de la entrega se actualiza solo si esta es su entrega activa más reciente (por `received_at` y después `id`); los productos que se sacan de la entrega conservan su costo.
 
 ### Servidor
 
 - `purchases:create`: entrada `{ receivedAt, items, initialPayment: { amountCents, method, paidAt } | null }` (mismos campos que el pago inicial de una venta). Todo en una transacción: si el pago es inválido no queda la entrega.
+- `purchases:update` `{ id, receivedAt, items }`: modifica la entrega (reglas de arriba), en una transacción.
 - `purchases:pay` `{ purchaseId, amountCents, method, paidAt }` y `purchases:voidPayment` `{ id }`.
 - `purchases:get` `{ id }`: la entrega con ítems, pagos (activos y anulados), total, pagado y deuda. Lo usan los dos detalles.
 - `purchases:list` `{ month, onlyOwed? }`: entregas por mes de `received_at`, cada una con `paidCents` y `debtCents`; con `onlyOwed` trae **todas las entregas con deuda de cualquier mes** y no mira el mes. Siempre devuelve también `owedCents`: lo que se le debe al proveedor en total (entregas activas de cualquier mes).
@@ -82,7 +87,7 @@ Mismo esquema que las ventas de planes: la entrega es el "qué llegó" y los pag
 - Fecha de entrega y cuándo se cargó.
 - Tabla de productos: Producto, Cantidad, Costo, Costo unitario; y el total.
 - Pagos: fecha, medio, monto, estado, con "Anular" en cada activo.
-- Deuda ("Debe $X" o "Pagada"), "Registrar pago" si debe (monto sugerido: la deuda) y "Anular entrega" si no tiene pagos activos.
+- Deuda ("Debe $X" o "Pagada"), "Registrar pago" si debe (monto sugerido: la deuda), "Modificar" si no está anulada (abre el formulario de la entrega con sus datos, sin la parte de pago) y "Anular entrega" si no tiene pagos activos.
 - Al cambiar algo, se actualizan la tabla de entregas y la deuda total.
 
 **Gastos**
@@ -102,5 +107,5 @@ Mismo esquema que las ventas de planes: la entrega es el "qué llegó" y los pag
 
 - Tests de dominio (deuda, pagos, anulaciones) y de servicio (crear con pago completo / parcial / sin pago, pagar, anular, `owedCents`, `onlyOwed`, Gastos y Finanzas con el mismo total que antes para entregas pagadas de una vez).
 - Test de migración (ver arriba).
-- E2E: cargar una entrega con pago parcial, ver la deuda, pagar el resto desde el detalle, verla en Gastos y abrir su detalle desde ahí.
+- E2E: cargar una entrega con pago parcial, ver la deuda, modificarla, pagar el resto desde el detalle, verla en Gastos y abrir su detalle desde ahí.
 - Typecheck, lint, audit y gitleaks.
