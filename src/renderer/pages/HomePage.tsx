@@ -199,7 +199,7 @@ function ResultRow({ client, busy, onConsume }: Pick<SearchResultsProps, 'busy' 
           <span>
             Libres: {client.remainingFree} · Con profesor: {client.remainingTeacher}
           </span>
-          {client.startedAt && <span>Inició el {formatDate(client.startedAt).slice(0, 5)}</span>}
+          {client.startedAt && <span className="text-sm font-semibold text-ink">Inició el {formatDate(client.startedAt)}</span>}
           <PassBadge status={client.passStatus} expiresAt={client.expiresAt} />
           {client.debtCents > 0 && <Badge tone="debt">{debtLabel(client)}</Badge>}
           {client.waiver.state !== 'valid' && <Badge tone="warning">{waiverLabel(client.waiver)}</Badge>}
