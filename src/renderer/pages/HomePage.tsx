@@ -267,9 +267,6 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
         <AlertRow to="/clientes?fichas=1" name="Sin ficha">
           <span className={value}>{summary.pendingWaivers}</span>
         </AlertRow>
-        <AlertRow to="/profesores" name="Saldo con profesores">
-          <span className={`${value} ${summary.teacherBalanceCents < 0 ? 'text-danger' : ''}`}>{formatMoney(summary.teacherBalanceCents)}</span>
-        </AlertRow>
       </ul>
     </Panel>
   );

@@ -6,7 +6,6 @@ import { archiveClient, createClient } from './clients';
 import { consume } from './consumptions';
 import { getDashboard } from './dashboard';
 import { registerPayment } from './payments';
-import { getTeacherAccount } from './payouts';
 import { createPlan } from './plans';
 import { sellPlan } from './sales';
 import { createTeacher } from './teachers';
@@ -63,7 +62,7 @@ describe('debtors and dashboard', () => {
     expect(getDashboard(ctx).todayDebtors.map((client) => client.id)).toEqual([brunoId, anaId]);
   });
 
-  it('summarizes clients with passes, debtors once each, pending waivers and the teacher balance', () => {
+  it('summarizes clients with passes, debtors once each and pending waivers', () => {
     sellPlan(ctx, saleOf({}));
     sellPlan(ctx, saleOf({ soldAt: '2026-10-01' }));
 
@@ -91,7 +90,6 @@ describe('debtors and dashboard', () => {
       debtorCount: 2,
       debtTotalCents: 4_000_000 + 1_500_000,
       pendingWaivers: 2,
-      teacherBalanceCents: getTeacherAccount(ctx, juanId).balanceCents,
       externalBackupFailed: false,
     });
   });

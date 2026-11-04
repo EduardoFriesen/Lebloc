@@ -31,7 +31,6 @@ describe('seedDatabase', () => {
     expect(summary.activeClients).toBeGreaterThan(0);
     expect(summary.debtorCount).toBeGreaterThan(0);
     expect(summary.pendingWaivers).toBeGreaterThan(0);
-    expect(summary.teacherBalanceCents).toBeGreaterThan(0);
     expect(todayDebtors.length).toBeGreaterThan(0);
   });
 

@@ -242,10 +242,8 @@ export interface DashboardSummary {
   activeClients: number;
   debtorCount: number;
   debtTotalCents: number;
-  /** Active clients whose waiver is missing or expired. */
+  /** Active clients who never handed in the waiver. */
   pendingWaivers: number;
-  /** Sum of every teacher's balance (negative when the local is owed). */
-  teacherBalanceCents: number;
   /** The last copy out of the PC failed: the pendrive is not plugged in, or there was no internet for Google Drive. */
   externalBackupFailed: boolean;
 }
@@ -259,7 +257,7 @@ export interface ClientStats {
   withoutPasses: number;
   debtorCount: number;
   debtTotalCents: number;
-  /** Active clients whose waiver is missing or expired. */
+  /** Active clients who never handed in the waiver. */
   pendingWaivers: number;
   /** Active clients under 18. */
   minors: number;

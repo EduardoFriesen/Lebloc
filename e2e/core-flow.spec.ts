@@ -329,11 +329,6 @@ test('the counter summary opens the detail behind each number', async () => {
   await expect(page.getByLabel('Sin ficha')).toBeChecked();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
-
-  await page.getByRole('link', { name: 'Mostrador' }).click();
-  await summary.getByRole('link', { name: 'Saldo con profesores' }).click();
-  const juan = page.getByRole('list', { name: 'Profesores' }).getByRole('listitem').filter({ hasText: 'Juan Pared' });
-  await expect(juan.getByText('Se le debe')).toBeVisible();
 });
 
 test('the counter finds a client without typing the accents, or by DNI', async () => {
