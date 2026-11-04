@@ -1,5 +1,5 @@
 import type { ExpenseInput } from '../../shared/schemas';
-import type { Expense } from '../../shared/types';
+import type { Expense, SupplierPaymentRow } from '../../shared/types';
 import type { Db } from '../db/connection';
 
 const COLUMNS = `id, category, description, amount_cents AS amountCents, method, paid_at AS paidAt,
@@ -38,4 +38,16 @@ export function setMarkedPaidAt(db: Db, id: number, markedPaidAt: string | null)
 
 export function voidExpenseRow(db: Db, id: number, now: string): void {
   db.prepare('UPDATE expenses SET voided_at = ? WHERE id = ?').run(now, id);
+}
+
+export function listSupplierPaymentsInMonth(db: Db, month: string): SupplierPaymentRow[] {
+  return db
+    .prepare<[{ from: string; to: string }], SupplierPaymentRow>(
+      `SELECT pp.id, pp.purchase_id AS purchaseId, pp.paid_at AS paidAt, pp.method, pp.amount_cents AS amountCents,
+         p.received_at AS receivedAt,
+         (SELECT group_concat(i.quantity || ' × ' || i.product_name, ', ') FROM kiosk_purchase_items i WHERE i.purchase_id = p.id) AS productsLabel
+       FROM kiosk_purchase_payments pp JOIN kiosk_purchases p ON p.id = pp.purchase_id
+       WHERE pp.voided_at IS NULL AND pp.paid_at BETWEEN @from AND @to ORDER BY pp.paid_at DESC, pp.id DESC`,
+    )
+    .all(monthBounds(month));
 }

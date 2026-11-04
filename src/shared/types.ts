@@ -497,9 +497,24 @@ export interface Expense {
   voidedAt: string | null;
 }
 
+/** A payment to the supplier, listed among the month's expenses. */
+export interface SupplierPaymentRow {
+  id: number;
+  purchaseId: number;
+  paidAt: string;
+  method: PaymentMethod;
+  amountCents: number;
+  /** The delivery it pays: when it came in and what it brought ("24 × Agua, 12 × Barrita"). */
+  receivedAt: string;
+  productsLabel: string;
+}
+
 export interface ExpenseMonth {
   /** Voided ones included, newest first. */
   expenses: Expense[];
+  /** Active payments to the supplier made in the month, newest first. */
+  supplierPayments: SupplierPaymentRow[];
+  supplierCents: number;
   /** Non-voided only. */
   totalCents: number;
   /** Non-voided only, largest first. */

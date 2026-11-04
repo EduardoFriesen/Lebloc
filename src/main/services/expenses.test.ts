@@ -3,6 +3,8 @@ import type { ExpenseInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
 import { createExpense, getExpenseMonth, setExpensePaid, voidExpense } from './expenses';
+import { createProduct } from './products';
+import { createPurchase, payPurchase, voidPurchasePayment } from './purchases';
 
 const rent: ExpenseInput = { category: 'rent', description: 'Octubre', amountCents: 50_000_000, method: 'transfer', paidAt: '2026-10-01' };
 
@@ -60,6 +62,29 @@ describe('expenses', () => {
       { category: 'electricity', cents: 4_000_000 },
     ]);
     expect(getExpenseMonth(ctx, '2026-09').totalCents).toBe(50_000_000);
+  });
+
+  it('lists the supplier payments of the month and adds them to the total', () => {
+    createExpense(ctx, rent);
+    const agua = createProduct(ctx, { name: 'Agua', description: null, unitCostCents: 45_000, markupPercent: 50, priceCents: 80_000, active: true }).id;
+    const { id } = createPurchase(ctx, {
+      receivedAt: '2026-09-28',
+      items: [{ productId: agua, quantity: 24, costCents: 2_000_000 }],
+      initialPayment: { amountCents: 500_000, method: 'cash', paidAt: '2026-09-28' },
+    });
+    payPurchase(ctx, { purchaseId: id, amountCents: 1_200_000, method: 'transfer', paidAt: '2026-10-03' });
+    // A voided one drops off.
+    const voided = payPurchase(ctx, { purchaseId: id, amountCents: 100_000, method: 'cash', paidAt: '2026-10-04' }).payments.at(-1);
+    voidPurchasePayment(ctx, voided?.id ?? -1);
+
+    const month = getExpenseMonth(ctx, '2026-10');
+    expect(month.supplierPayments).toEqual([
+      { id: expect.any(Number), purchaseId: id, paidAt: '2026-10-03', method: 'transfer', amountCents: 1_200_000, receivedAt: '2026-09-28', productsLabel: '24 × Agua' },
+    ]);
+    expect(month.supplierCents).toBe(1_200_000);
+    expect(month.totalCents).toBe(50_000_000 + 1_200_000);
+    expect(month.byCategory).toEqual([{ category: 'rent', cents: 50_000_000 }]);
+    expect(getExpenseMonth(ctx, '2026-09').supplierCents).toBe(500_000);
   });
 
   it('includes the 31st and leaves out the 1st of the next month', () => {

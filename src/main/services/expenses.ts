@@ -34,9 +34,14 @@ export function getExpenseMonth(ctx: Context, month: string): ExpenseMonth {
   for (const expense of expenses) {
     if (!expense.voidedAt) byCategory.set(expense.category, (byCategory.get(expense.category) ?? 0) + expense.amountCents);
   }
+  const supplierPayments = repo.listSupplierPaymentsInMonth(ctx.db, month);
+  const supplierCents = supplierPayments.reduce((total, payment) => total + payment.amountCents, 0);
   return {
     expenses,
-    totalCents: [...byCategory.values()].reduce((total, cents) => total + cents, 0),
+    supplierPayments,
+    supplierCents,
+    // The kiosk stock paid this month is money that went out too.
+    totalCents: [...byCategory.values()].reduce((total, cents) => total + cents, supplierCents),
     byCategory: [...byCategory].map(([category, cents]) => ({ category, cents })).sort((a, b) => b.cents - a.cents),
   };
 }
