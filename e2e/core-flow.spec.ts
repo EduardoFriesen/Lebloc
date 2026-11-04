@@ -398,7 +398,7 @@ test('extend a used trial into a pack, paying part now', async () => {
   for (const [name, passes, price] of [
     ['Prueba libre', '1', '1.000'],
     ['Pack 4 libres', '4', '8.000'],
-  ]) {
+  ] as const) {
     await page.getByRole('button', { name: 'Nuevo plan' }).click();
     await label('Nombre').fill(name);
     await label('Pases libres').fill(passes);
