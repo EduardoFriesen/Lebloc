@@ -20,7 +20,11 @@ export function allocatePayment(input: AllocationInput): Allocation {
   const paidBefore = input.allocatedLocalCents + input.allocatedTeacherCents;
   if (input.amountCents > input.totalCents - paidBefore) throw new DomainError('PAYMENT_EXCEEDS_DEBT');
 
-  const teacherCents = teacherShare(input, paidBefore);
+  // After a sale is extended, its earlier payments keep their split, so a rule can ask for more than a part has
+  // left (or more than the payment): the teacher share stays within what each part still owes.
+  const localPending = input.totalCents - input.surchargeCents - input.allocatedLocalCents;
+  const teacherPending = input.surchargeCents - input.allocatedTeacherCents;
+  const teacherCents = Math.min(Math.max(teacherShare(input, paidBefore), input.amountCents - localPending, 0), input.amountCents, teacherPending);
   return { localCents: input.amountCents - teacherCents, teacherCents };
 }
 

@@ -3,9 +3,15 @@ import { expectDomainError } from '../test/helpers';
 import { allocatePayment, type Allocation } from './allocation';
 import { SPLIT_RULES, type SplitRule } from './sale';
 
-function payInSequence(splitRule: SplitRule, totalCents: number, surchargeCents: number, amounts: number[]): Allocation[] {
-  let allocatedLocalCents = 0;
-  let allocatedTeacherCents = 0;
+function payInSequence(
+  splitRule: SplitRule,
+  totalCents: number,
+  surchargeCents: number,
+  amounts: number[],
+  start: Allocation = { localCents: 0, teacherCents: 0 },
+): Allocation[] {
+  let allocatedLocalCents = start.localCents;
+  let allocatedTeacherCents = start.teacherCents;
   return amounts.map((amountCents) => {
     const allocation = allocatePayment({ totalCents, surchargeCents, splitRule, allocatedLocalCents, allocatedTeacherCents, amountCents });
     allocatedLocalCents += allocation.localCents;
@@ -15,6 +21,23 @@ function payInSequence(splitRule: SplitRule, totalCents: number, surchargeCents:
 }
 
 describe('allocatePayment', () => {
+  // A trial of 7.000, all of it to the local, extended to 28.000 for the local + 14.000 for the teacher.
+  const extendedTrial: Allocation = { localCents: 700_000, teacherCents: 0 };
+
+  it('proportional: right after an extension the teacher catch-up never exceeds the payment', () => {
+    expect(payInSequence('proportional', 4_200_000, 1_400_000, [200_000], extendedTrial)).toEqual([{ localCents: 0, teacherCents: 200_000 }]);
+  });
+
+  it.each(SPLIT_RULES)('%s: an extended sale settles with the teacher getting exactly the surcharge', (rule) => {
+    const allocations = payInSequence(rule, 4_200_000, 1_400_000, [200_000, 1_000_000, 2_300_000], extendedTrial);
+    expect(allocations.reduce((sum, a) => sum + a.teacherCents, 0)).toBe(1_400_000);
+    expect(allocations.reduce((sum, a) => sum + a.localCents, 0)).toBe(2_100_000);
+    for (const allocation of allocations) {
+      expect(allocation.teacherCents).toBeGreaterThanOrEqual(0);
+      expect(allocation.localCents).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('proportional: splits by the plan ratio', () => {
     expect(payInSequence('proportional', 3_000_000, 1_000_000, [1_500_000])).toEqual([{ localCents: 1_000_000, teacherCents: 500_000 }]);
   });
