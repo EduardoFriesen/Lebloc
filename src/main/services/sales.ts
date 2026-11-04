@@ -1,9 +1,10 @@
 import { DomainError } from '../../domain/errors';
 import { assertSaleVoidable } from '../../domain/ledger';
-import { buildSaleSnapshot } from '../../domain/sale';
-import type { SaleExpiryInput, SaleInput } from '../../shared/schemas';
+import { buildExtension, buildSaleSnapshot, extensionStateOf } from '../../domain/sale';
+import type { SaleExpiryInput, SaleExtensionInput, SaleInput } from '../../shared/schemas';
 import type { Sale } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso, today } from '../context';
+import * as paymentsRepo from '../repos/payments';
 import * as salesRepo from '../repos/sales';
 import { requireActiveClient } from './clients';
 import { registerPayment } from './payments';
@@ -37,6 +38,26 @@ export function setSaleExpiry(ctx: Context, input: SaleExpiryInput): Sale {
     requireActiveClient(ctx, sale.clientId);
     if (input.expiresAt < sale.soldAt) throw new DomainError('EXPIRY_BEFORE_SALE');
     salesRepo.updateExpiry(ctx.db, sale.id, input.expiresAt);
+    return getSale(ctx, sale.id);
+  })();
+}
+
+/**
+ * The sale becomes another plan (a trial that turns into a pack): what was paid and the passes used count in the new
+ * plan, the teacher stays, and what it was before is kept in sale_extensions.
+ */
+export function extendSale(ctx: Context, input: SaleExtensionInput): Sale {
+  return ctx.db.transaction(() => {
+    const sale = getSale(ctx, input.saleId);
+    requireActiveClient(ctx, sale.clientId);
+    const plan = getPlan(ctx, input.planId);
+    const teacher = input.teacherId === null ? null : getTeacher(ctx, input.teacherId);
+    const state = extensionStateOf(sale, paymentsRepo.listPaymentsForSale(ctx.db, sale.id));
+    const snapshot = buildExtension(state, plan, teacher, input.splitRule);
+    if (input.expiresAt < sale.soldAt) throw new DomainError('EXPIRY_BEFORE_SALE');
+    salesRepo.insertExtension(ctx.db, sale, nowIso(ctx));
+    salesRepo.applySnapshot(ctx.db, sale.id, snapshot, input.expiresAt);
+    if (input.payment) registerPayment(ctx, { saleId: sale.id, ...input.payment });
     return getSale(ctx, sale.id);
   })();
 }

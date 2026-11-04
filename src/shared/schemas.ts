@@ -125,6 +125,14 @@ export const saleInput = z.object({
   path: ['expiresAt'],
 });
 export const saleExpiryInput = z.object({ saleId: id, expiresAt: isoDate });
+export const saleExtensionInput = z.object({
+  saleId: id,
+  planId: id,
+  teacherId: id.nullable(),
+  splitRule: splitRuleSchema,
+  expiresAt: isoDate,
+  payment: z.object(newPaymentFields).nullable(),
+});
 export const paymentInput = z.object({ saleId: id, ...newPaymentFields });
 export const consumptionInput = z.object({ clientId: id, kind: passKindSchema, note: optionalText(200) });
 export const payoutInput = z.object({ teacherId: id, ...newPaymentFields, note: optionalText(200) });
@@ -239,6 +247,7 @@ export type PlanInput = z.infer<typeof planInput>;
 export type PlanUpdate = z.infer<typeof planUpdate>;
 export type SaleInput = z.infer<typeof saleInput>;
 export type SaleExpiryInput = z.infer<typeof saleExpiryInput>;
+export type SaleExtensionInput = z.infer<typeof saleExtensionInput>;
 export type PaymentInput = z.infer<typeof paymentInput>;
 export type ConsumptionInput = z.infer<typeof consumptionInput>;
 export type PayoutInput = z.infer<typeof payoutInput>;

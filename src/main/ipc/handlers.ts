@@ -37,7 +37,7 @@ import { getCounterPrices, sellCounter, updateCounterPrices, voidCounterSale } f
 import { createProduct, listProducts, listTopProducts, updateProduct } from '../services/products';
 import { createPurchase, getPurchaseMonth, voidPurchase } from '../services/purchases';
 import { createPlan, getPlan, getPlanEnrollments, listPlanSales, listPlans, updatePlan } from '../services/plans';
-import { sellPlan, setSaleExpiry, voidSale } from '../services/sales';
+import { extendSale, sellPlan, setSaleExpiry, voidSale } from '../services/sales';
 import { getSettings, updateSettings } from '../services/settings';
 import { getClientStats, getPlanStats, getTeacherStats } from '../services/stats';
 import { createTeacher, getTeacher, listTeachers, updateTeacher } from '../services/teachers';
@@ -80,6 +80,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'sales:create': (input) => sellPlan(ctx, input),
     'sales:void': ({ id }) => voidSale(ctx, id),
     'sales:setExpiry': (input) => setSaleExpiry(ctx, input),
+    'sales:extend': (input) => extendSale(ctx, input),
     'payments:create': (input) => registerPayment(ctx, input),
     'payments:void': ({ id }) => voidPayment(ctx, id),
     'consumptions:create': (input) => consume(ctx, input),

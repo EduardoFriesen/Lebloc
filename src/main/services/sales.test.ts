@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { allocatePayment } from '../../domain/allocation';
-import type { SaleInput } from '../../shared/schemas';
+import type { SaleExtensionInput, SaleInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
-import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, type TestContext } from '../test-context';
+import { adultClient, basicTeacher, createTestContext, FAR_EXPIRY, freePlan, mixedPlan, TEST_NOW, type TestContext } from '../test-context';
 import { archiveClient, createClient } from './clients';
+import { consume } from './consumptions';
 import { getPayment, registerPayment, voidPayment } from './payments';
 import { createPlan, updatePlan } from './plans';
-import { getSale, sellPlan, setSaleExpiry, voidSale } from './sales';
+import { extendSale, getSale, sellPlan, setSaleExpiry, voidSale } from './sales';
 import { createTeacher, updateTeacher } from './teachers';
 
 describe('sales and payments', () => {
@@ -212,5 +213,108 @@ describe('sales and payments', () => {
     expect(voided.voidedAt).not.toBeNull();
     expect(voided.debtCents).toBe(0);
     expectDomainError(() => voidSale(ctx, sale.id), 'ALREADY_VOIDED');
+  });
+
+  describe('extendSale', () => {
+    let trialPlanId: number;
+
+    beforeEach(() => {
+      trialPlanId = createPlan(ctx, { name: 'Pase libre suelto', freePasses: 1, teacherPasses: 0, priceCents: 700_000, teacherAmountCents: 0, active: true }).id;
+    });
+
+    /** A paid trial whose only class was already taken. */
+    function trial(overrides: Partial<SaleInput> = {}) {
+      const sale = sellPlan(
+        ctx,
+        saleOf({ planId: trialPlanId, initialPayment: { amountCents: 700_000, method: 'cash', paidAt: '2026-10-05' }, ...overrides }),
+      );
+      consume(ctx, { clientId, kind: 'free', note: null });
+      return sale;
+    }
+
+    function extension(saleId: number, overrides: Partial<SaleExtensionInput> = {}): SaleExtensionInput {
+      return { saleId, planId: freePlanId, teacherId: null, splitRule: 'proportional', expiresAt: FAR_EXPIRY, payment: null, ...overrides };
+    }
+
+    function extensionRows() {
+      return ctx.db.prepare('SELECT * FROM sale_extensions ORDER BY id').all();
+    }
+
+    it('a used trial extended to Pack 8 keeps its payment and its pass: 7 left, the debt drops by what was paid', () => {
+      const sale = trial();
+      expect(extendSale(ctx, extension(sale.id))).toMatchObject({
+        id: sale.id,
+        planName: 'Pack 8 libres',
+        soldAt: '2026-10-05',
+        totalCents: 2_000_000,
+        paidCents: 700_000,
+        debtCents: 1_300_000,
+        remainingFree: 7,
+        extendedFrom: { planName: 'Pase libre suelto', extendedAt: TEST_NOW.toISOString() },
+      });
+    });
+
+    it('a free trial extended to a mixed plan takes the chosen teacher and its amount', () => {
+      const sale = trial();
+      expect(extendSale(ctx, extension(sale.id, { planId: mixedPlanId, teacherId }))).toMatchObject({
+        teacherId,
+        teacherSurchargeCents: 1_000_000,
+        totalCents: 3_000_000,
+      });
+    });
+
+    it('keeps the previous plan and prices', () => {
+      const sale = trial();
+      extendSale(ctx, extension(sale.id));
+      expect(extensionRows()).toEqual([
+        expect.objectContaining({
+          sale_id: sale.id,
+          from_plan_id: trialPlanId,
+          from_plan_name: 'Pase libre suelto',
+          from_free_passes: 1,
+          from_teacher_passes: 0,
+          from_local_price_cents: 700_000,
+          from_teacher_surcharge_cents: 0,
+        }),
+      ]);
+    });
+
+    it('charges a payment in the same step', () => {
+      const sale = trial();
+      const payment = { amountCents: 1_300_000, method: 'transfer' as const, paidAt: '2026-10-05' };
+      expect(extendSale(ctx, extension(sale.id, { payment }))).toMatchObject({ paidCents: 2_000_000, debtCents: 0 });
+    });
+
+    it('a payment that fails leaves the sale as it was', () => {
+      const sale = trial();
+      const payment = { amountCents: 1_300_001, method: 'cash' as const, paidAt: '2026-10-05' };
+      expectDomainError(() => extendSale(ctx, extension(sale.id, { payment })), 'PAYMENT_EXCEEDS_DEBT');
+      expect(getSale(ctx, sale.id)).toMatchObject({ planName: 'Pase libre suelto', totalCents: 700_000, extendedFrom: null });
+      expect(extensionRows()).toEqual([]);
+    });
+
+    it('extending twice records the plan it came from each time', () => {
+      const sale = trial();
+      extendSale(ctx, extension(sale.id));
+      const twice = extendSale(ctx, extension(sale.id, { planId: mixedPlanId, teacherId }));
+      expect(twice.extendedFrom?.planName).toBe('Pack 8 libres');
+      expect(extensionRows()).toHaveLength(2);
+    });
+
+    it('a sale that expires today can still be extended', () => {
+      const sale = trial({ expiresAt: '2026-10-05' });
+      expect(extendSale(ctx, extension(sale.id, { expiresAt: '2026-10-05' })).planName).toBe('Pack 8 libres');
+    });
+
+    it('an archived client cannot extend', () => {
+      const sale = trial();
+      archiveClient(ctx, clientId);
+      expectDomainError(() => extendSale(ctx, extension(sale.id)), 'CLIENT_ARCHIVED');
+    });
+
+    it('the expiry may not be before the sale', () => {
+      const sale = trial();
+      expectDomainError(() => extendSale(ctx, extension(sale.id, { expiresAt: '2026-10-04' })), 'EXPIRY_BEFORE_SALE');
+    });
   });
 });

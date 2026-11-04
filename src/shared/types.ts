@@ -114,6 +114,8 @@ export interface Sale {
   debtCents: number;
   remainingFree: number;
   remainingTeacher: number;
+  /** The latest time it became another plan, and the plan it was before; null if it never did. */
+  extendedFrom: { planName: string; extendedAt: string } | null;
 }
 
 export interface Payment {
