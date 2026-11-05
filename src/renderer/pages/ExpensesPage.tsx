@@ -183,6 +183,9 @@ interface ExpensesTableProps {
   onOpenDelivery: (purchaseId: number) => void;
 }
 
+/** Caps the detail's share of the width: a long one wraps instead of pushing the other columns and the buttons. */
+const DETAIL = 'block max-w-40';
+
 /** The box by the payment method, ticked (by the box or anywhere on the row), means it was actually paid. */
 function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }: ExpensesTableProps) {
   const { visible, page, pages, setPage } = usePage(rows, TABLE_PAGE_SIZE);
@@ -216,7 +219,9 @@ function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }
                 {/* The month is picked above: day and month are enough, and keep the table within the page. */}
                 <td className="tabular-nums">{formatDate(expense.paidAt).slice(0, 5)}</td>
                 <td className="font-semibold">{EXPENSE_CATEGORY_LABELS[expense.category]}</td>
-                <td>{expense.description ?? '—'}</td>
+                <td>
+                  <span className={DETAIL}>{expense.description ?? '—'}</span>
+                </td>
                 <td>
                   <span className="flex items-center gap-1.5">
                     {!expense.voidedAt && (
@@ -233,20 +238,22 @@ function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }
                   </span>
                 </td>
                 <td className="font-semibold">{formatMoney(expense.amountCents)}</td>
-                <td className="text-right">
+                <td>
                   {/* Two actions share the cell, tighter, and may stack: the table has to fit beside the summary. */}
-                  <Button variant="secondary" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
-                    Repetir
-                  </Button>
-                  {expense.voidedAt ? (
-                    <span className="inline-block no-underline">
-                      <Badge>Anulado</Badge>
-                    </span>
-                  ) : (
-                    <Button variant="danger-outline" className="px-3!" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
-                      Anular
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button variant="secondary" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
+                      Repetir
                     </Button>
-                  )}
+                    {expense.voidedAt ? (
+                      <span className="inline-block no-underline">
+                        <Badge>Anulado</Badge>
+                      </span>
+                    ) : (
+                      <Button variant="danger-outline" className="px-3!" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
+                        Anular
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
@@ -271,7 +278,9 @@ function SupplierPaymentTableRow({ payment, onOpen }: { payment: SupplierPayment
       <td className="tabular-nums">{formatDate(payment.paidAt).slice(0, 5)}</td>
       <td className="font-semibold">Mercadería del kiosco</td>
       <td>
-        Entrega del {formatDate(payment.receivedAt).slice(0, 5)}: {payment.productsLabel}
+        <span className={DETAIL}>
+          Entrega del {formatDate(payment.receivedAt).slice(0, 5)}: {payment.productsLabel}
+        </span>
       </td>
       <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
       <td className="font-semibold">{formatMoney(payment.amountCents)}</td>
