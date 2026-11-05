@@ -16,7 +16,7 @@ import { consume } from './consumptions';
 import { sellCounter, updateCounterPrices } from './counterSales';
 import { createEmployee, listEmployees, recordShift, settleShifts } from './employees';
 import { createExpense, voidExpense } from './expenses';
-import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from './finance';
+import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic, getFinanceYears } from './finance';
 import { sellKiosk, voidKioskSale } from './kiosk';
 import { registerPayment } from './payments';
 import { registerPayout } from './payouts';
@@ -111,6 +111,20 @@ describe('finance', () => {
   beforeEach(() => {
     ctx = createTestContext();
     scenario(ctx);
+  });
+
+  describe('years', () => {
+    it('lists the years from this one back to the first movement, of any kind', () => {
+      expect(getFinanceYears(ctx)).toEqual([2026]);
+      createExpense(ctx, { category: 'rent', description: null, amountCents: 100, method: 'cash', paidAt: '2025-06-01' });
+      expect(getFinanceYears(ctx)).toEqual([2026, 2025]);
+      const product = createProduct(ctx, { name: 'Vieja', description: null, unitCostCents: 100, markupPercent: 0, priceCents: 100, active: true }).id;
+      ctx.clock.set(new Date(2023, 4, 2, 12));
+      sellKiosk(ctx, { items: [{ productId: product, quantity: 1 }], method: 'cash' });
+      ctx.clock.set(TEST_NOW);
+      expect(getFinanceYears(ctx)).toEqual([2026, 2025, 2024, 2023]);
+      expect(getFinanceYears(createTestContext())).toEqual([2026]);
+    });
   });
 
   describe('kiosk merchandise', () => {

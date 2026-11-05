@@ -1,5 +1,5 @@
 import { balanceOf, type MoneySource, sumBySource } from '../../domain/finance';
-import { bucketize, type DateRange, granularityFor, previousRange } from '../../domain/periods';
+import { bucketize, type DateRange, granularityFor, previousRange, yearsSince } from '../../domain/periods';
 import type { FinanceSummaryInput } from '../../shared/schemas';
 import type { FinanceClients, FinanceSales, FinanceSummary, FinanceTraffic, TeacherActivity } from '../../shared/types';
 import { type Context, today } from '../context';
@@ -9,6 +9,11 @@ import { listTeacherBalances } from './payouts';
 
 const OUTFLOW = new Set<MoneySource>(['expenses', 'staff', 'kiosk_cost']);
 const SERIES_FIELDS = ['plans', 'kiosk', 'day_pass', 'shoe_rental', 'outflow'] as const;
+
+/** The years Finanzas can show one by one: this one back to the first movement. */
+export function getFinanceYears(ctx: Context): number[] {
+  return yearsSince(repo.firstMovementDate(ctx.db), today(ctx));
+}
 
 export function getFinanceSummary(ctx: Context, { method, ...range }: FinanceSummaryInput): FinanceSummary {
   const previous = previousRange(range);

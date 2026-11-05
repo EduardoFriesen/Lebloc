@@ -78,6 +78,7 @@ export const apiSchemas = {
   'finance:traffic': schemas.financeRangeInput,
   'finance:teachers': schemas.financeRangeInput,
   'finance:clients': schemas.financeRangeInput,
+  'finance:years': schemas.emptyInput,
   'prices:get': schemas.emptyInput,
   'prices:update': schemas.counterPricesInput,
   'dashboard:get': schemas.emptyInput,
@@ -170,6 +171,8 @@ export interface ApiOutputs {
   'finance:traffic': T.FinanceTraffic;
   'finance:teachers': T.TeacherActivity[];
   'finance:clients': T.FinanceClients;
+  /** This year back to the first movement's, newest first. */
+  'finance:years': number[];
   'prices:get': T.CounterPrices;
   'prices:update': T.CounterPrices;
   'dashboard:get': T.Dashboard;

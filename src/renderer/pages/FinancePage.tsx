@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
-import { PERIOD_PRESETS, type PeriodPreset, presetRange, previousRange } from '../../domain/periods';
+import { PERIOD_PRESETS, type PeriodPreset, presetRange, previousRange, yearRange } from '../../domain/periods';
 import { financeRangeInput } from '../../shared/schemas';
 import type { DateRange } from '../../shared/types';
-import { TextField } from '../components/ui/Field';
+import { SelectField, TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { TabNav } from '../components/ui/TabNav';
+import { call } from '../lib/api';
 import { formatDate, todayIso } from '../lib/format';
 import { toFieldErrors } from '../lib/formErrors';
+import { useAsync } from '../lib/useAsync';
 import { SegmentedControl } from './finance/shared';
 
 const PRESET_LABELS: Record<PeriodPreset, string> = {
@@ -62,7 +64,11 @@ export function FinancePage() {
             value={preset}
             onChange={(candidate) => pick(presetRange(candidate, today))}
           />
-          <CustomRange range={range} onChange={pick} />
+          {/* The year and the dates pick a range by hand: they wrap together. */}
+          <div className="flex flex-wrap items-start gap-3">
+            <YearPicker range={range} today={today} onChange={pick} />
+            <CustomRange range={range} onChange={pick} />
+          </div>
         </div>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink/10">
           <TabNav label="Secciones de finanzas" tabs={TABS} search={location.search} />
@@ -73,6 +79,29 @@ export function FinancePage() {
       </div>
       <Outlet context={range} />
     </section>
+  );
+}
+
+/** A whole year, from this one back to the first with movements; none shows while the range is not exactly a year. */
+function YearPicker({ range, today, onChange }: { range: DateRange; today: string; onChange: (range: DateRange) => void }) {
+  const years = useAsync(() => call('finance:years', {}), []);
+  // While they load (or if they fail) this year is still there to pick.
+  const options = years.status === 'success' ? years.data : [Number(today.slice(0, 4))];
+  const picked = options.find((year) => {
+    const whole = yearRange(year, today);
+    return whole.from === range.from && whole.to === range.to;
+  });
+  return (
+    <SelectField label="Año" value={picked ?? ''} onChange={(event) => onChange(yearRange(Number(event.target.value), today))}>
+      <option value="" disabled>
+        Elegir
+      </option>
+      {options.map((year) => (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      ))}
+    </SelectField>
   );
 }
 

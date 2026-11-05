@@ -73,6 +73,7 @@ export const CHANNELS = [
   'finance:traffic',
   'finance:teachers',
   'finance:clients',
+  'finance:years',
   'prices:get',
   'prices:update',
   'dashboard:get',

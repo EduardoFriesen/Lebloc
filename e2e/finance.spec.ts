@@ -80,3 +80,19 @@ test('falls back to this month on an invalid URL range and shows the empty state
   await expect(page.getByText('No hay movimientos en este período')).toBeVisible();
   await expect(page.getByRole('group', { name: 'Períodos' }).getByRole('button', { pressed: true })).toHaveCount(0);
 });
+
+test('pick a whole year, compared with the year before', async () => {
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Finanzas' }).click();
+  const year = new Date().getFullYear() - 1;
+  const picker = page.getByLabel('Año', { exact: true });
+  await expect(picker.getByRole('option', { name: String(year + 1), exact: true })).toHaveCount(1);
+  await picker.selectOption(String(year));
+  await expect(page.getByLabel('Desde', { exact: true })).toHaveValue(`${year}-01-01`);
+  await expect(page.getByLabel('Hasta', { exact: true })).toHaveValue(`${year}-12-31`);
+  await expect(page.getByText(`Comparado con 01/01/${year - 1} – 31/12/${year - 1}`)).toBeVisible();
+  expect(page.url()).toContain(`desde=${year}-01-01&hasta=${year}-12-31`);
+
+  // Another period leaves no year picked.
+  await page.getByRole('button', { name: 'Mes pasado' }).click();
+  await expect(picker).toHaveValue('');
+});

@@ -27,7 +27,7 @@ import {
   voidStaffPayout,
 } from '../services/employees';
 import { createExpense, getExpenseMonth, setExpensePaid, voidExpense } from '../services/expenses';
-import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic } from '../services/finance';
+import { getFinanceClients, getFinanceSales, getFinanceSummary, getFinanceTeachers, getFinanceTraffic, getFinanceYears } from '../services/finance';
 import { getKioskStats, listKioskSales, sellKiosk, voidKioskSale } from '../services/kiosk';
 import { pickImport, runImport } from '../services/legacyImport';
 import { cancelDebt, registerPayment, voidDebtCancellation, voidPayment } from '../services/payments';
@@ -128,6 +128,7 @@ export function createHandlers(ctx: Context, backup: BackupOps): Handlers {
     'finance:traffic': (range) => getFinanceTraffic(ctx, range),
     'finance:teachers': (range) => getFinanceTeachers(ctx, range),
     'finance:clients': (range) => getFinanceClients(ctx, range),
+    'finance:years': () => getFinanceYears(ctx),
     'prices:get': () => getCounterPrices(ctx),
     'prices:update': (input) => updateCounterPrices(ctx, input),
     'dashboard:get': () => getDashboard(ctx),

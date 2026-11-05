@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, bucketize, bucketKey, bucketKeys, granularityFor, monthRange, percentChange, presetRange, previousRange } from './periods';
+import { addDays, bucketize, bucketKey, bucketKeys, granularityFor, monthRange, percentChange, presetRange, previousRange, yearRange, yearsSince } from './periods';
 
 describe('periods', () => {
   it('adds days across months and years', () => {
@@ -22,6 +22,19 @@ describe('periods', () => {
     expect(monthRange('2026-10', '2026-10-11')).toEqual({ from: '2026-10-01', to: '2026-10-11' });
     expect(monthRange('2026-09', '2026-10-11')).toEqual({ from: '2026-09-01', to: '2026-09-30' });
     expect(monthRange('2028-02', '2026-10-11')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
+  });
+
+  it('covers a whole year, or up to today in the current one, and compares it with the year before', () => {
+    expect(yearRange(2025, '2026-10-11')).toEqual({ from: '2025-01-01', to: '2025-12-31' });
+    expect(yearRange(2026, '2026-10-11')).toEqual({ from: '2026-01-01', to: '2026-10-11' });
+    expect(previousRange(yearRange(2025, '2026-10-11'))).toEqual({ from: '2024-01-01', to: '2024-12-31' });
+    expect(granularityFor(yearRange(2025, '2026-10-11'))).toBe('month');
+  });
+
+  it('lists the years from today back to the first movement', () => {
+    expect(yearsSince('2024-03-05', '2026-10-11')).toEqual([2026, 2025, 2024]);
+    expect(yearsSince('2026-10-11T12:00:00.000Z', '2026-10-11')).toEqual([2026]);
+    expect(yearsSince(null, '2026-10-11')).toEqual([2026]);
   });
 
   it('compares month-aligned ranges with the same months before', () => {

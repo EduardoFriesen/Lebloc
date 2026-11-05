@@ -229,3 +229,25 @@ export function lapsedClients(db: Db, range: DateRange, before: DateRange): Laps
     )
     .all({ from: range.from, to: range.to, beforeFrom: before.from, beforeTo: before.to });
 }
+
+/** The earliest date anything was sold, charged, paid, used or worked; null on an empty base. */
+export function firstMovementDate(db: Db): string | null {
+  return (
+    db
+      .prepare<[], { first: string | null }>(
+        `SELECT MIN(day) AS first FROM (
+           SELECT MIN(sold_at) AS day FROM sales
+           UNION ALL SELECT MIN(paid_at) FROM payments
+           UNION ALL SELECT MIN(consumed_at) FROM consumptions
+           UNION ALL SELECT MIN(paid_at) FROM teacher_payouts
+           UNION ALL SELECT MIN(sold_at) FROM kiosk_sales
+           UNION ALL SELECT MIN(sold_at) FROM counter_sales
+           UNION ALL SELECT MIN(paid_at) FROM expenses
+           UNION ALL SELECT MIN(worked_on) FROM work_shifts
+           UNION ALL SELECT MIN(paid_at) FROM staff_payouts
+           UNION ALL SELECT MIN(paid_at) FROM kiosk_purchase_payments
+         )`,
+      )
+      .get()?.first ?? null
+  );
+}

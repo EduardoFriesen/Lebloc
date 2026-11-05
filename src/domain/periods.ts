@@ -32,6 +32,20 @@ export function monthRange(month: string, today: string): DateRange {
   return { from, to: today >= from && today < to ? today : to };
 }
 
+/** A year as a range: the whole year, or up to today while it is running. */
+export function yearRange(year: number, today: string): DateRange {
+  const from = `${year}-01-01`;
+  const to = `${year}-12-31`;
+  return { from, to: today >= from && today < to ? today : to };
+}
+
+/** This year and every one before it, back to the year of the first movement (null on an empty base); newest first. */
+export function yearsSince(first: string | null, today: string): number[] {
+  const last = Number(today.slice(0, 4));
+  const start = first ? Math.min(Number(first.slice(0, 4)), last) : last;
+  return Array.from({ length: last - start + 1 }, (_, index) => last - index);
+}
+
 export function presetRange(preset: PeriodPreset, today: string): DateRange {
   const thisMonth = monthStart(today);
   switch (preset) {
