@@ -20,8 +20,10 @@ export interface SummaryRow {
  * rem: below it everything stacks and the page scrolls, since next to a 20rem summary the list would be too narrow for
  * its tables.
  */
+// No row gap: the header's own margin spaces it from the list (or the tabs from their content) in both layouts; stacked,
+// the summary brings its own (SUMMARY_SIDE).
 export const WITH_SUMMARY =
-  'grid gap-8 p-8 @summary/main:min-h-0 @summary/main:flex-1 @summary/main:grid-cols-[minmax(0,1fr)_20rem] @summary/main:grid-rows-[auto_minmax(0,1fr)] @summary/main:gap-y-0';
+  'grid gap-x-8 p-8 @summary/main:min-h-0 @summary/main:flex-1 @summary/main:grid-cols-[minmax(0,1fr)_20rem] @summary/main:grid-rows-[auto_minmax(0,1fr)]';
 export const SUMMARY_TOP = 'min-w-0 @summary/main:col-start-1 @summary/main:row-start-1';
 // The padding (offset by the negative margin) keeps card shadows, hover lift and focus rings from being clipped.
 // `relative` keeps absolutely positioned descendants (e.g. sr-only captions) inside the scroller instead of growing the page.
@@ -31,7 +33,8 @@ export const SUMMARY_LIST = 'relative min-w-0 @summary/main:col-start-1 @summary
 export const STICKY_HEADING = 'paper sticky -top-2 z-20 py-2';
 
 /** The summary column beside the list: starts at the list's height and scrolls on its own. */
-export const SUMMARY_SIDE = 'relative self-start @summary/main:col-start-2 @summary/main:row-start-2 @summary/main:max-h-full @summary/main:overflow-y-auto';
+export const SUMMARY_SIDE =
+  'relative mt-8 self-start @summary/main:col-start-2 @summary/main:row-start-2 @summary/main:mt-0 @summary/main:max-h-full @summary/main:overflow-y-auto';
 
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';
