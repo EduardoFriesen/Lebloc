@@ -50,7 +50,15 @@ interface PurchaseFormProps {
 
 /** What the supplier brought: per product, the units and what they cost; each sets that product's unit cost. */
 export function PurchaseForm({ purchase, onSaved, onCancel, onProductCreated }: PurchaseFormProps) {
-  const products = useAsync(() => call('products:list', { includeInactive: false }), [], { keepPreviousData: true });
+  // A product deactivated after the delivery is still offered in the delivery that has it.
+  const products = useAsync(
+    () =>
+      call('products:list', { includeInactive: purchase !== undefined }).then((list) =>
+        list.filter((product) => product.active || purchase?.items.some((item) => item.productId === product.id)),
+      ),
+    [],
+    { keepPreviousData: true },
+  );
   const [receivedAt, setReceivedAt] = useState(purchase?.receivedAt ?? todayIso());
   const [lines, setLines] = useState<Line[]>(() =>
     purchase

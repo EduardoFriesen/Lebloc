@@ -28,12 +28,21 @@ function insertPayment(ctx: Context, purchase: KioskPurchase, payment: Omit<Purc
   repo.insertPurchasePayment(ctx.db, { purchaseId: purchase.id, ...payment, recordedAt: nowIso(ctx) });
 }
 
-/** Saves the lines; `setsCost` says which products take the unit cost of their line. */
-function insertItems(ctx: Context, purchaseId: number, items: PurchaseInput['items'], setsCost: (productId: number) => boolean): void {
+/**
+ * Saves the lines; `setsCost` says which products take the unit cost of their line. A product deactivated later can
+ * stay in a delivery being fixed (`kept`), but not come in new.
+ */
+function insertItems(
+  ctx: Context,
+  purchaseId: number,
+  items: PurchaseInput['items'],
+  setsCost: (productId: number) => boolean,
+  kept: ReadonlySet<number> = new Set(),
+): void {
   for (const { productId, quantity, costCents } of items) {
     const product = products.findProduct(ctx.db, productId);
     if (!product) throw new DomainError('NOT_FOUND');
-    if (!product.active) throw new DomainError('PRODUCT_INACTIVE');
+    if (!product.active && !kept.has(productId)) throw new DomainError('PRODUCT_INACTIVE');
     repo.insertPurchaseItem(ctx.db, purchaseId, { productId, productName: product.name, quantity, costCents });
     if (setsCost(productId)) products.setProductUnitCost(ctx.db, productId, unitCostCents(costCents, quantity));
   }
@@ -57,10 +66,12 @@ export function createPurchase(ctx: Context, input: PurchaseInput): KioskPurchas
 export function updatePurchase(ctx: Context, input: PurchaseUpdate): KioskPurchase {
   assertNotFuture(ctx, input.receivedAt);
   return ctx.db.transaction(() => {
-    assertPurchaseEditable(getPurchase(ctx, input.id), purchaseTotalCents(input.items));
+    const purchase = getPurchase(ctx, input.id);
+    assertPurchaseEditable(purchase, purchaseTotalCents(input.items));
     repo.updatePurchaseRow(ctx.db, input.id, input.receivedAt);
     repo.deletePurchaseItems(ctx.db, input.id);
-    insertItems(ctx, input.id, input.items, (productId) => repo.latestActivePurchaseWith(ctx.db, productId) === input.id);
+    const kept = new Set(purchase.items.map((item) => item.productId));
+    insertItems(ctx, input.id, input.items, (productId) => repo.latestActivePurchaseWith(ctx.db, productId) === input.id, kept);
     return getPurchase(ctx, input.id);
   })();
 }

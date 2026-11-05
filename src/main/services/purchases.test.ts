@@ -3,7 +3,7 @@ import type { PurchaseInput } from '../../shared/schemas';
 import { expectDomainError } from '../../test/helpers';
 import { createTestContext, type TestContext } from '../test-context';
 import { listKioskSales, sellKiosk } from './kiosk';
-import { createProduct, getProduct } from './products';
+import { createProduct, getProduct, updateProduct } from './products';
 import { createPurchase, getPurchase, getPurchaseMonth, payPurchase, updatePurchase, voidPurchase, voidPurchasePayment } from './purchases';
 
 describe('supplier deliveries', () => {
@@ -167,6 +167,15 @@ describe('supplier deliveries', () => {
       const voided = createPurchase(ctx, delivery('2026-10-02')).id;
       voidPurchase(ctx, voided);
       expectDomainError(() => updatePurchase(ctx, { id: voided, receivedAt: '2026-10-02', items: [{ productId: agua, quantity: 1, costCents: 1 }] }), 'PURCHASE_VOIDED');
+    });
+
+    it('keeps a line whose product was deactivated after the delivery', () => {
+      const { id } = createPurchase(ctx, delivery('2026-10-02'));
+      updateProduct(ctx, { ...getProduct(ctx, agua), active: false });
+      expect(updatePurchase(ctx, { id, receivedAt: '2026-10-01', items: [{ productId: agua, quantity: 24, costCents: 1_200_000 }] })).toMatchObject({
+        receivedAt: '2026-10-01',
+        items: [{ productId: agua, quantity: 24 }],
+      });
     });
   });
 
