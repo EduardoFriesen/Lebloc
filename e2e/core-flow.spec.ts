@@ -197,12 +197,14 @@ test('cards open from anywhere, not only from the name', async () => {
   await expect(page.getByRole('dialog')).toBeHidden();
 });
 
-test('debtors live in Clientes behind "Solo con deuda", linked from the counter summary', async () => {
+test('debtors live in Clientes behind the Deudores row, linked from the counter summary', async () => {
   await goToPasses();
   await passesTab('Movimientos');
   await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Plan.*Ana Roca · Pack 2\+2.*debe \$\s15\.000,00.*\$\s15\.000,00/ })).toBeVisible();
   await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: 'Deudores' }).click();
-  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+  const summary = page.getByRole('complementary', { name: 'Resumen' });
+  const debtors = summary.getByRole('button', { name: 'Deudores' });
+  await expect(debtors).toHaveAttribute('aria-pressed', 'true');
   const cards = page.getByRole('list', { name: 'Clientes' });
   await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
   await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
@@ -210,19 +212,18 @@ test('debtors live in Clientes behind "Solo con deuda", linked from the counter 
   await expect(page.getByText(/Total adeudado/)).toBeVisible();
 
   // The filter lives in the URL; react-router applies it in a transition, so wait for the new state.
-  await page.getByLabel('Solo con deuda').click();
-  await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Quitar filtro: Deudores' }).click();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'false');
   await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
 
   // The summary beside the list counts the same debtors, and its row turns the filter back on.
-  const summary = page.getByRole('complementary', { name: 'Resumen' });
   await expect(summary.getByRole('row', { name: /Deudores/ })).toContainText(/\$\s15\.000,00 · 1/);
-  await summary.getByRole('button', { name: 'Deudores' }).click();
-  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+  await debtors.click();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'true');
 
   // Another summary row replaces that filter instead of adding to it.
   await summary.getByRole('button', { name: 'Nuevos del mes' }).click();
-  await expect(page.getByLabel('Solo con deuda')).not.toBeChecked();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'false');
   await expect(summary.getByRole('button', { name: 'Nuevos del mes' })).toHaveAttribute('aria-pressed', 'true');
   await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
   await summary.getByRole('button', { name: 'Archivados' }).click();
@@ -320,19 +321,20 @@ test('the counter summary opens the detail behind each number', async () => {
   const summary = page.getByRole('region', { name: 'Resumen' });
   const clients = page.getByRole('list', { name: 'Clientes' });
 
+  const pressed = (name: string) => page.getByRole('complementary', { name: 'Resumen' }).getByRole('button', { name, pressed: true });
   await summary.getByRole('link', { name: 'Deudores' }).click();
-  await expect(page.getByLabel('Solo con deuda')).toBeChecked();
+  await expect(pressed('Deudores')).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
 
   await goToPasses();
   await summary.getByRole('link', { name: 'Clientes con pases' }).click();
-  await expect(page.getByLabel('Solo con pases')).toBeChecked();
+  await expect(pressed('Con pases')).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
 
   await goToPasses();
   await summary.getByRole('link', { name: 'Sin ficha' }).click();
-  await expect(page.getByLabel('Sin ficha')).toBeChecked();
+  await expect(pressed('Sin ficha')).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
   await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
 });

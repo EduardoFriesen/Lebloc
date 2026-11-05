@@ -49,7 +49,7 @@ function ClientsView({ data }: { data: FinanceClients }) {
           label="Deudores hoy"
           value={data.debtorCount}
           hint={
-            <Link to="/clientes?deuda=1" className={LINK}>
+            <Link to="/clientes?vista=deuda" className={LINK}>
               Deben {formatMoney(data.debtTotalCents)}
             </Link>
           }

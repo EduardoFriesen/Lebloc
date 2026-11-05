@@ -4,7 +4,6 @@ import type { Teacher } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
-import { CheckboxField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
 import { AsyncView, EmptyState } from '../components/ui/States';
@@ -19,14 +18,13 @@ function scheduleLines(teacher: Teacher): string[] {
 
 export function TeachersPage() {
   const navigate = useNavigate();
-  const [includeInactive, setIncludeInactive] = useState(false);
   // Picked from the summary; there are few teachers and no LIMIT, so the list is filtered here.
   const [onlyInactive, setOnlyInactive] = useState(false);
   const [editing, setEditing] = useState<Teacher | 'new' | null>(null);
   const teachers = useAsync(
     async () => {
       const [list, balances] = await Promise.all([
-        call('teachers:list', { includeInactive: includeInactive || onlyInactive }),
+        call('teachers:list', { includeInactive: onlyInactive }),
         call('teachers:balances', {}),
       ]);
       const balanceById = new Map(balances.map((balance) => [balance.teacherId, balance]));
@@ -41,7 +39,7 @@ export function TeachersPage() {
           };
         });
     },
-    [includeInactive, onlyInactive],
+    [onlyInactive],
     { keepPreviousData: true },
   );
   const stats = useAsync(() => call('teachers:stats', {}), []);
@@ -54,9 +52,6 @@ export function TeachersPage() {
           subtitle="Las clases con profesor están tercerizadas: el recargo le corresponde al profesor, no al local."
           actions={<Button onClick={() => setEditing('new')}>Nuevo profesor</Button>}
         />
-        <div className="mb-4">
-          <CheckboxField label="Mostrar inactivos" checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
-        </div>
         {onlyInactive && <ClearFilter label="Inactivos" onClear={() => setOnlyInactive(false)} />}
       </div>
       <div className={SUMMARY_LIST}>
@@ -115,18 +110,12 @@ export function TeachersPage() {
           {
             label: 'Activos',
             value: <SummaryValue count={data.active} />,
-            onSelect: () => {
-              setOnlyInactive(false);
-              setIncludeInactive(false);
-            },
+            onSelect: () => setOnlyInactive(false),
           },
           {
             label: 'Inactivos',
             value: <SummaryValue count={data.inactive} />,
-            onSelect: () => {
-              setOnlyInactive(true);
-              setIncludeInactive(false);
-            },
+            onSelect: () => setOnlyInactive(true),
             selected: onlyInactive,
           },
           {

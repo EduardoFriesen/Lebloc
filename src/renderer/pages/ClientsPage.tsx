@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, PassBadge, Stat, StatRow } from '../components/ui/Card';
-import { CheckboxField, TextField } from '../components/ui/Field';
+import { TextField } from '../components/ui/Field';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
@@ -15,9 +15,12 @@ import { ageLabel, debtLabel, formatMoney, fullName, waiverLabel } from '../lib/
 import { useAsync } from '../lib/useAsync';
 import { NewClientDialog } from './ClientForm';
 
-// Filters picked only from the summary (`?vista=`); the rest have their own checkbox.
-const VIEWS: Record<string, { label: string; filter: Partial<ClientListInput>; empty: { title: string; text: string } }> = {
+// Every filter is picked from the summary beside the list (`?vista=`); the Pases and Finanzas summaries link to some.
+const FILTERS: Record<string, { label: string; filter: Partial<ClientListInput>; empty: { title: string; text: string } }> = {
+  pases: { label: 'Con pases', filter: { onlyWithPasses: true }, empty: { title: 'Nadie tiene pases', text: 'Ningún cliente tiene pases disponibles.' } },
   sinpases: { label: 'Sin pases', filter: { onlyWithoutPasses: true }, empty: { title: 'Todos tienen pases', text: 'Ningún cliente activo se quedó sin pases.' } },
+  deuda: { label: 'Deudores', filter: { onlyDebtors: true }, empty: { title: 'Nadie debe nada', text: 'Todas las ventas están saldadas.' } },
+  fichas: { label: 'Sin ficha', filter: { onlyPendingWaiver: true }, empty: { title: 'Fichas al día', text: 'Todos entregaron la ficha.' } },
   menores: { label: 'Menores', filter: { onlyMinors: true }, empty: { title: 'No hay menores', text: 'Ningún cliente activo es menor de 18 años.' } },
   nuevos: { label: 'Nuevos del mes', filter: { onlyNewThisMonth: true }, empty: { title: 'Nadie nuevo este mes', text: 'Ningún cliente se inscribió este mes.' } },
   archivados: { label: 'Archivados', filter: { onlyArchived: true }, empty: { title: 'No hay archivados', text: 'Ningún cliente está archivado.' } },
@@ -25,78 +28,39 @@ const VIEWS: Record<string, { label: string; filter: Partial<ClientListInput>; e
 
 export function ClientsPage() {
   const [search, setSearch] = useState('');
-  const [includeArchived, setIncludeArchived] = useState(false);
   const [creating, setCreating] = useState(false);
-  // In the URL so "Volver" from a client keeps the filter, and the counter's "Ver todos" can link to it.
+  // In the URL so "Volver" from a client keeps the filter, and the Pases summary can link to it.
   const [params, setParams] = useSearchParams();
-  const onlyDebtors = params.get('deuda') === '1';
-  const onlyWithPasses = params.get('pases') === '1';
-  const onlyPendingWaiver = params.get('fichas') === '1';
-  const viewKey = params.get('vista') ?? '';
-  const view = VIEWS[viewKey];
+  const key = params.get('vista');
+  const active = key !== null && Object.hasOwn(FILTERS, key) ? FILTERS[key] : undefined;
   const clients = useAsync(
-    () => call('clients:list', { search, includeArchived, onlyDebtors, onlyWithPasses, onlyPendingWaiver, ...view?.filter }),
-    [search, includeArchived, onlyDebtors, onlyWithPasses, onlyPendingWaiver, view],
+    () => call('clients:list', { search, includeArchived: false, ...active?.filter }),
+    [search, active],
     { keepPreviousData: true },
   );
   const stats = useAsync(() => call('clients:stats', {}), []);
+  const onlyDebtors = active?.filter.onlyDebtors === true;
   const empty = search
     ? { title: 'Sin resultados', text: 'Probá con otro nombre o apellido.' }
-    : view
-      ? view.empty
-      : onlyDebtors
-      ? { title: 'Nadie debe nada', text: 'Todas las ventas están saldadas.' }
-      : onlyWithPasses
-        ? { title: 'Nadie tiene pases', text: 'Ningún cliente tiene pases disponibles.' }
-        : onlyPendingWaiver
-          ? { title: 'Fichas al día', text: 'Todos entregaron la ficha.' }
-          : { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' };
+    : (active?.empty ?? { title: 'Todavía no hay clientes', text: 'Cargá el primero con “Nuevo cliente”.' });
 
-  function setFilter(key: 'deuda' | 'pases' | 'fichas', on: boolean) {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (on) next.set(key, '1');
-        else next.delete(key);
-        return next;
-      },
-      { replace: true },
-    );
-  }
-
-  /** A summary row shows only its items: it drops every other filter and the search. */
-  function selectOnly(next: Record<string, string>) {
+  /** A summary row shows only its clients, dropping the search; "Activos" shows them all. */
+  function select(next: string | null) {
     setSearch('');
-    setIncludeArchived(false);
-    setParams(next, { replace: true });
+    setParams(next === null ? {} : { vista: next }, { replace: true });
   }
 
-  function clearView() {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.delete('vista');
-        return next;
-      },
-      { replace: true },
-    );
-  }
+  const row = (label: string, value: ReactNode, filter: string) => ({ label, value, onSelect: () => select(filter), selected: key === filter });
 
   return (
     <section className={WITH_SUMMARY}>
       <div className={SUMMARY_TOP}>
         <PageHeader title="Clientes" actions={<Button onClick={() => setCreating(true)}>Nuevo cliente</Button>} />
         <NewClientDialog open={creating} onClose={() => setCreating(false)} />
-        <div className="mb-6 flex flex-wrap items-end gap-6">
-          <div className="w-full max-w-md">
-            <TextField label="Buscar" type="search" placeholder="Nombre, apellido o DNI" value={search} onChange={(event) => setSearch(event.target.value)} />
-          </div>
-          <CheckboxField label="Incluir archivados" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
-          <CheckboxField label="Solo con pases" checked={onlyWithPasses} onChange={(event) => setFilter('pases', event.target.checked)} />
-          <CheckboxField label="Solo con deuda" checked={onlyDebtors} onChange={(event) => setFilter('deuda', event.target.checked)} />
-          <CheckboxField label="Sin ficha" checked={onlyPendingWaiver} onChange={(event) => setFilter('fichas', event.target.checked)} />
+        <div className="mb-6 w-full max-w-md">
+          <TextField label="Buscar" type="search" placeholder="Nombre, apellido o DNI" value={search} onChange={(event) => setSearch(event.target.value)} />
         </div>
-        {view && <ClearFilter label={view.label} onClear={clearView} />}
+        {active && <ClearFilter label={active.label} onClear={() => select(null)} />}
       </div>
       <div className={SUMMARY_LIST}>
         <AsyncView
@@ -120,7 +84,7 @@ export function ClientsPage() {
                 </p>
               )}
               {/* Keyed by the filters so a new filter starts on the first page. */}
-              <ClientCards key={`${search}|${includeArchived}|${params.toString()}`} clients={data} />
+              <ClientCards key={`${search}|${key ?? ''}`} clients={data} />
             </>
           )}
         </AsyncView>
@@ -128,24 +92,14 @@ export function ClientsPage() {
       <SummaryTable
         state={stats}
         rows={(data) => [
-          { label: 'Activos', value: <SummaryValue count={data.active} />, onSelect: () => selectOnly({}) },
-          { label: 'Con pases', value: <SummaryValue count={data.withPasses} />, onSelect: () => selectOnly({ pases: '1' }), selected: onlyWithPasses },
-          { label: 'Sin pases', value: <SummaryValue count={data.withoutPasses} />, onSelect: () => selectOnly({ vista: 'sinpases' }), selected: viewKey === 'sinpases' },
-          {
-            label: 'Deudores',
-            value: <SummaryValue count={data.debtorCount} amount={data.debtorCount > 0 ? formatMoney(data.debtTotalCents) : undefined} />,
-            onSelect: () => selectOnly({ deuda: '1' }),
-            selected: onlyDebtors,
-          },
-          {
-            label: 'Sin ficha',
-            value: <SummaryValue count={data.pendingWaivers} />,
-            onSelect: () => selectOnly({ fichas: '1' }),
-            selected: onlyPendingWaiver,
-          },
-          { label: 'Menores', value: <SummaryValue count={data.minors} />, onSelect: () => selectOnly({ vista: 'menores' }), selected: viewKey === 'menores' },
-          { label: 'Nuevos del mes', value: <SummaryValue count={data.newThisMonth} />, onSelect: () => selectOnly({ vista: 'nuevos' }), selected: viewKey === 'nuevos' },
-          { label: 'Archivados', value: <SummaryValue count={data.archived} />, onSelect: () => selectOnly({ vista: 'archivados' }), selected: viewKey === 'archivados' },
+          { label: 'Activos', value: <SummaryValue count={data.active} />, onSelect: () => select(null) },
+          row('Con pases', <SummaryValue count={data.withPasses} />, 'pases'),
+          row('Sin pases', <SummaryValue count={data.withoutPasses} />, 'sinpases'),
+          row('Deudores', <SummaryValue count={data.debtorCount} amount={data.debtorCount > 0 ? formatMoney(data.debtTotalCents) : undefined} />, 'deuda'),
+          row('Sin ficha', <SummaryValue count={data.pendingWaivers} />, 'fichas'),
+          row('Menores', <SummaryValue count={data.minors} />, 'menores'),
+          row('Nuevos del mes', <SummaryValue count={data.newThisMonth} />, 'nuevos'),
+          row('Archivados', <SummaryValue count={data.archived} />, 'archivados'),
         ]}
       />
     </section>

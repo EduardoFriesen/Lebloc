@@ -284,16 +284,16 @@ function SummaryPanel({ summary }: { summary: DashboardSummary }) {
   return (
     <Panel title="Resumen">
       <ul className="flex flex-col">
-        <AlertRow to="/clientes?pases=1" name="Clientes con pases">
+        <AlertRow to="/clientes?vista=pases" name="Clientes con pases">
           <span className={value}>{summary.activeClients}</span>
         </AlertRow>
-        <AlertRow to="/clientes?deuda=1" name="Deudores">
+        <AlertRow to="/clientes?vista=deuda" name="Deudores">
           <span>
             {summary.debtorCount > 0 && <span className="text-sm text-accent-ink">{formatMoney(summary.debtTotalCents)} · </span>}
             <span className={value}>{summary.debtorCount}</span>
           </span>
         </AlertRow>
-        <AlertRow to="/clientes?fichas=1" name="Sin ficha">
+        <AlertRow to="/clientes?vista=fichas" name="Sin ficha">
           <span className={value}>{summary.pendingWaivers}</span>
         </AlertRow>
       </ul>
