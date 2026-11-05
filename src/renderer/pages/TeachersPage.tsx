@@ -130,11 +130,11 @@ export function TeachersPage() {
             selected: onlyInactive,
           },
           {
-            label: 'Saldo a pagar',
+            label: 'Se les debe',
             value: <SummaryValue count={data.owedTeachers} amount={data.owedTeachers > 0 ? formatMoney(data.owedCents) : undefined} />,
           },
           {
-            label: 'Clases pendientes',
+            label: 'Clases por dar',
             value: <SummaryValue count={data.pendingClasses} />,
           },
         ]}

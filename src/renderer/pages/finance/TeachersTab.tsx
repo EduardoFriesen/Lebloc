@@ -30,7 +30,7 @@ function TeachersView({ teachers }: { teachers: TeacherActivity[] }) {
         <KpiTile label="Clases dadas" value={sum((teacher) => teacher.classes)} />
         <KpiTile label="Cobrado para profesores" value={formatMoney(sum((teacher) => teacher.earnedCents))} hint="No es ingreso del local" />
         <KpiTile label="Pagado a profesores" value={formatMoney(sum((teacher) => teacher.paidOutCents))} />
-        <KpiTile label="Saldo a pagar hoy" value={formatMoney(owed)} />
+        <KpiTile label="Se les debe hoy" value={formatMoney(owed)} />
       </KpiRow>
 
       <ChartCard title="Clases dadas" subtitle="Pases con profesor marcados en el período." table={<ClassesTable teachers={teachers} />}>
@@ -58,7 +58,7 @@ function TeachersView({ teachers }: { teachers: TeacherActivity[] }) {
               <th scope="col">Alumnos</th>
               <th scope="col">Cobrado para el profesor</th>
               <th scope="col">Pagado en el período</th>
-              <th scope="col">Saldo hoy</th>
+              <th scope="col">Se le debe hoy</th>
               <th scope="col">Clases por dar</th>
             </tr>
           </thead>
@@ -82,8 +82,8 @@ function TeachersView({ teachers }: { teachers: TeacherActivity[] }) {
           </tbody>
         </table>
         <p className="text-sm text-ink-soft">
-          Lo cobrado para el profesor sale del monto para el profesor de cada plan: es del profesor, no es ingreso del local. El saldo es lo que
-          el local le debe hoy. Las clases por dar son los pases con profesor vendidos que todavía no se usaron.
+          Lo cobrado para el profesor sale del monto para el profesor de cada plan: es del profesor, no es ingreso del local. Se le debe lo cobrado
+          para él que todavía no se le pagó. Las clases por dar son los pases con profesor vendidos que todavía no se usaron.
         </p>
       </section>
     </div>

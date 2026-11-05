@@ -85,8 +85,8 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
   await expect(page.getByTestId('teacher-balance')).toHaveText(/5\.000,00/);
   // Only what is owed: classes left to give are not valued.
   await expect(page.getByText(/Valen/)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Registrar liquidación' }).click();
-  await page.getByRole('button', { name: 'Confirmar liquidación' }).click();
+  await page.getByRole('button', { name: 'Registrar pago' }).click();
+  await page.getByRole('button', { name: 'Confirmar pago' }).click();
   await expect(page.getByTestId('teacher-balance')).toHaveText(/\$\s0,00/);
   await expect(page.getByRole('table').filter({ hasText: 'Medio' }).getByRole('cell', { name: /5\.000,00/ })).toBeVisible();
 });

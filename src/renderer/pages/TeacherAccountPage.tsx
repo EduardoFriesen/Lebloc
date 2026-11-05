@@ -63,7 +63,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
               Editar
             </Button>
             <Button disabled={account.balanceCents <= 0} onClick={() => setPaying(true)}>
-              Registrar liquidación
+              Registrar pago
             </Button>
           </>
         }
@@ -116,16 +116,16 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
                   <td>{payout.note ?? '—'}</td>
                   <td className="text-right">
                     {payout.voidedAt ? (
-                      'Anulada'
+                      'Anulado'
                     ) : (
                       <Button
                         variant="danger-outline"
-                        aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`}
+                        aria-label={`Anular pago del ${formatDate(payout.paidAt)}`}
                         onClick={() =>
                           setPending({
-                            title: 'Anular liquidación',
-                            message: `Se anula la liquidación de ${formatMoney(payout.amountCents)} y el saldo del profesor vuelve a subir.`,
-                            confirmLabel: 'Anular liquidación',
+                            title: 'Anular pago',
+                            message: `Se anula el pago de ${formatMoney(payout.amountCents)} y lo que se le debe al profesor vuelve a subir.`,
+                            confirmLabel: 'Anular pago',
                             action: () => call('payouts:void', { id: payout.id }),
                           })
                         }
@@ -215,12 +215,12 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
           onCancel={() => setEditing(false)}
         />
       </Dialog>
-      <Dialog open={paying} title="Registrar liquidación" onClose={() => setPaying(false)}>
+      <Dialog open={paying} title="Registrar pago al profesor" onClose={() => setPaying(false)}>
         <PayoutForm
           account={account}
           onDone={() => {
             setPaying(false);
-            setNotice({ tone: 'success', text: 'Liquidación registrada.' });
+            setNotice({ tone: 'success', text: 'Pago registrado.' });
             reload();
           }}
           onCancel={() => setPaying(false)}
@@ -273,7 +273,7 @@ function PayoutForm({ account, onDone, onCancel }: { account: TeacherAccount; on
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
       <p className="text-sm">
-        Saldo pendiente: <strong>{formatMoney(account.balanceCents)}</strong>
+        Se le debe: <strong>{formatMoney(account.balanceCents)}</strong>
       </p>
       <MoneyField label="Monto" value={amount} onChange={(event) => setAmount(event.target.value)} error={errors.amountCents} />
       <SelectField label="Medio de pago" value={method} onChange={(event) => setMethod(event.target.value === 'transfer' ? 'transfer' : 'cash')}>
@@ -288,7 +288,7 @@ function PayoutForm({ account, onDone, onCancel }: { account: TeacherAccount; on
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>
-          Confirmar liquidación
+          Confirmar pago
         </Button>
       </div>
     </form>

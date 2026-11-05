@@ -1,7 +1,7 @@
 export const ERROR_MESSAGES = {
   INVALID_AMOUNT: 'El monto tiene que ser mayor a cero.',
   PAYMENT_EXCEEDS_DEBT: 'El pago supera lo que se debe.',
-  PAYOUT_EXCEEDS_BALANCE: 'La liquidación supera el saldo del profesor.',
+  PAYOUT_EXCEEDS_BALANCE: 'El pago supera lo que se le debe al profesor.',
   ONLY_LAST_PAYMENT_VOIDABLE: 'Solo se puede anular el último pago activo de la venta.',
   SALE_HAS_ACTIVE_PAYMENTS: 'La venta tiene pagos activos. Anulalos primero.',
   SALE_HAS_ACTIVE_CONSUMPTIONS: 'La venta tiene consumos activos. Anulalos primero.',
