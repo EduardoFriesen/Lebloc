@@ -7,7 +7,7 @@ export interface DateRange {
   to: string;
 }
 
-export const PERIOD_PRESETS = ['this_month', 'last_month', 'last_3_months', 'last_12_months', 'this_year'] as const;
+export const PERIOD_PRESETS = ['this_month', 'last_month', 'last_3_months', 'last_12_months', 'all'] as const;
 export type PeriodPreset = (typeof PERIOD_PRESETS)[number];
 
 const DAILY_UP_TO = 31;
@@ -46,7 +46,8 @@ export function yearsSince(first: string | null, today: string): number[] {
   return Array.from({ length: last - start + 1 }, (_, index) => last - index);
 }
 
-export function presetRange(preset: PeriodPreset, today: string): DateRange {
+/** `firstYear` is where "all" starts: the year of the first movement (this year until it is known). */
+export function presetRange(preset: PeriodPreset, today: string, firstYear = Number(today.slice(0, 4))): DateRange {
   const thisMonth = monthStart(today);
   switch (preset) {
     case 'this_month':
@@ -59,8 +60,8 @@ export function presetRange(preset: PeriodPreset, today: string): DateRange {
       return { from: addMonths(thisMonth, -2), to: today };
     case 'last_12_months':
       return { from: addMonths(thisMonth, -11), to: today };
-    case 'this_year':
-      return { from: `${today.slice(0, 4)}-01-01`, to: today };
+    case 'all':
+      return { from: `${firstYear}-01-01`, to: today };
   }
 }
 

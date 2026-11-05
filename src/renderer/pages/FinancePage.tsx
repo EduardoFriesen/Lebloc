@@ -17,7 +17,7 @@ const PRESET_LABELS: Record<PeriodPreset, string> = {
   last_month: 'Mes pasado',
   last_3_months: 'Últimos 3 meses',
   last_12_months: 'Últimos 12 meses',
-  this_year: 'Este año',
+  all: 'Todo',
 };
 
 const TABS = [
@@ -38,10 +38,14 @@ export function FinancePage() {
   const location = useLocation();
   const [params, setParams] = useSearchParams();
   const today = todayIso();
+  // While they load (or if they fail) this year is still there to pick, and "Todo" starts in it.
+  const loaded = useAsync(() => call('finance:years', {}), []);
+  const years = loaded.status === 'success' ? loaded.data : [Number(today.slice(0, 4))];
+  const firstYear = years.at(-1);
   const range = rangeFromParams(params) ?? presetRange('this_month', today);
   const previous = previousRange(range);
   const preset = PERIOD_PRESETS.find((candidate) => {
-    const presetDates = presetRange(candidate, today);
+    const presetDates = presetRange(candidate, today, firstYear);
     return presetDates.from === range.from && presetDates.to === range.to;
   });
 
@@ -62,11 +66,11 @@ export function FinancePage() {
             options={PERIOD_PRESETS}
             labels={PRESET_LABELS}
             value={preset}
-            onChange={(candidate) => pick(presetRange(candidate, today))}
+            onChange={(candidate) => pick(presetRange(candidate, today, firstYear))}
           />
           {/* The year and the dates pick a range by hand: they wrap together. */}
           <div className="flex flex-wrap items-start gap-3">
-            <YearPicker range={range} today={today} onChange={pick} />
+            <YearPicker years={years} range={range} today={today} onChange={pick} />
             <CustomRange range={range} onChange={pick} />
           </div>
         </div>
@@ -83,11 +87,8 @@ export function FinancePage() {
 }
 
 /** A whole year, from this one back to the first with movements; none shows while the range is not exactly a year. */
-function YearPicker({ range, today, onChange }: { range: DateRange; today: string; onChange: (range: DateRange) => void }) {
-  const years = useAsync(() => call('finance:years', {}), []);
-  // While they load (or if they fail) this year is still there to pick.
-  const options = years.status === 'success' ? years.data : [Number(today.slice(0, 4))];
-  const picked = options.find((year) => {
+function YearPicker({ years, range, today, onChange }: { years: number[]; range: DateRange; today: string; onChange: (range: DateRange) => void }) {
+  const picked = years.find((year) => {
     const whole = yearRange(year, today);
     return whole.from === range.from && whole.to === range.to;
   });
@@ -96,7 +97,7 @@ function YearPicker({ range, today, onChange }: { range: DateRange; today: strin
       <option value="" disabled>
         Elegir
       </option>
-      {options.map((year) => (
+      {years.map((year) => (
         <option key={year} value={year}>
           {year}
         </option>

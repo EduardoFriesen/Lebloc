@@ -95,10 +95,11 @@ describe('schemas', () => {
     expect(expenseInput.safeParse({ ...base, amountCents: 0 }).success).toBe(false);
   });
 
-  it('accepts finance ranges in order and up to three years', () => {
+  it('accepts finance ranges in order and up to twenty years', () => {
     expect(financeRangeInput.safeParse({ from: '2026-10-01', to: '2026-10-11' }).success).toBe(true);
     expect(financeRangeInput.safeParse({ from: '2026-10-11', to: '2026-10-01' }).success).toBe(false);
-    expect(financeRangeInput.safeParse({ from: '2023-01-01', to: '2026-10-11' }).success).toBe(false);
+    expect(financeRangeInput.safeParse({ from: '2010-01-01', to: '2026-10-11' }).success).toBe(true);
+    expect(financeRangeInput.safeParse({ from: '2006-01-01', to: '2026-10-11' }).success).toBe(false);
     expect(financeRangeInput.safeParse({ from: 'ayer', to: '2026-10-11' }).success).toBe(false);
   });
 

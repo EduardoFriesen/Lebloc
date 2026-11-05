@@ -13,7 +13,8 @@ describe('periods', () => {
     expect(presetRange('last_month', today)).toEqual({ from: '2026-09-01', to: '2026-09-30' });
     expect(presetRange('last_3_months', today)).toEqual({ from: '2026-08-01', to: '2026-10-11' });
     expect(presetRange('last_12_months', today)).toEqual({ from: '2025-11-01', to: '2026-10-11' });
-    expect(presetRange('this_year', today)).toEqual({ from: '2026-01-01', to: '2026-10-11' });
+    expect(presetRange('all', today, 2024)).toEqual({ from: '2024-01-01', to: '2026-10-11' });
+    expect(presetRange('all', today)).toEqual({ from: '2026-01-01', to: '2026-10-11' });
     expect(presetRange('last_month', '2026-03-15')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
     expect(presetRange('last_month', '2026-01-10')).toEqual({ from: '2025-12-01', to: '2025-12-31' });
   });

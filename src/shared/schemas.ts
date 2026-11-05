@@ -190,13 +190,14 @@ export const counterSellInput = z.object({
 });
 export const monthInput = z.object({ month });
 
-const MAX_RANGE_DAYS = 1096;
+// "Todo" in Finanzas goes back to the first movement: room for many years of the local.
+const MAX_RANGE_DAYS = 7306;
 const DAY_MS = 86_400_000;
 export const financeRangeInput = z
   .object({ from: isoDate, to: isoDate })
   .refine((range) => range.from <= range.to, { message: 'El inicio tiene que ser anterior al fin', path: ['to'] })
   .refine((range) => (Date.parse(range.to) - Date.parse(range.from)) / DAY_MS < MAX_RANGE_DAYS, {
-    message: 'El período no puede pasar de 3 años',
+    message: 'El período no puede pasar de 20 años',
     path: ['from'],
   });
 /** No method means the total, with salaries as shifts worked; a method counts salaries as the settlements paid that way. */

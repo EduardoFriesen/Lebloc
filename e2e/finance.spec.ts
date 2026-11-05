@@ -74,9 +74,9 @@ test('falls back to this month on an invalid URL range and shows the empty state
   await page.evaluate("window.location.hash = '#/finanzas?desde=2026-10-11&hasta=2026-10-01'");
   await expect(page.getByRole('button', { name: 'Este mes' })).toHaveAttribute('aria-pressed', 'true');
 
-  await page.getByLabel('Desde', { exact: true }).fill('2020-01-01');
-  await expect(page.getByText('El período no puede pasar de 3 años')).toBeVisible();
-  await page.getByLabel('Hasta', { exact: true }).fill('2020-01-31');
+  await page.getByLabel('Desde', { exact: true }).fill('2000-01-01');
+  await expect(page.getByText('El período no puede pasar de 20 años')).toBeVisible();
+  await page.getByLabel('Hasta', { exact: true }).fill('2000-01-31');
   await expect(page.getByText('No hay movimientos en este período')).toBeVisible();
   await expect(page.getByRole('group', { name: 'Períodos' }).getByRole('button', { pressed: true })).toHaveCount(0);
 });
@@ -91,6 +91,11 @@ test('pick a whole year, compared with the year before', async () => {
   await expect(page.getByLabel('Hasta', { exact: true })).toHaveValue(`${year}-12-31`);
   await expect(page.getByText(`Comparado con 01/01/${year - 1} – 31/12/${year - 1}`)).toBeVisible();
   expect(page.url()).toContain(`desde=${year}-01-01&hasta=${year}-12-31`);
+
+  // "Todo" starts on January 1st of the oldest year with movements.
+  const oldest = await picker.locator('option').last().textContent();
+  await page.getByRole('button', { name: 'Todo' }).click();
+  await expect(page.getByLabel('Desde', { exact: true })).toHaveValue(`${oldest}-01-01`);
 
   // Another period leaves no year picked.
   await page.getByRole('button', { name: 'Mes pasado' }).click();
