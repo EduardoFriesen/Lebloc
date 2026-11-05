@@ -173,3 +173,13 @@ describe('schemas', () => {
     ]);
   });
 });
+
+describe('dates', () => {
+  const message = (birthDate: string) => clientInput.safeParse({ ...client, birthDate }).error?.issues[0]?.message;
+
+  it('asks for a date left empty, and flags one that is not a date', () => {
+    expect(message('')).toBe('Obligatorio');
+    expect(message('2026-13-45')).toBe('Fecha inválida');
+    expect(message('1990-05-10')).toBeUndefined();
+  });
+});

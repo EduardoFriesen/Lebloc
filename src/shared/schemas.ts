@@ -6,7 +6,8 @@ const MAX_CENTS = 100_000_000_000;
 const REQUIRED = 'Obligatorio';
 
 const id = z.number().int().positive();
-const isoDate = z.iso.date({ error: 'Fecha inválida' });
+// Empty is a field left blank, not a wrong date.
+const isoDate = z.iso.date({ error: (issue) => (issue.input === '' ? REQUIRED : 'Fecha inválida') });
 const personName = z.string().trim().min(1, REQUIRED).max(80);
 const optionalText = (max: number) =>
   z
