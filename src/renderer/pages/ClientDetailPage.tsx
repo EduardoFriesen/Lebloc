@@ -107,7 +107,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
         Editar
       </Button>
       <Button
-        variant="ghost"
+        variant="danger-outline"
         onClick={() =>
           setPending({
             title: 'Archivar cliente',
@@ -471,7 +471,7 @@ function SaleCard({
                 {cancellation.voidedAt && ' · Anulada'}
               </span>
               {!cancellation.voidedAt && !voided && !disabled && (
-                <Button variant="ghost" className="px-3! py-0.5! text-xs" onClick={() => onVoidCancellation(cancellation)}>
+                <Button variant="danger-outline" className="px-3! py-0.5! text-xs" onClick={() => onVoidCancellation(cancellation)}>
                   Anular cancelación
                 </Button>
               )}
@@ -510,7 +510,7 @@ function SaleCard({
         <div className="flex flex-wrap gap-2">
           {sale.debtCents > 0 && <Button onClick={() => onPay(sale)}>Registrar pago</Button>}
           {sale.debtCents > 0 && (
-            <Button variant="ghost" onClick={() => onCancelDebt(sale)}>
+            <Button variant="danger-outline" onClick={() => onCancelDebt(sale)}>
               Cancelar deuda
             </Button>
           )}
@@ -528,11 +528,11 @@ function SaleCard({
             Cambiar vencimiento
           </Button>
           {lastActive && (
-            <Button variant="ghost" onClick={() => onVoidPayment(lastActive)}>
+            <Button variant="danger-outline" onClick={() => onVoidPayment(lastActive)}>
               Anular último pago
             </Button>
           )}
-          <Button variant="ghost" onClick={() => onVoidSale(sale)}>
+          <Button variant="danger-outline" onClick={() => onVoidSale(sale)}>
             Anular venta
           </Button>
         </div>
@@ -610,7 +610,7 @@ function ConsumptionsTable({ consumptions, caption, empty, disabled, onVoid }: C
               <td className="text-right">
                 {!consumption.voidedAt && !disabled && (
                   <Button
-                    variant="ghost"
+                    variant="danger-outline"
                     aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
                     onClick={() => onVoid(consumption)}
                   >
@@ -720,7 +720,7 @@ function WaiverSection({ account, disabled, onSign, onVoid }: WaiverSectionProps
                 {signature.voidedAt && ' · Anulada'}
               </span>
               {!signature.voidedAt && !disabled && (
-                <Button variant="ghost" className="px-3! py-0.5! text-xs" aria-label={`Anular entrega del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
+                <Button variant="danger-outline" className="px-3! py-0.5! text-xs" aria-label={`Anular entrega del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
                   Anular
                 </Button>
               )}
@@ -769,7 +769,7 @@ function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: 
       />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>
@@ -822,7 +822,7 @@ function ExpiryForm({ sale, onDone, onCancel }: { sale: Sale; onDone: () => void
       />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

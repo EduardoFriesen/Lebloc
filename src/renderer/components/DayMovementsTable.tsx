@@ -27,7 +27,7 @@ function MovementRow({ movement, onVoid }: { movement: DayMovement; onVoid: (req
         <td className="font-semibold">{formatMoney(sale.priceCents)}</td>
         <td>
           <Button
-            variant="ghost"
+            variant="danger-outline"
             aria-label={`Anular ${label.toLowerCase()} de las ${formatTime(sale.recordedAt)}`}
             onClick={() =>
               onVoid({

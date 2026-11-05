@@ -116,3 +116,43 @@ test('the keyboard focus is always visible, date fields included', async () => {
   }
   expect([...new Set(hidden)]).toEqual([]);
 });
+
+// Every button looks like one: a fill or a drawn frame. Not counted: the stretched title or row buttons (the card or
+// row around them is the frame), the options of a segmented control (its pill is) and buttons styled as a link.
+const UNFRAMED = `(() => {
+  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  const alpha = (c) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = 'transparent'; ctx.fillStyle = c; ctx.fillRect(0, 0, 1, 1); return ctx.getImageData(0, 0, 1, 1).data[3]; };
+  return [...document.querySelectorAll('main button')]
+    .filter((b) => b.checkVisibility() && !b.matches('[class*="after:absolute"], [role=group] button'))
+    .filter((b) => {
+      const cs = getComputedStyle(b);
+      if (cs.textDecorationLine.includes('underline')) return false;
+      const border = parseFloat(cs.borderTopWidth) > 0 && alpha(cs.borderTopColor) > 0;
+      return alpha(cs.backgroundColor) === 0 && cs.boxShadow === 'none' && !border;
+    })
+    .map((b) => (b.getAttribute('aria-label') || b.textContent).trim().slice(0, 40));
+})()`;
+
+test('every button has a fill or a frame, in the screens and in the dialogs', async () => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.evaluate(`localStorage.setItem('lebloc:appearance', JSON.stringify({ theme: 'light', fontSize: 'normal' }))`);
+  await page.reload();
+  const unframed: string[] = [];
+  const check = async (where: string) => unframed.push(...(await page.evaluate<string[]>(UNFRAMED)).map((name) => `${where}: ${name}`));
+  for (const [route, heading] of SCREENS) {
+    await page.evaluate(`window.location.hash = '#${route}'`);
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+    await expect(page.getByRole('status', { name: 'Cargando' })).toHaveCount(0);
+    await check(route);
+  }
+  await page.evaluate("window.location.hash = '#/planes'");
+  await page.getByRole('button', { name: 'Nuevo plan' }).click();
+  await check('Nuevo plan');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await page.evaluate("window.location.hash = '#/kiosco/entregas'");
+  await page.getByRole('button', { name: /^Ver entrega del/ }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Detalle de la entrega' }).getByRole('table').first()).toBeVisible();
+  await check('Detalle de la entrega');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
+  expect([...new Set(unframed)]).toEqual([]);
+});

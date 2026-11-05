@@ -23,7 +23,7 @@ function EntryRow({ entry, onVoid }: { entry: DayEntry; onVoid: (request: Confir
         <td>—</td>
         <td>
           <Button
-            variant="ghost"
+            variant="danger-outline"
             aria-label={`Anular ${label.toLowerCase()} de las ${formatTime(sale.recordedAt)}`}
             onClick={() =>
               onVoid({
@@ -59,7 +59,7 @@ function EntryRow({ entry, onVoid }: { entry: DayEntry; onVoid: (request: Confir
       </td>
       <td>
         <Button
-          variant="ghost"
+          variant="danger-outline"
           aria-label={`Anular pase ${kind} de ${entry.clientName} de las ${time}`}
           onClick={() =>
             onVoid({

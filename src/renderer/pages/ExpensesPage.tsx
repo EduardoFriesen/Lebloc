@@ -235,7 +235,7 @@ function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }
                 <td className="font-semibold">{formatMoney(expense.amountCents)}</td>
                 <td className="text-right">
                   {/* Two actions share the cell, tighter, and may stack: the table has to fit beside the summary. */}
-                  <Button variant="ghost" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
+                  <Button variant="secondary" className="px-3!" aria-label={`Repetir ${label}`} onClick={() => onRepeat(expense)}>
                     Repetir
                   </Button>
                   {expense.voidedAt ? (
@@ -243,7 +243,7 @@ function ExpensesTable({ rows, empty, onRepeat, onVoid, onPaid, onOpenDelivery }
                       <Badge>Anulado</Badge>
                     </span>
                   ) : (
-                    <Button variant="ghost" className="px-3!" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
+                    <Button variant="danger-outline" className="px-3!" aria-label={`Anular ${label}`} onClick={() => onVoid(expense)}>
                       Anular
                     </Button>
                   )}
@@ -276,7 +276,7 @@ function SupplierPaymentTableRow({ payment, onOpen }: { payment: SupplierPayment
       <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
       <td className="font-semibold">{formatMoney(payment.amountCents)}</td>
       <td className="text-right">
-        <Button variant="ghost" className="px-3!" aria-label={`Ver entrega del ${formatDate(payment.receivedAt)}`} onClick={() => onOpen(payment.purchaseId)}>
+        <Button variant="secondary" className="px-3!" aria-label={`Ver entrega del ${formatDate(payment.receivedAt)}`} onClick={() => onOpen(payment.purchaseId)}>
           Ver
         </Button>
       </td>

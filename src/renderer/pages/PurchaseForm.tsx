@@ -172,7 +172,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel, onProductCreated }: 
                     error={errors[`items.${index}.costCents`]}
                   />
                   <Button
-                    variant="ghost"
+                    variant="danger-outline"
                     className="mt-6"
                     aria-label={`Quitar línea ${index + 1}`}
                     disabled={lines.length === 1}
@@ -193,7 +193,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel, onProductCreated }: 
                 <Button variant="secondary" onClick={() => setLines((current) => [...current, newLine()])}>
                   Agregar producto
                 </Button>
-                <Button variant="ghost" onClick={() => setCreating(true)}>
+                <Button variant="outline" onClick={() => setCreating(true)}>
                   Nuevo producto
                 </Button>
               </div>
@@ -220,7 +220,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel, onProductCreated }: 
             Total: <strong>{formatMoney(totalCents)}</strong>
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={onCancel}>
+            <Button variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
             <Button type="submit" disabled={busy}>

@@ -95,7 +95,7 @@ export function ShiftForm({ employees, employeeId, onSaved, onCancel }: ShiftFor
       <TextField label="Nota" value={note} onChange={(event) => setNote(event.target.value)} error={errors.note} />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

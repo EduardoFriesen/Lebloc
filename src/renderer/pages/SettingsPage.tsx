@@ -384,7 +384,7 @@ function DriveSection({ status, onChanged }: { status: BackupStatus; onChanged: 
           {connected ? 'Volver a conectar' : 'Conectar Google Drive'}
         </Button>
         {connected && (
-          <Button variant="ghost" disabled={pending !== null} onClick={() => void change('disconnect')}>
+          <Button variant="danger-outline" disabled={pending !== null} onClick={() => void change('disconnect')}>
             Desconectar
           </Button>
         )}
@@ -429,7 +429,7 @@ function MirrorSection({ status, onChanged }: { status: BackupStatus; onChanged:
           Elegir carpeta
         </Button>
         {status.mirrorDir !== null && (
-          <Button variant="ghost" disabled={busy} onClick={() => void change('clear')}>
+          <Button variant="danger-outline" disabled={busy} onClick={() => void change('clear')}>
             Quitar
           </Button>
         )}

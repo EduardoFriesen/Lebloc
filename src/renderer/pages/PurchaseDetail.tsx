@@ -29,7 +29,7 @@ export function PurchaseDetailDialog({ purchaseId, onChanged, onClose }: Purchas
       {purchaseId !== null && <PurchaseDetail purchaseId={purchaseId} onChanged={onChanged} />}
       {/* Outside the detail, so it is there while it loads or if it fails too. */}
       <div className="flex justify-end">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="outline" onClick={onClose}>
           Cerrar
         </Button>
       </div>
@@ -96,7 +96,7 @@ function PurchaseDetail({ purchaseId, onChanged }: { purchaseId: number; onChang
                 </Button>
                 {activePayments === 0 && (
                   <Button
-                    variant="ghost"
+                    variant="danger-outline"
                     onClick={() =>
                       setPending({
                         title: 'Anular entrega',
@@ -203,7 +203,7 @@ function PaymentsTable({ payments, canVoid, onVoid }: { payments: KioskPurchaseP
                 'Anulado'
               ) : canVoid ? (
                 <Button
-                  variant="ghost"
+                  variant="danger-outline"
                   className="px-3!"
                   aria-label={`Anular pago de ${formatMoney(payment.amountCents)} del ${formatDate(payment.paidAt)}`}
                   onClick={() => onVoid(payment)}
@@ -259,7 +259,7 @@ function PaymentForm({ purchase, onDone, onCancel }: { purchase: KioskPurchase; 
       </div>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

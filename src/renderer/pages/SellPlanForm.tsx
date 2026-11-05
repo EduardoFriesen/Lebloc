@@ -219,7 +219,7 @@ function SellPlanFields({ plans, teachers, clientId, renewFrom, onDone, onCancel
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy || preview === null || 'error' in preview}>

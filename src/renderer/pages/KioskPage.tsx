@@ -333,7 +333,7 @@ function SalesTable({
                   </span>
                 ) : (
                   <Button
-                    variant="ghost"
+                    variant="danger-outline"
                     aria-label={`Anular ticket de las ${formatTime(sale.recordedAt)}`}
                     onClick={() => onVoid(sale)}
                   >
@@ -463,7 +463,7 @@ function PurchasesTable({ purchases, empty, onOpen }: { purchases: KioskPurchase
                 {purchase.voidedAt ? 'Anulada' : purchase.debtCents > 0 ? formatMoney(purchase.debtCents) : 'Pagada'}
               </td>
               <td className="text-right">
-                <Button variant="ghost" className="px-3!" aria-label={`Ver entrega del ${formatDate(purchase.receivedAt)}`} onClick={() => onOpen(purchase)}>
+                <Button variant="secondary" className="px-3!" aria-label={`Ver entrega del ${formatDate(purchase.receivedAt)}`} onClick={() => onOpen(purchase)}>
                   Ver
                 </Button>
               </td>

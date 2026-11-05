@@ -79,7 +79,7 @@ export function Layout() {
       <main id="contenido" tabIndex={-1} className="@container/main relative flex flex-1 flex-col overflow-y-auto focus:outline-none">
         {location.key !== 'default' && (
           <div className="px-8 pt-6">
-            <button type="button" className={buttonClass('ghost')} onClick={() => void navigate(-1)}>
+            <button type="button" className={buttonClass('outline')} onClick={() => void navigate(-1)}>
               ← Volver
             </button>
           </div>

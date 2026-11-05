@@ -87,7 +87,7 @@ function SellBody({ kind, prices, onCancel, onSold }: { kind: CounterSaleKind; p
       )}
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" disabled={busy} onClick={onCancel}>
+        <Button variant="outline" disabled={busy} onClick={onCancel}>
           Cancelar
         </Button>
         {kind === 'day_pass' ? (

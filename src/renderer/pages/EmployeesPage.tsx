@@ -128,7 +128,7 @@ export function EmployeesPage() {
                             Cargar horas
                           </Button>
                         )}
-                        <Button variant="ghost" aria-label={`Liquidar sueldo de ${fullName(employee)}`} onClick={() => setPayslipFor(employee)}>
+                        <Button variant="primary" aria-label={`Liquidar sueldo de ${fullName(employee)}`} onClick={() => setPayslipFor(employee)}>
                           Liquidar
                         </Button>
                         <Button variant="edit" aria-label={`Editar ${fullName(employee)}`} onClick={() => setEditing(employee)}>
@@ -253,7 +253,7 @@ function ShiftsTable({ shifts, empty, onVoid }: { shifts: WorkShift[]; empty: st
                   <Badge>Pagado</Badge>
                 ) : (
                   <Button
-                    variant="ghost"
+                    variant="danger-outline"
                     aria-label={`Anular turno de ${shift.employeeName} del ${formatDate(shift.workedOn)}`}
                     onClick={() => onVoid(shift)}
                   >

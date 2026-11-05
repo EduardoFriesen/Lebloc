@@ -55,7 +55,7 @@ function ConfirmBody({ request, busy, setBusy, onDone, onClose }: ConfirmBodyPro
       <p className="text-sm">{request.message}</p>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" disabled={busy} onClick={onClose}>
+        <Button variant="outline" disabled={busy} onClick={onClose}>
           Cancelar
         </Button>
         <Button variant="danger" disabled={busy} onClick={() => void confirm()}>

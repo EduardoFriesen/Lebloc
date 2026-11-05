@@ -100,11 +100,11 @@ export function KioskSalePanel({ search, onSearchChange, onSold }: KioskSalePane
                     <li key={product.id} className="flex items-center justify-between gap-3">
                       <span className="font-semibold">{product.name}</span>
                       <span className="flex items-center gap-2">
-                        <Button variant="ghost" disabled={busy} aria-label={`Quitar uno de ${product.name}`} onClick={() => updateCart(product.id, -1)}>
+                        <Button variant="outline" disabled={busy} aria-label={`Quitar uno de ${product.name}`} onClick={() => updateCart(product.id, -1)}>
                           −
                         </Button>
                         <span className="min-w-6 text-center tabular-nums">{quantity}</span>
-                        <Button variant="ghost" disabled={busy} aria-label={`Agregar uno de ${product.name}`} onClick={() => updateCart(product.id, 1)}>
+                        <Button variant="outline" disabled={busy} aria-label={`Agregar uno de ${product.name}`} onClick={() => updateCart(product.id, 1)}>
                           +
                         </Button>
                         <span className="min-w-20 text-right tabular-nums">{formatMoney(quantity * product.priceCents)}</span>

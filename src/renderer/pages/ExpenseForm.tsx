@@ -93,7 +93,7 @@ export function ExpenseForm({ repeat, onSaved, onCancel }: ExpenseFormProps) {
       </div>
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

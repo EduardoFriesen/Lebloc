@@ -111,7 +111,7 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
                 onChange={(event) => setSchedules((prev) => replaceAt(prev, index, { ...schedule, endTime: event.target.value }))}
                 error={errors[`schedules.${index}.endTime`]}
               />
-              <Button variant="ghost" onClick={() => setSchedules((prev) => removeAt(prev, index))}>
+              <Button variant="danger-outline" onClick={() => setSchedules((prev) => removeAt(prev, index))}>
                 Quitar horario {n}
               </Button>
             </div>
@@ -144,7 +144,7 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
                 onChange={(event) => setSocials((prev) => replaceAt(prev, index, { ...social, handle: event.target.value }))}
                 error={errors[`socials.${index}.handle`]}
               />
-              <Button variant="ghost" onClick={() => setSocials((prev) => removeAt(prev, index))}>
+              <Button variant="danger-outline" onClick={() => setSocials((prev) => removeAt(prev, index))}>
                 Quitar red {n}
               </Button>
             </div>
@@ -159,7 +159,7 @@ export function TeacherForm({ teacher, onSaved, onCancel }: { teacher: Teacher |
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

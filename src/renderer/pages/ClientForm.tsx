@@ -146,7 +146,7 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
                   onChange={(event) => setGuardians((prev) => replaceAt(prev, index, { ...guardian, [key]: event.target.value }))}
                 />
               ))}
-              <Button variant="ghost" onClick={() => setGuardians((prev) => removeAt(prev, index))}>
+              <Button variant="danger-outline" onClick={() => setGuardians((prev) => removeAt(prev, index))}>
                 Quitar tutor {n}
               </Button>
             </div>
@@ -161,7 +161,7 @@ export function ClientForm({ client, onSaved, onCancel }: { client: Client | nul
 
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>

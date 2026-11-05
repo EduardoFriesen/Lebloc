@@ -129,7 +129,7 @@ export function PayslipView({ employee, month, onChange, onClose }: PayslipViewP
             )}
             {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={onClose}>
+              <Button variant="outline" onClick={onClose}>
                 Cerrar
               </Button>
               {data.shifts.length > 0 && (
@@ -215,7 +215,7 @@ function PayoutsTable({ payouts, onVoid }: { payouts: StaffPayout[]; onVoid: (pa
                 {payout.voidedAt ? (
                   'Anulada'
                 ) : (
-                  <Button variant="ghost" aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`} onClick={() => onVoid(payout)}>
+                  <Button variant="danger-outline" aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`} onClick={() => onVoid(payout)}>
                     Anular
                   </Button>
                 )}

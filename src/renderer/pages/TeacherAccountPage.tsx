@@ -119,7 +119,7 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
                       'Anulada'
                     ) : (
                       <Button
-                        variant="ghost"
+                        variant="danger-outline"
                         aria-label={`Anular liquidación del ${formatDate(payout.paidAt)}`}
                         onClick={() =>
                           setPending({
@@ -281,7 +281,7 @@ function PayoutForm({ account, onDone, onCancel }: { account: TeacherAccount; on
       <TextField label="Nota" value={note} onChange={(event) => setNote(event.target.value)} error={errors.note} />
       {serverError && <Notice tone="error">{serverError}</Notice>}
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
         <Button type="submit" disabled={busy}>
