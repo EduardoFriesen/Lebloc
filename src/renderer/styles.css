@@ -111,6 +111,12 @@ body,
     outline-offset: 2px;
   }
 
+  /* El texto de ejemplo de los campos ("0,00", "Nombre o apellido"): Tailwind lo deja a medio tono y no llega a 4,5:1;
+     el gris secundario sí, y sigue distinto de lo escrito. */
+  ::placeholder {
+    color: var(--color-ink-soft);
+  }
+
   /* Sobre índigo el terracota no contrasta: el foco va en crema. */
   nav :focus-visible,
   .bg-dusk :focus-visible {

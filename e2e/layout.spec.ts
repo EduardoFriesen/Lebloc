@@ -158,3 +158,35 @@ test('every button has a fill or a frame, in the screens and in the dialogs', as
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
   expect([...new Set(unframed)]).toEqual([]);
 });
+
+// The example text inside a field (search boxes, "0,00") is read too: WCAG AA like any other text.
+const PLACEHOLDER_CONTRAST = `(() => {
+  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  const rgb = (c) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = 'transparent'; ctx.fillStyle = c; ctx.fillRect(0, 0, 1, 1); const d = ctx.getImageData(0, 0, 1, 1).data; return [d[0] / 255, d[1] / 255, d[2] / 255, d[3] / 255]; };
+  const lum = ([r, g, b]) => { const f = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  return [...document.querySelectorAll('input[placeholder]')].filter((input) => input.checkVisibility()).map((input) => {
+    const bg = rgb(getComputedStyle(input).backgroundColor);
+    const ph = rgb(getComputedStyle(input, '::placeholder').color);
+    const fg = ph.map((v, i) => (i < 3 ? v * ph[3] + bg[i] * (1 - ph[3]) : 1));
+    const a = lum(fg), b = lum(bg);
+    return [input.placeholder, (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)];
+  });
+})()`;
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`the example text in the fields is readable in the ${theme} theme`, async () => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    await page.evaluate(`localStorage.setItem('lebloc:appearance', JSON.stringify({ theme: '${theme}', fontSize: 'normal' }))`);
+    await page.reload();
+    const faint: string[] = [];
+    for (const route of ['/pases', '/planes', '/empleados']) {
+      await page.evaluate(`window.location.hash = '#${route}'`);
+      await expect(page.getByRole('status', { name: 'Cargando' })).toHaveCount(0);
+      const found = await page.evaluate<[string, number][]>(PLACEHOLDER_CONTRAST);
+      expect(found.length).toBeGreaterThan(0);
+      for (const [text, ratio] of found) if (ratio < 4.5) faint.push(`${route} "${text}": ${ratio.toFixed(2)}`);
+    }
+    expect(faint).toEqual([]);
+  });
+}
+
