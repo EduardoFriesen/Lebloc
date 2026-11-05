@@ -152,7 +152,10 @@ function TeacherAccountView({ account, reload }: { account: TeacherAccount; relo
                 <th scope="col">Fecha</th>
                 <th scope="col">Cliente</th>
                 <th scope="col">Plan</th>
-                <th scope="col">Le corresponde</th>
+                {/* On one line, like the headers of the table beside it, so both rows line up. */}
+                <th scope="col" className="whitespace-nowrap">
+                  Le corresponde
+                </th>
               </tr>
             </thead>
             <tbody>
