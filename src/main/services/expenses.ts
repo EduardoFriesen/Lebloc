@@ -2,10 +2,8 @@ import { DomainError } from '../../domain/errors';
 import type { ExpenseInput, ExpensePaidInput } from '../../shared/schemas';
 import type { Expense, ExpenseCategory, ExpenseMonth } from '../../shared/types';
 import { assertNotFuture, type Context, nowIso } from '../context';
+import { SHOWN_PRODUCTS, withMore } from '../../shared/text';
 import * as repo from '../repos/expenses';
-
-/** Products named in a supplier payment's row in Gastos. */
-const SHOWN_PRODUCTS = 3;
 
 function getExpense(ctx: Context, id: number): Expense {
   const expense = repo.findExpense(ctx.db, id);
@@ -40,7 +38,7 @@ export function getExpenseMonth(ctx: Context, month: string): ExpenseMonth {
   // Up to three products by name; the delivery's detail, a click away, has them all.
   const supplierPayments = repo.listSupplierPaymentsInMonth(ctx.db, month, SHOWN_PRODUCTS).map(({ firstProducts, productCount, ...payment }) => ({
     ...payment,
-    productsLabel: productCount > SHOWN_PRODUCTS ? `${firstProducts} y ${productCount - SHOWN_PRODUCTS} más` : firstProducts,
+    productsLabel: withMore(firstProducts, productCount),
   }));
   const supplierCents = supplierPayments.reduce((total, payment) => total + payment.amountCents, 0);
   return {

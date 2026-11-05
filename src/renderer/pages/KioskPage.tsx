@@ -31,6 +31,7 @@ import { call } from '../lib/api';
 import { sum } from '../lib/arrays';
 import { currentMonthIso, formatDate, formatMoney, formatTime, PAYMENT_METHOD_LABELS, todayIso } from '../lib/format';
 import { matchesSearch } from '../lib/search';
+import { SHOWN_PRODUCTS, withMore } from '../../shared/text';
 import { useAsync } from '../lib/useAsync';
 import type { KioskPurchase, KioskSale, Product } from '../../shared/types';
 import { KioskSalePanel } from '../components/KioskSalePanel';
@@ -457,7 +458,15 @@ function PurchasesTable({ purchases, empty, onOpen }: { purchases: KioskPurchase
               }}
             >
               <td className="tabular-nums">{formatDate(purchase.receivedAt).slice(0, 5)}</td>
-              <td>{purchase.items.map((item) => `${item.quantity} × ${item.productName}`).join(', ')}</td>
+              <td>
+                {withMore(
+                  purchase.items
+                    .slice(0, SHOWN_PRODUCTS)
+                    .map((item) => `${item.quantity} × ${item.productName}`)
+                    .join(', '),
+                  purchase.items.length,
+                )}
+              </td>
               <td className="font-semibold">{formatMoney(purchase.totalCents)}</td>
               <td className={purchase.debtCents > 0 && !purchase.voidedAt ? 'font-semibold text-danger' : 'text-ink-soft'}>
                 {purchase.voidedAt ? 'Anulada' : purchase.debtCents > 0 ? formatMoney(purchase.debtCents) : 'Pagada'}
