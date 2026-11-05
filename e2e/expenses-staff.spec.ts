@@ -127,3 +127,33 @@ test('settle the hours owed to an employee and void the settlement', async () =>
   await slip.getByRole('button', { name: 'Cerrar' }).click();
   await expect(summary()).toContainText(/A pagar\s*\$\s22\.500,00/);
 });
+
+test('search the employees by name, in the team and in the shifts', async () => {
+  await page.getByRole('button', { name: 'Nuevo empleado' }).click();
+  await label('Nombre').fill('Tomás');
+  await label('Apellido').fill('Río');
+  await label('Valor hora').fill('4.000');
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await page.getByRole('button', { name: 'Cargar horas de Tomás Río' }).click();
+  await label('Horas').fill('2');
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+
+  // Accents and case don't matter.
+  await label('Buscar empleado').fill('lucia');
+  const team = page.getByRole('list', { name: 'Empleados' });
+  await expect(team.getByRole('heading', { name: 'Lucía Paz' })).toBeVisible();
+  await expect(team.getByRole('heading', { name: 'Tomás Río' })).toHaveCount(0);
+
+  await staffTab('Turnos');
+  await expect(label('Buscar empleado')).toHaveValue('lucia');
+  await expect(page.getByRole('row', { name: /Lucía Paz/ }).first()).toBeVisible();
+  await expect(page.getByRole('row', { name: /Tomás Río/ })).toHaveCount(0);
+  await label('Buscar empleado').fill('nadie');
+  await expect(page.getByText('Ningún turno coincide con “nadie”')).toBeVisible();
+
+  await staffTab('Equipo');
+  await expect(page.getByText('Ningún empleado coincide con “nadie”')).toBeVisible();
+  await label('Buscar empleado').fill('');
+  await expect(team.getByRole('heading', { name: 'Tomás Río' })).toBeVisible();
+});

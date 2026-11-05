@@ -14,6 +14,7 @@ import { TabNav } from '../components/ui/TabNav';
 import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { currentMonthIso, EMPLOYEE_KIND_LABELS, formatDate, formatHours, formatMoney, fullName } from '../lib/format';
+import { matchesSearch } from '../lib/search';
 import { type AsyncResult, useAsync } from '../lib/useAsync';
 import { EmployeeForm } from './EmployeeForm';
 import { PayslipView } from './PayslipView';
@@ -22,6 +23,8 @@ import { ShiftForm } from './ShiftForm';
 /** What the tabs get from the page: the month's data, the filters and the forms, which the page keeps open over both. */
 interface StaffContext {
   month: string;
+  /** Typed by name; filters the cards and the shifts alike. */
+  search: string;
   employees: AsyncResult<EmployeeSummary[]>;
   shifts: AsyncResult<WorkShift[]>;
   includeInactive: boolean;
@@ -43,6 +46,7 @@ const TABS = [
 /** Header, tabs, the month and the summary; the open tab goes in between. */
 export function EmployeesPage() {
   const [month, setMonth] = useState(currentMonthIso());
+  const [search, setSearch] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [selected, setSelected] = useState<Employee | null>(null);
   const [editing, setEditing] = useState<Employee | 'new' | null>(null);
@@ -77,6 +81,7 @@ export function EmployeesPage() {
 
   const context: StaffContext = {
     month,
+    search,
     employees,
     shifts,
     includeInactive,
@@ -107,8 +112,9 @@ export function EmployeesPage() {
         <div className="mb-4 border-b border-ink/10">
           <TabNav label="Secciones de empleados" tabs={TABS} />
         </div>
-        <div className="mb-4 flex">
+        <div className="mb-4 flex flex-wrap items-end gap-4">
           <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
+          <TextField label="Buscar empleado" type="search" placeholder="Nombre o apellido" value={search} onChange={(event) => setSearch(event.target.value)} />
         </div>
       </div>
       <div className={`${SUMMARY_LIST} flex flex-col gap-4`}>
@@ -167,23 +173,28 @@ export function EmployeesPage() {
 
 /** The employees as cards, with the month's hours and cost; a card opens its shifts. */
 export function TeamTab() {
-  const { employees, includeInactive, setIncludeInactive, setSelected, edit, loadHours, payslip } = useOutletContext<StaffContext>();
+  const { search, employees, includeInactive, setIncludeInactive, setSelected, edit, loadHours, payslip } = useOutletContext<StaffContext>();
   const navigate = useNavigate();
+  const shown = (data: EmployeeSummary[]) => data.filter((employee) => matchesSearch(fullName(employee), search));
   return (
     <section aria-label="Equipo" className="flex flex-col gap-4">
       <CheckboxField label="Mostrar inactivos" checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
       <AsyncView
         state={employees}
-        isEmpty={(data) => data.length === 0}
+        isEmpty={(data) => shown(data).length === 0}
         empty={
-          <EmptyState title={includeInactive ? 'Todavía no hay empleados' : 'No hay empleados activos'}>
-            <p className="text-sm">Cargá uno con “Nuevo empleado” y después sus horas con “Cargar horas”.</p>
-          </EmptyState>
+          search.trim() ? (
+            <EmptyState title={`Ningún empleado coincide con “${search.trim()}”`} />
+          ) : (
+            <EmptyState title={includeInactive ? 'Todavía no hay empleados' : 'No hay empleados activos'}>
+              <p className="text-sm">Cargá uno con “Nuevo empleado” y después sus horas con “Cargar horas”.</p>
+            </EmptyState>
+          )
         }
       >
         {(data) => (
           <CardGrid label="Empleados">
-            {data.map((employee) => (
+            {shown(data).map((employee) => (
               <Card
                 key={employee.id}
                 onSelect={() => {
@@ -231,16 +242,22 @@ export function TeamTab() {
 
 /** The month's shifts, of everyone or of the employee picked from a card. */
 export function ShiftsTab() {
-  const { month, shifts, selected, setSelected, askVoid } = useOutletContext<StaffContext>();
+  const { month, search, shifts, selected, setSelected, askVoid } = useOutletContext<StaffContext>();
   return (
     <section aria-label="Turnos" className="flex flex-col gap-3">
       {selected && <ClearFilter label={fullName(selected)} onClear={() => setSelected(null)} />}
       <AsyncView state={shifts}>
         {(data) => (
           <ShiftsTable
-            key={`${month}|${selected?.id ?? ''}`}
-            shifts={data}
-            empty={selected ? `${fullName(selected)} no tiene turnos este mes` : 'No hay turnos cargados este mes'}
+            key={`${month}|${selected?.id ?? ''}|${search}`}
+            shifts={data.filter((shift) => matchesSearch(shift.employeeName, search))}
+            empty={
+              search.trim()
+                ? `Ningún turno coincide con “${search.trim()}”`
+                : selected
+                  ? `${fullName(selected)} no tiene turnos este mes`
+                  : 'No hay turnos cargados este mes'
+            }
             onVoid={askVoid}
           />
         )}
