@@ -77,7 +77,7 @@ export function getFinanceTraffic(ctx: Context, range: DateRange): FinanceTraffi
   };
 }
 
-/** Every active teacher, plus inactive ones that still had movement or a balance. */
+/** Every active teacher, plus inactive ones that still had movement, a balance or classes to give. */
 export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActivity[] {
   const balances = new Map(listTeacherBalances(ctx).map((balance) => [balance.teacherId, balance]));
   return repo
@@ -91,7 +91,7 @@ export function getFinanceTeachers(ctx: Context, range: DateRange): TeacherActiv
         pendingClasses: balance?.pendingClasses ?? 0,
       };
     })
-    .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0);
+    .filter((row) => row.active || row.classes > 0 || row.earnedCents > 0 || row.paidOutCents > 0 || row.balanceCents !== 0 || row.pendingClasses > 0);
 }
 
 export function getFinanceClients(ctx: Context, range: DateRange): FinanceClients {

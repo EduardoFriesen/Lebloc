@@ -24,7 +24,7 @@ import { createPlan, listPlanSales } from './plans';
 import { createProduct } from './products';
 import { createPurchase, payPurchase, voidPurchase } from './purchases';
 import { sellPlan, setSaleInvoiced } from './sales';
-import { createTeacher } from './teachers';
+import { createTeacher, updateTeacher } from './teachers';
 
 const OCTOBER = { from: '2026-10-01', to: '2026-10-05' };
 
@@ -326,6 +326,15 @@ describe('finance', () => {
       expect(getFinanceTeachers(ctx, { from: '2026-09-01', to: '2026-09-30' })).toMatchObject([
         { name: 'Juan Pared', classes: 0, earnedCents: 0, paidOutCents: 0, balanceCents: 600_000 },
       ]);
+    });
+
+    it('keeps an inactive teacher who still has classes to give', () => {
+      const sol = createTeacher(ctx, { ...basicTeacher, firstName: 'Sol' }).id;
+      const clientId = createClient(ctx, { ...adultClient, firstName: 'Caro' }).id;
+      const planId = createPlan(ctx, { ...mixedPlan, name: 'Con Sol' }).id;
+      sellPlan(ctx, { clientId, planId, teacherId: sol, splitRule: 'proportional', soldAt: '2026-09-10', expiresAt: FAR_EXPIRY, initialPayment: null });
+      updateTeacher(ctx, { ...basicTeacher, firstName: 'Sol', id: sol, active: false });
+      expect(getFinanceTeachers(ctx, OCTOBER)).toContainEqual(expect.objectContaining({ name: 'Sol Pared', active: false, balanceCents: 0, pendingClasses: 4 }));
     });
   });
 
