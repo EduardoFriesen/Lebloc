@@ -136,15 +136,17 @@ export function ExpensesPage() {
             selected: category === row.category,
           })),
           {
-            label: 'Sueldos del mes',
-            value: <span className="font-semibold">{staff.status === 'success' ? formatMoney(staff.data.monthCostCents) : '—'}</span>,
-            onSelect: () => void navigate('/empleados'),
-          },
-          {
             label: 'Mercadería del kiosco',
             value: <span className="font-semibold">{formatMoney(totals.supplierCents)}</span>,
             onSelect: () => setCategory(MERCHANDISE),
             selected: category === MERCHANDISE,
+          },
+          // Shown for reference: shifts are loaded in Empleados, so they stay out of this screen's total.
+          {
+            label: 'Sueldos del mes',
+            value: <span className="font-semibold">{staff.status === 'success' ? formatMoney(staff.data.monthCostCents) : '—'}</span>,
+            onSelect: () => void navigate('/empleados'),
+            hint: 'No entra en el total: se cargan en Empleados.',
           },
         ]}
       />

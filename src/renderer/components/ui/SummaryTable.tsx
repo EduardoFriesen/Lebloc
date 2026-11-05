@@ -11,6 +11,8 @@ export interface SummaryRow {
   onSelect?: () => void;
   /** The list is showing this row's items. */
   selected?: boolean;
+  /** A short note under the label. */
+  hint?: string;
 }
 
 /**
@@ -58,7 +60,7 @@ export function SummaryTable<T>({ state, rows, className = SUMMARY_SIDE }: Summa
         {(data) => (
           <table aria-labelledby={id} className="w-full border-collapse text-sm">
             <tbody>
-              {rows(data).map(({ label, value, onSelect, selected = false }) => (
+              {rows(data).map(({ label, value, onSelect, selected = false, hint }) => (
                 <tr
                   key={label}
                   className={`relative border-b border-ink/10 last:border-b-0 ${onSelect ? `hover:bg-sunken/60 ${FOCUS_WITHIN}` : ''} ${selected ? SELECTED : ''}`}
@@ -71,6 +73,7 @@ export function SummaryTable<T>({ state, rows, className = SUMMARY_SIDE }: Summa
                     ) : (
                       label
                     )}
+                    {hint && <span className="block text-xs font-normal text-ink-soft">{hint}</span>}
                   </th>
                   <td className="py-2 text-right">{value}</td>
                 </tr>

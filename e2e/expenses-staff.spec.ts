@@ -82,7 +82,7 @@ test('add an employee and record a shift', async () => {
   await expect(summary()).toContainText(/Costo del mes\s*\$\s22\.500,00/);
 
   await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
-  await expect(summary()).toContainText(/Sueldos del mes\s*\$\s22\.500,00/);
+  await expect(summary()).toContainText(/Sueldos del mesNo entra en el total: se cargan en Empleados\.\s*\$\s22\.500,00/);
 });
 
 test("show an employee's payslip for a range of dates", async () => {
