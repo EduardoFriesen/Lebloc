@@ -1,0 +1,111 @@
+import { saleDebt } from '../../domain/ledger';
+import type { DayMovement, DebtCancellation, Payment, PaymentMethod } from '../../shared/types';
+import type { Db } from '../db/connection';
+
+export interface NewPayment {
+  saleId: number;
+  paidAt: string;
+  amountCents: number;
+  method: PaymentMethod;
+  localCents: number;
+  teacherCents: number;
+  recordedAt: string;
+}
+
+const PAYMENT_COLUMNS = `p.id, p.sale_id AS saleId, p.paid_at AS paidAt, p.amount_cents AS amountCents, p.method,
+  p.local_cents AS localCents, p.teacher_cents AS teacherCents, p.voided_at AS voidedAt`;
+
+export function insertPayment(db: Db, payment: NewPayment): number {
+  const result = db
+    .prepare(
+      `INSERT INTO payments (sale_id, paid_at, amount_cents, method, local_cents, teacher_cents, recorded_at)
+       VALUES (@saleId, @paidAt, @amountCents, @method, @localCents, @teacherCents, @recordedAt)`,
+    )
+    .run({
+      saleId: payment.saleId,
+      paidAt: payment.paidAt,
+      amountCents: payment.amountCents,
+      method: payment.method,
+      localCents: payment.localCents,
+      teacherCents: payment.teacherCents,
+      recordedAt: payment.recordedAt,
+    });
+  return Number(result.lastInsertRowid);
+}
+
+export function findPayment(db: Db, id: number): Payment | undefined {
+  return db.prepare<[number], Payment>(`SELECT ${PAYMENT_COLUMNS} FROM payments p WHERE p.id = ?`).get(id);
+}
+
+export function listPaymentsForSale(db: Db, saleId: number): Payment[] {
+  return db.prepare<[number], Payment>(`SELECT ${PAYMENT_COLUMNS} FROM payments p WHERE p.sale_id = ? ORDER BY p.id`).all(saleId);
+}
+
+export function listPaymentsForClient(db: Db, clientId: number): Payment[] {
+  return db
+    .prepare<[number], Payment>(
+      `SELECT ${PAYMENT_COLUMNS} FROM payments p JOIN sales s ON s.id = p.sale_id
+       WHERE s.client_id = ? ORDER BY p.paid_at DESC, p.id DESC`,
+    )
+    .all(clientId);
+}
+
+export function activeAllocationTotals(db: Db, saleId: number): { localCents: number; teacherCents: number } {
+  const totals = db
+    .prepare<[number], { localCents: number; teacherCents: number }>(
+      `SELECT COALESCE(SUM(local_cents), 0) AS localCents, COALESCE(SUM(teacher_cents), 0) AS teacherCents
+       FROM payments WHERE sale_id = ? AND voided_at IS NULL`,
+    )
+    .get(saleId);
+  return totals ?? { localCents: 0, teacherCents: 0 };
+}
+
+export function voidPayment(db: Db, id: number, now: string): void {
+  db.prepare('UPDATE payments SET voided_at = ? WHERE id = ?').run(now, id);
+}
+
+type PlanMovement = Extract<DayMovement, { kind: 'plan' }>;
+
+/** Non-voided payments made on `date`, newest first, with the sale's current debt. */
+export function listPaymentsOn(db: Db, date: string): PlanMovement[] {
+  return db
+    .prepare<[string], Omit<PlanMovement, 'kind' | 'debtCents'> & { paidCents: number; cancelledCents: number; saleVoidedAt: string | null }>(
+      `SELECT p.id AS paymentId, c.id AS clientId, trim(c.first_name || ' ' || c.last_name) AS clientName,
+         s.plan_name AS planName, p.method, p.amount_cents AS amountCents, s.total_cents AS saleTotalCents,
+         s.voided_at AS saleVoidedAt, p.recorded_at AS recordedAt,
+         COALESCE((SELECT SUM(q.amount_cents) FROM payments q WHERE q.sale_id = s.id AND q.voided_at IS NULL), 0) AS paidCents,
+         COALESCE((SELECT SUM(d.amount_cents) FROM debt_cancellations d WHERE d.sale_id = s.id AND d.voided_at IS NULL), 0) AS cancelledCents
+       FROM payments p JOIN sales s ON s.id = p.sale_id JOIN clients c ON c.id = s.client_id
+       WHERE p.paid_at = ? AND p.voided_at IS NULL ORDER BY p.id DESC`,
+    )
+    .all(date)
+    .map(({ paidCents, cancelledCents, saleVoidedAt, ...row }) => ({
+      kind: 'plan' as const,
+      ...row,
+      debtCents: saleVoidedAt ? 0 : saleDebt(row.saleTotalCents, paidCents, cancelledCents),
+    }));
+}
+
+const CANCELLATION_COLUMNS = `d.id, d.sale_id AS saleId, d.amount_cents AS amountCents, d.cancelled_at AS cancelledAt, d.voided_at AS voidedAt`;
+
+export function insertDebtCancellation(db: Db, saleId: number, amountCents: number, now: string): number {
+  const result = db.prepare('INSERT INTO debt_cancellations (sale_id, amount_cents, cancelled_at) VALUES (?, ?, ?)').run(saleId, amountCents, now);
+  return Number(result.lastInsertRowid);
+}
+
+export function findDebtCancellation(db: Db, id: number): DebtCancellation | undefined {
+  return db.prepare<[number], DebtCancellation>(`SELECT ${CANCELLATION_COLUMNS} FROM debt_cancellations d WHERE d.id = ?`).get(id);
+}
+
+export function listDebtCancellationsForClient(db: Db, clientId: number): DebtCancellation[] {
+  return db
+    .prepare<[number], DebtCancellation>(
+      `SELECT ${CANCELLATION_COLUMNS} FROM debt_cancellations d JOIN sales s ON s.id = d.sale_id
+       WHERE s.client_id = ? ORDER BY d.id DESC`,
+    )
+    .all(clientId);
+}
+
+export function voidDebtCancellation(db: Db, id: number, now: string): void {
+  db.prepare('UPDATE debt_cancellations SET voided_at = ? WHERE id = ?').run(now, id);
+}

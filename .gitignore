@@ -1,0 +1,18 @@
+node_modules/
+out/
+dist/
+.vite/
+.env
+.env.*
+*.db
+*.db-wal
+*.db-shm
+playwright-report/
+test-results/
+
+# Real spreadsheets carry personal data (DNI, phones, minors): never commit them. Only the synthetic test fixture.
+*.xlsx
+!src/main/import/fixtures/*.xlsx
+
+# Brainstorming mockups and the plan ledger
+.superpowers/

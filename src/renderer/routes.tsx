@@ -1,0 +1,74 @@
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { EmptyState } from './components/ui/States';
+import { ClientDetailPage } from './pages/ClientDetailPage';
+import { ClientsPage } from './pages/ClientsPage';
+import { EmployeesPage, ShiftsTab, TeamTab } from './pages/EmployeesPage';
+import { ExpensesPage } from './pages/ExpensesPage';
+import { FinancePage } from './pages/FinancePage';
+import { ClientsTab } from './pages/finance/ClientsTab';
+import { SalesTab } from './pages/finance/SalesTab';
+import { SummaryTab } from './pages/finance/SummaryTab';
+import { TeachersTab } from './pages/finance/TeachersTab';
+import { TrafficTab } from './pages/finance/TrafficTab';
+import { HomePage, MovementsTab, PassesTab } from './pages/HomePage';
+import { KioskPage, KioskProductsTab, KioskPurchasesTab, KioskSalesTab } from './pages/KioskPage';
+import { PlanSalesTab, PlansPage, PlansTab } from './pages/PlansPage';
+import { PlanDetailPage } from './pages/PlanDetailPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { TeacherAccountPage } from './pages/TeacherAccountPage';
+import { TeachersPage } from './pages/TeachersPage';
+
+function NotFoundPage() {
+  return (
+    <section className="p-8">
+      <EmptyState title="Página no encontrada">
+        <Link className="underline" to="/pases">
+          Volver a Pases
+        </Link>
+      </EmptyState>
+    </section>
+  );
+}
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Navigate to="/pases" replace />} />
+        <Route path="pases" element={<HomePage />}>
+          <Route index element={<PassesTab />} />
+          <Route path="movimientos" element={<MovementsTab />} />
+        </Route>
+        <Route path="clientes" element={<ClientsPage />} />
+        <Route path="clientes/:id" element={<ClientDetailPage />} />
+        <Route path="planes" element={<PlansPage />}>
+          <Route index element={<PlansTab />} />
+          <Route path="ventas" element={<PlanSalesTab />} />
+        </Route>
+        <Route path="planes/:id" element={<PlanDetailPage />} />
+        <Route path="kiosco" element={<KioskPage />}>
+          <Route index element={<KioskSalesTab />} />
+          <Route path="productos" element={<KioskProductsTab />} />
+          <Route path="entregas" element={<KioskPurchasesTab />} />
+        </Route>
+        <Route path="profesores" element={<TeachersPage />} />
+        <Route path="profesores/:id" element={<TeacherAccountPage />} />
+        <Route path="empleados" element={<EmployeesPage />}>
+          <Route index element={<TeamTab />} />
+          <Route path="turnos" element={<ShiftsTab />} />
+        </Route>
+        <Route path="gastos" element={<ExpensesPage />} />
+        <Route path="finanzas" element={<FinancePage />}>
+          <Route index element={<SummaryTab />} />
+          <Route path="ventas" element={<SalesTab />} />
+          <Route path="afluencia" element={<TrafficTab />} />
+          <Route path="profesores" element={<TeachersTab />} />
+          <Route path="clientes" element={<ClientsTab />} />
+        </Route>
+        <Route path="ajustes" element={<SettingsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
+}

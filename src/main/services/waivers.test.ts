@@ -1,0 +1,64 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { adultClient, createTestContext, type TestContext } from '../test-context';
+import { getClientAccount } from './account';
+import { archiveClient, createClient, listClients } from './clients';
+import { countMissingWaivers, signWaiver, voidWaiver } from './waivers';
+
+describe('signed waivers', () => {
+  let ctx: TestContext;
+  let anaId: number;
+
+  beforeEach(() => {
+    ctx = createTestContext();
+    anaId = createClient(ctx, adultClient).id;
+  });
+
+  it('records the delivery and reports the waiver as valid', () => {
+    const signature = signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-01' });
+    expect(signature).toMatchObject({ clientId: anaId, signedAt: '2026-10-01', voidedAt: null });
+
+    const account = getClientAccount(ctx, anaId);
+    expect(account.waivers).toEqual([signature]);
+    expect(account.waiver).toEqual({ state: 'valid', signedAt: '2026-10-01' });
+  });
+
+  it('never expires', () => {
+    signWaiver(ctx, { clientId: anaId, signedAt: '2016-08-05' });
+    expect(getClientAccount(ctx, anaId).waiver).toEqual({ state: 'valid', signedAt: '2016-08-05' });
+  });
+
+  it('rejects future dates and archived clients', () => {
+    expect(() => signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-06' })).toThrow(expect.objectContaining({ code: 'WAIVER_DATE_IN_FUTURE' }));
+    archiveClient(ctx, anaId);
+    expect(() => signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-05' })).toThrow(expect.objectContaining({ code: 'CLIENT_ARCHIVED' }));
+  });
+
+  it('ignores voided signatures and cannot void twice', () => {
+    signWaiver(ctx, { clientId: anaId, signedAt: '2025-01-10' });
+    const latest = signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-01' });
+    expect(voidWaiver(ctx, latest.id).voidedAt).not.toBeNull();
+    expect(getClientAccount(ctx, anaId).waiver).toEqual({ state: 'valid', signedAt: '2025-01-10' });
+    expect(() => voidWaiver(ctx, latest.id)).toThrow(expect.objectContaining({ code: 'ALREADY_VOIDED' }));
+  });
+
+  it('shows the waiver state in the counter search', () => {
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]?.waiver.state).toBe('missing');
+    signWaiver(ctx, { clientId: anaId, signedAt: '2026-10-05' });
+    expect(listClients(ctx, { search: 'Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]?.waiver.state).toBe('valid');
+  });
+
+  it('counts the active clients that never handed it in', () => {
+    const brunoId = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const caroId = createClient(ctx, { ...adultClient, firstName: 'Caro', lastName: 'Vía' }).id;
+    signWaiver(ctx, { clientId: brunoId, signedAt: '2025-01-01' });
+    signWaiver(ctx, { clientId: caroId, signedAt: '2026-10-01' });
+    const archivedId = createClient(ctx, { ...adultClient, firstName: 'Dani', lastName: 'Zeta' }).id;
+    archiveClient(ctx, archivedId);
+
+    const ernestoId = createClient(ctx, { ...adultClient, firstName: 'Ernesto', lastName: 'Ugarte' }).id;
+    voidWaiver(ctx, signWaiver(ctx, { clientId: ernestoId, signedAt: '2026-10-01' }).id);
+
+    // Ana and Ernesto (his only one was voided); Bruno's old one still counts, Dani is archived.
+    expect(countMissingWaivers(ctx)).toBe(2);
+  });
+});

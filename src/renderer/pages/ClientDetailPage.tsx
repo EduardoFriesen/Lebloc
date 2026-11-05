@@ -1,0 +1,837 @@
+import { type FormEvent, type ReactNode, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import type { PassKind } from '../../domain/passes';
+import type { Client, ClientAccount, Consumption, DebtCancellation, Payment, Sale, WaiverSignature } from '../../shared/types';
+import { Button } from '../components/ui/Button';
+import { ConfirmDialog, type ConfirmRequest } from '../components/ui/ConfirmDialog';
+import { Dialog } from '../components/ui/Dialog';
+import { TextField } from '../components/ui/Field';
+import { Notice, type NoticeState } from '../components/ui/Notice';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageBar, usePage } from '../components/ui/Pager';
+import { AsyncView, EmptyState, SkeletonRows } from '../components/ui/States';
+import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
+import { call } from '../lib/api';
+import {
+  ageLabel,
+  archiveMessage,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  fullName,
+  localMonth,
+  PASS_KIND_LABELS,
+  PAYMENT_METHOD_LABELS,
+  SPLIT_RULE_LABELS,
+  todayIso,
+  waiverLabel,
+} from '../lib/format';
+import { saleExpiryInput, waiverInput } from '../../shared/schemas';
+import { errorMessage, type FieldErrors, toFieldErrors } from '../lib/formErrors';
+import { useAsync } from '../lib/useAsync';
+import { ClientForm } from './ClientForm';
+import { ExtendSaleForm } from './ExtendSaleForm';
+import { PaymentForm } from './PaymentForm';
+import { SellPlanForm } from './SellPlanForm';
+
+export function ClientDetailPage() {
+  const clientId = Number(useParams().id);
+  const account = useAsync(() => call('clients:account', { id: clientId }), [clientId]);
+  return (
+    <section className="p-8">
+      <AsyncView state={account} skeleton={<SkeletonRows rows={8} />}>
+        {(data) => <ClientAccountView account={data} reload={account.reload} />}
+      </AsyncView>
+    </section>
+  );
+}
+
+function ClientAccountView({ account, reload }: { account: ClientAccount; reload: () => void }) {
+  const { client } = account;
+  const archived = client.archivedAt !== null;
+  const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [selling, setSelling] = useState<{ renewFrom?: Sale } | null>(null);
+  const [payingSale, setPayingSale] = useState<Sale | null>(null);
+  const [expiringSale, setExpiringSale] = useState<Sale | null>(null);
+  const [extendingSale, setExtendingSale] = useState<Sale | null>(null);
+  const [signing, setSigning] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [pending, setPending] = useState<ConfirmRequest | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function run(action: () => Promise<unknown>, success: string) {
+    setBusy(true);
+    try {
+      await action();
+      setNotice({ tone: 'success', text: success });
+      reload();
+    } catch (caught) {
+      setNotice({ tone: 'error', text: errorMessage(caught) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function consume(kind: PassKind) {
+    void run(
+      () => call('consumptions:create', { clientId: client.id, kind, note: null }),
+      `Pase ${PASS_KIND_LABELS[kind].toLowerCase()} registrado.`,
+    );
+  }
+
+  const headerActions = archived ? (
+    !client.anonymizedAt && (
+      <>
+        <Button variant="secondary" disabled={busy} onClick={() => void run(() => call('clients:unarchive', { id: client.id }), 'Cliente desarchivado.')}>
+          Desarchivar
+        </Button>
+        <Button
+          variant="danger-outline"
+          onClick={() =>
+            setPending({
+              title: 'Anonimizar cliente',
+              message:
+                'Se borran para siempre los datos personales y los tutores. Las ventas y los pagos se conservan para no alterar deudas ni saldos de profesores. No se puede deshacer.',
+              confirmLabel: 'Anonimizar',
+              action: () => call('clients:anonymize', { id: client.id }),
+            })
+          }
+        >
+          Anonimizar
+        </Button>
+      </>
+    )
+  ) : (
+    <>
+      <Button variant="edit" onClick={() => setEditing(true)}>
+        Editar
+      </Button>
+      <Button
+        variant="danger-outline"
+        onClick={() =>
+          setPending({
+            title: 'Archivar cliente',
+            message: archiveMessage(account),
+            confirmLabel: 'Archivar',
+            action: () => call('clients:archive', { id: client.id }),
+          })
+        }
+      >
+        Archivar
+      </Button>
+    </>
+  );
+
+  return (
+    <>
+      <PageHeader
+        title={fullName(client)}
+        subtitle={`${ageLabel(client.birthDate)}${archived ? ' · Archivado' : ''}`}
+        actions={headerActions}
+      />
+      {notice && (
+        <div className="mb-6">
+          <Notice tone={notice.tone}>{notice.text}</Notice>
+        </div>
+      )}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
+        <div className="flex flex-col gap-6 self-start">
+          <PassesPanel account={account} archived={archived} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
+          <ClientInfoPanel client={client}>
+            <WaiverSection
+              account={account}
+              disabled={archived}
+              onSign={() => setSigning(true)}
+              onVoid={(waiver) =>
+                setPending({
+                  title: 'Anular entrega',
+                  message: `Se anula la entrega de la ficha del ${formatDate(waiver.signedAt)}.`,
+                  confirmLabel: 'Anular entrega',
+                  action: () => call('waivers:void', { id: waiver.id }),
+                })
+              }
+            />
+          </ClientInfoPanel>
+        </div>
+        <div className="flex flex-col gap-6">
+          <SalesPanel
+            // A new sale (e.g. a renewal) brings the panel back to the newest plan.
+            key={account.sales.length}
+            sales={account.sales}
+            payments={account.payments}
+            cancellations={account.cancellations}
+            disabled={archived}
+            onPay={setPayingSale}
+            onCancelDebt={(sale) =>
+              setPending({
+                title: 'Cancelar deuda',
+                message: `Se cancelan los ${formatMoney(sale.debtCents)} que debe de “${sale.planName}”. No entra como ingreso${
+                  sale.teacherSurchargeCents > 0 ? ' y el profesor no cobra la parte que faltaba' : ''
+                }. Se puede anular después.`,
+                confirmLabel: 'Cancelar deuda',
+                action: () => call('debts:cancel', { saleId: sale.id }),
+              })
+            }
+            onVoidCancellation={(cancellation) =>
+              setPending({
+                title: 'Anular cancelación',
+                message: `La deuda de ${formatMoney(cancellation.amountCents)} vuelve a quedar pendiente.`,
+                confirmLabel: 'Anular cancelación',
+                action: () => call('debts:voidCancellation', { id: cancellation.id }),
+              })
+            }
+            onRenew={(sale) => setSelling({ renewFrom: sale })}
+            onChangeExpiry={setExpiringSale}
+            onExtend={setExtendingSale}
+            onVoidPayment={(payment) =>
+              setPending({
+                title: 'Anular pago',
+                message: `Se anula el pago de ${formatMoney(payment.amountCents)} del ${formatDate(payment.paidAt)} y la deuda vuelve a subir.`,
+                confirmLabel: 'Anular pago',
+                action: () => call('payments:void', { id: payment.id }),
+              })
+            }
+            onVoidSale={(sale) =>
+              setPending({
+                title: 'Anular venta',
+                message: `Se anula la venta de “${sale.planName}”. Solo es posible si no tiene pagos ni consumos activos.`,
+                confirmLabel: 'Anular venta',
+                action: () => call('sales:void', { id: sale.id }),
+              })
+            }
+          />
+          <ConsumptionsPanel
+            consumptions={account.consumptions}
+            disabled={archived}
+            onVoid={(consumption) =>
+              setPending({
+                title: 'Anular consumo',
+                message: `Se devuelve el pase ${PASS_KIND_LABELS[consumption.kind].toLowerCase()} usado el ${formatDateTime(consumption.consumedAt)}.`,
+                confirmLabel: 'Anular consumo',
+                action: () => call('consumptions:void', { id: consumption.id }),
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <Dialog open={selling !== null} title={selling?.renewFrom ? 'Renovar plan' : 'Vender plan'} onClose={() => setSelling(null)}>
+        {selling && (
+          <SellPlanForm
+            clientId={client.id}
+            renewFrom={selling.renewFrom}
+            onDone={() => {
+              setSelling(null);
+              setNotice({ tone: 'success', text: selling.renewFrom ? 'Plan renovado.' : 'Venta registrada.' });
+              reload();
+            }}
+            onCancel={() => setSelling(null)}
+          />
+        )}
+      </Dialog>
+      <Dialog wide open={editing} title="Editar cliente" onClose={() => setEditing(false)}>
+        <ClientForm
+          client={client}
+          onSaved={() => {
+            setEditing(false);
+            setNotice({ tone: 'success', text: 'Cliente actualizado.' });
+            reload();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </Dialog>
+      <Dialog open={signing} title="Registrar entrega de la ficha" onClose={() => setSigning(false)}>
+        {signing && (
+          <WaiverForm
+            clientId={client.id}
+            onDone={() => {
+              setSigning(false);
+              setNotice({ tone: 'success', text: 'Entrega de la ficha registrada.' });
+              reload();
+            }}
+            onCancel={() => setSigning(false)}
+          />
+        )}
+      </Dialog>
+      <Dialog open={expiringSale !== null} title="Cambiar vencimiento" onClose={() => setExpiringSale(null)}>
+        {expiringSale && (
+          <ExpiryForm
+            sale={expiringSale}
+            onDone={() => {
+              setExpiringSale(null);
+              setNotice({ tone: 'success', text: 'Vencimiento actualizado.' });
+              reload();
+            }}
+            onCancel={() => setExpiringSale(null)}
+          />
+        )}
+      </Dialog>
+      <Dialog open={extendingSale !== null} title="Extender plan" onClose={() => setExtendingSale(null)}>
+        {extendingSale && (
+          <ExtendSaleForm
+            sale={extendingSale}
+            payments={account.payments.filter((payment) => payment.saleId === extendingSale.id)}
+            onDone={() => {
+              setExtendingSale(null);
+              setNotice({ tone: 'success', text: 'Plan extendido.' });
+              reload();
+            }}
+            onCancel={() => setExtendingSale(null)}
+          />
+        )}
+      </Dialog>
+      <Dialog open={payingSale !== null} title="Registrar pago" onClose={() => setPayingSale(null)}>
+        {payingSale && (
+          <PaymentForm
+            sale={payingSale}
+            payments={account.payments.filter((payment) => payment.saleId === payingSale.id)}
+            onDone={() => {
+              setPayingSale(null);
+              setNotice({ tone: 'success', text: 'Pago registrado.' });
+              reload();
+            }}
+            onCancel={() => setPayingSale(null)}
+          />
+        )}
+      </Dialog>
+      <ConfirmDialog
+        request={pending}
+        onDone={() => {
+          setPending(null);
+          reload();
+        }}
+        onClose={() => setPending(null)}
+      />
+    </>
+  );
+}
+
+interface PassesPanelProps {
+  account: ClientAccount;
+  /** No longer a client: nothing to renew. */
+  archived: boolean;
+  disabled: boolean;
+  onConsume: (kind: PassKind) => void;
+  onSell: () => void;
+}
+
+function PassesPanel({ account, archived, disabled, onConsume, onSell }: PassesPanelProps) {
+  const left = account.remainingFree + account.remainingTeacher;
+  return (
+    <section aria-labelledby="pases-title" className="flex flex-col gap-3 rounded-2xl bg-dusk p-5 text-cream shadow-warm">
+      <h2 id="pases-title" className="font-display text-2xl font-semibold">
+        Pases
+      </h2>
+      <p className="font-display text-6xl leading-none">
+        {left}
+        <span className="ml-2 font-sans text-sm text-cream/75">disponibles</span>
+      </p>
+      <div className="flex flex-col gap-1 text-sm">
+        <p>Libres restantes: {account.remainingFree}</p>
+        <p>Con profesor restantes: {account.remainingTeacher}</p>
+        {account.expiresAt && <p>Vencen el {formatDate(account.expiresAt)}</p>}
+      </div>
+      {account.lowOnPasses && !archived && (
+        <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-night">
+          {left === 0 ? 'No le quedan pases' : 'Quedan pocos pases o están por vencer'}: ofrecé renovar el plan.
+        </p>
+      )}
+      {account.debtCents > 0 && <p className="font-semibold text-peach">Deuda total {formatMoney(account.debtCents)}</p>}
+      <div className="flex flex-col gap-2">
+        <Button disabled={disabled || account.remainingFree <= 0} onClick={() => onConsume('free')}>
+          Consumir libre
+        </Button>
+        <Button disabled={disabled || account.remainingTeacher <= 0} onClick={() => onConsume('teacher')}>
+          Consumir con profesor
+        </Button>
+        <Button variant="secondary" className="border border-cream/40" disabled={disabled} onClick={onSell}>
+          Vender plan
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+interface SalesPanelProps {
+  sales: Sale[];
+  payments: Payment[];
+  cancellations: DebtCancellation[];
+  disabled: boolean;
+  onPay: (sale: Sale) => void;
+  onCancelDebt: (sale: Sale) => void;
+  onVoidCancellation: (cancellation: DebtCancellation) => void;
+  onRenew: (sale: Sale) => void;
+  onChangeExpiry: (sale: Sale) => void;
+  onExtend: (sale: Sale) => void;
+  onVoidPayment: (payment: Payment) => void;
+  onVoidSale: (sale: Sale) => void;
+}
+
+/** One plan at a time, newest first; the arrows go back through the older ones. */
+function SalesPanel({ sales, payments, cancellations, ...actions }: SalesPanelProps) {
+  const { visible, page, pages, setPage } = usePage(sales, 1);
+  return (
+    <section aria-labelledby="ventas-title" className="flex flex-col gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="ventas-title" className="font-display text-2xl font-semibold">
+          Ventas
+        </h2>
+        <PageBar label="Ventas" page={page} pages={pages} onChange={setPage} />
+      </header>
+      {sales.length === 0 ? (
+        <EmptyState title="Sin ventas todavía">
+          <p className="text-sm">Usá “Vender plan” para cargar el primer pack.</p>
+        </EmptyState>
+      ) : (
+        visible.map((sale) => (
+          <SaleCard
+            key={sale.id}
+            sale={sale}
+            payments={payments.filter((payment) => payment.saleId === sale.id)}
+            cancellations={cancellations.filter((cancellation) => cancellation.saleId === sale.id)}
+            {...actions}
+          />
+        ))
+      )}
+    </section>
+  );
+}
+
+// Smaller than other tables: there is one per sale.
+const PAYMENTS_PAGE_SIZE = 5;
+
+function SaleCard({
+  sale,
+  payments,
+  cancellations,
+  disabled,
+  onPay,
+  onCancelDebt,
+  onVoidCancellation,
+  onRenew,
+  onChangeExpiry,
+  onExtend,
+  onVoidPayment,
+  onVoidSale,
+}: Omit<SalesPanelProps, 'sales'> & { sale: Sale }) {
+  const voided = sale.voidedAt !== null;
+  const lastActive = payments
+    .filter((payment) => !payment.voidedAt)
+    .reduce<Payment | null>((last, payment) => (!last || payment.id > last.id ? payment : last), null);
+  const border = voided ? 'border-ink/30 opacity-70' : sale.debtCents > 0 ? 'border-accent' : 'border-moss';
+  const paymentsPage = usePage(payments, PAYMENTS_PAGE_SIZE);
+
+  return (
+    <article aria-label={`Venta ${sale.planName} del ${formatDate(sale.soldAt)}`} className={`flex flex-col gap-3 border-l-4 rounded-2xl bg-surface p-5 shadow-warm ${border}`}>
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-display text-xl font-semibold">{sale.planName}</h3>
+        <p className="text-sm text-ink-soft">
+          {formatDate(sale.soldAt)}
+          {sale.teacherName && ` · con ${sale.teacherName}`}
+          {sale.invoicedAt && ' · Facturada'}
+          {voided && ' · Anulada'}
+        </p>
+      </header>
+      {sale.extendedFrom && (
+        <p className="text-sm text-ink-soft">
+          Extendida el {formatDateTime(sale.extendedFrom.extendedAt)} · antes: {sale.extendedFrom.planName}
+        </p>
+      )}
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-4">
+        <div>
+          <dt className="text-ink-soft">Local</dt>
+          <dd>{formatMoney(sale.localPriceCents)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-soft">Para el profesor</dt>
+          <dd>{formatMoney(sale.teacherSurchargeCents)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-soft">Total</dt>
+          <dd className="font-semibold">{formatMoney(sale.totalCents)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-soft">Reparto</dt>
+          <dd>{sale.teacherSurchargeCents > 0 ? SPLIT_RULE_LABELS[sale.splitRule] : '—'}</dd>
+        </div>
+      </dl>
+      <p className="text-sm">
+        Pases: {sale.remainingFree} libres · {sale.remainingTeacher} con profesor ·{' '}
+        {sale.expired ? <span className="font-semibold text-danger">Vencido el {formatDate(sale.expiresAt)}</span> : `Vence el ${formatDate(sale.expiresAt)}`}
+      </p>
+      {!voided &&
+        (sale.debtCents > 0 ? (
+          <p className="font-semibold text-accent-ink">Deuda: {formatMoney(sale.debtCents)}</p>
+        ) : (
+          <p className="font-semibold text-moss">{sale.cancelledCents > 0 ? 'Deuda cancelada' : 'Saldada'}</p>
+        ))}
+      {cancellations.length > 0 && (
+        <ul aria-label="Deudas canceladas" className="flex flex-col gap-1 text-sm">
+          {cancellations.map((cancellation) => (
+            <li key={cancellation.id} className={`flex items-center justify-between gap-2 ${cancellation.voidedAt ? 'text-ink-soft' : ''}`}>
+              <span>
+                Deuda cancelada el {formatDate(cancellation.cancelledAt)}: {formatMoney(cancellation.amountCents)}
+                {cancellation.voidedAt && ' · Anulada'}
+              </span>
+              {!cancellation.voidedAt && !voided && !disabled && (
+                <Button variant="danger-outline" className="px-3! py-0.5! text-xs" onClick={() => onVoidCancellation(cancellation)}>
+                  Anular cancelación
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <table className={tableClass}>
+        <caption className="sr-only">Pagos de la venta</caption>
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Medio</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Local / Profesor</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paymentsPage.visible.map((payment) => (
+            <tr key={payment.id} className={payment.voidedAt ? 'text-ink-soft' : ''}>
+              <td>{formatDate(payment.paidAt)}</td>
+              <td>{PAYMENT_METHOD_LABELS[payment.method]}</td>
+              <td>{formatMoney(payment.amountCents)}</td>
+              <td>
+                {formatMoney(payment.localCents)} / {formatMoney(payment.teacherCents)}
+              </td>
+              <td>{payment.voidedAt ? 'Anulado' : 'Activo'}</td>
+            </tr>
+          ))}
+          <FillerRows filled={paymentsPage.visible.length} columns={5} empty="Sin pagos." size={PAYMENTS_PAGE_SIZE} />
+        </tbody>
+      </table>
+      <PageBar keep label="Pagos" page={paymentsPage.page} pages={paymentsPage.pages} onChange={paymentsPage.setPage} />
+      {!voided && !disabled && (
+        <div className="flex flex-wrap gap-2">
+          {sale.debtCents > 0 && <Button onClick={() => onPay(sale)}>Registrar pago</Button>}
+          {sale.debtCents > 0 && (
+            <Button variant="danger-outline" onClick={() => onCancelDebt(sale)}>
+              Cancelar deuda
+            </Button>
+          )}
+          {sale.remainingFree + sale.remainingTeacher === 0 && (
+            <Button variant="secondary" onClick={() => onRenew(sale)}>
+              Renovar
+            </Button>
+          )}
+          {!sale.expired && (
+            <Button variant="secondary" onClick={() => onExtend(sale)}>
+              Extender
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => onChangeExpiry(sale)}>
+            Cambiar vencimiento
+          </Button>
+          {lastActive && (
+            <Button variant="danger-outline" onClick={() => onVoidPayment(lastActive)}>
+              Anular último pago
+            </Button>
+          )}
+          <Button variant="danger-outline" onClick={() => onVoidSale(sale)}>
+            Anular venta
+          </Button>
+        </div>
+      )}
+    </article>
+  );
+}
+
+/** One month of consumptions (current month by default), a page of rows at a time. */
+function ConsumptionsPanel({ consumptions, disabled, onVoid }: { consumptions: Consumption[]; disabled: boolean; onVoid: (consumption: Consumption) => void }) {
+  const [month, setMonth] = useState(() => localMonth(new Date().toISOString()));
+  const visible = consumptions.filter((consumption) => localMonth(consumption.consumedAt) === month);
+  const monthName = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T00:00`));
+
+  return (
+    <section aria-labelledby="consumos-title" className="flex flex-col gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="consumos-title" className="font-display text-2xl font-semibold">
+          Consumos
+          <span className="ml-2 font-sans text-sm font-normal text-ink-soft">{visible.length} en el mes</span>
+        </h2>
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
+          Mes
+          <input
+            type="month"
+            required
+            value={month}
+            onChange={(event) => event.target.value && setMonth(event.target.value)}
+            className="rounded-xl border border-ink/25 bg-surface px-3 py-1 text-sm text-ink"
+          />
+        </label>
+      </header>
+      <ConsumptionsTable
+        key={month}
+        consumptions={visible}
+        caption={`Consumos de ${monthName}`}
+        empty={consumptions.length === 0 ? 'Sin consumos todavía.' : `Sin consumos en ${monthName}.`}
+        disabled={disabled}
+        onVoid={onVoid}
+      />
+    </section>
+  );
+}
+
+interface ConsumptionsTableProps {
+  consumptions: Consumption[];
+  caption: string;
+  empty: string;
+  disabled: boolean;
+  onVoid: (consumption: Consumption) => void;
+}
+
+function ConsumptionsTable({ consumptions, caption, empty, disabled, onVoid }: ConsumptionsTableProps) {
+  const { visible, page, pages, setPage } = usePage(consumptions, TABLE_PAGE_SIZE);
+  return (
+    <>
+      <table className={tableClass}>
+        <caption className="sr-only">{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Día</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((consumption) => (
+            <tr key={consumption.id} className={consumption.voidedAt ? 'text-ink-soft' : ''}>
+              <td>{formatDateTime(consumption.consumedAt)}</td>
+              <td>{PASS_KIND_LABELS[consumption.kind]}</td>
+              <td>{consumption.voidedAt ? 'Anulado' : 'Activo'}</td>
+              <td className="text-right">
+                {!consumption.voidedAt && !disabled && (
+                  <Button
+                    variant="danger-outline"
+                    aria-label={`Anular consumo del ${formatDateTime(consumption.consumedAt)}`}
+                    onClick={() => onVoid(consumption)}
+                  >
+                    Anular
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+          <FillerRows filled={visible.length} columns={4} empty={empty} />
+        </tbody>
+      </table>
+      <PageBar keep label="Consumos" page={page} pages={pages} onChange={setPage} />
+    </>
+  );
+}
+
+/** Personal data, tutors and the signed waiver (passed as children). */
+function ClientInfoPanel({ client, children }: { client: Client; children: ReactNode }) {
+  const rows: [string, string][] = [
+    ['DNI', client.dni ?? '—'],
+    ['Fecha de nacimiento', client.birthDate ? formatDate(client.birthDate) : '—'],
+    ['Inscripción', formatDate(client.enrolledAt)],
+    ['Teléfono', client.phone ?? '—'],
+    ['Dirección', client.address ?? '—'],
+    [
+      'Emergencia',
+      client.emergencyName
+        ? `${client.emergencyName}${client.emergencyRelation ? ` (${client.emergencyRelation})` : ''} ${client.emergencyPhone ?? ''}`
+        : '—',
+    ],
+  ];
+  return (
+    <section aria-labelledby="ficha-title" className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-warm">
+      <h2 id="ficha-title" className="font-display text-2xl font-semibold">
+        Datos
+      </h2>
+      <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-ink-soft">{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {client.notes && (
+        <div className="text-sm">
+          <h3 className={SUBTITLE}>Observaciones</h3>
+          <p className="whitespace-pre-line">{client.notes}</p>
+        </div>
+      )}
+      {client.guardians.length > 0 && (
+        <div className="text-sm">
+          <h3 className={SUBTITLE}>Tutores</h3>
+          <ul>
+            {client.guardians.map((guardian) => (
+              <li key={guardian.id}>
+                {fullName(guardian)}
+                {guardian.relation && ` (${guardian.relation})`}
+                {guardian.phone && ` · ${guardian.phone}`}
+                {guardian.dni && ` · DNI ${guardian.dni}`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+const SUBTITLE = 'font-display text-lg font-semibold';
+
+interface WaiverSectionProps {
+  account: ClientAccount;
+  disabled: boolean;
+  onSign: () => void;
+  onVoid: (waiver: WaiverSignature) => void;
+}
+
+function WaiverSection({ account, disabled, onSign, onVoid }: WaiverSectionProps) {
+  const { waiver, waivers } = account;
+  const tone = waiver.state === 'valid' ? 'bg-moss text-canvas' : 'bg-ochre text-night';
+  return (
+    <section aria-labelledby="ficha-firmada-title" className="flex flex-col gap-2 border-t border-ink/10 pt-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="ficha-firmada-title" className={SUBTITLE}>
+          Ficha
+        </h3>
+        {!disabled && (
+          <Button variant="secondary" className="px-4! py-1!" onClick={onSign}>
+            Registrar entrega
+          </Button>
+        )}
+      </header>
+      <p role="status" className={`rounded-xl px-3 py-2 text-sm font-semibold ${tone}`}>
+        {waiverLabel(waiver)}
+      </p>
+      {waivers.length === 0 ? (
+        <p className="text-sm text-ink-soft">Todavía no entregó la ficha.</p>
+      ) : (
+        <ul className="divide-y divide-ink/10 text-sm">
+          {waivers.map((signature) => (
+            <li key={signature.id} className={`flex items-center justify-between gap-2 py-1 ${signature.voidedAt ? 'text-ink-soft' : ''}`}>
+              <span>
+                Entregada el {formatDate(signature.signedAt)}
+                {signature.voidedAt && ' · Anulada'}
+              </span>
+              {!signature.voidedAt && !disabled && (
+                <Button variant="danger-outline" className="px-3! py-0.5! text-xs" aria-label={`Anular entrega del ${formatDate(signature.signedAt)}`} onClick={() => onVoid(signature)}>
+                  Anular
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function WaiverForm({ clientId, onDone, onCancel }: { clientId: number; onDone: () => void; onCancel: () => void }) {
+  const [signedAt, setSignedAt] = useState(todayIso());
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = waiverInput.safeParse({ clientId, signedAt });
+    if (!parsed.success) {
+      setErrors(toFieldErrors(parsed.error));
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    setServerError(null);
+    try {
+      await call('waivers:create', parsed.data);
+      onDone();
+    } catch (caught) {
+      setServerError(errorMessage(caught));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      <TextField
+        label="Fecha de entrega"
+        type="date"
+        max={todayIso()}
+        value={signedAt}
+        onChange={(event) => setSignedAt(event.target.value)}
+        error={errors.signedAt}
+      />
+      {serverError && <Notice tone="error">{serverError}</Notice>}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={busy}>
+          Registrar entrega
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Moves the sale's expiry: a strike or a holiday closed the gym, or it was typed wrong. Works on expired sales too. */
+function ExpiryForm({ sale, onDone, onCancel }: { sale: Sale; onDone: () => void; onCancel: () => void }) {
+  const [expiresAt, setExpiresAt] = useState(sale.expiresAt);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = saleExpiryInput.safeParse({ saleId: sale.id, expiresAt });
+    if (!parsed.success) {
+      setErrors(toFieldErrors(parsed.error));
+      return;
+    }
+    setErrors({});
+    setBusy(true);
+    setServerError(null);
+    try {
+      await call('sales:setExpiry', parsed.data);
+      onDone();
+    } catch (caught) {
+      setServerError(errorMessage(caught));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      <p className="text-sm">
+        {sale.planName} del {formatDate(sale.soldAt)}: {sale.expired ? 'venció' : 'vence'} el {formatDate(sale.expiresAt)}.
+      </p>
+      <TextField
+        label="Nuevo vencimiento"
+        type="date"
+        min={sale.soldAt}
+        value={expiresAt}
+        onChange={(event) => setExpiresAt(event.target.value)}
+        error={errors.expiresAt}
+        hint="Si ya venció, al correr la fecha recupera los pases que le quedaban."
+      />
+      {serverError && <Notice tone="error">{serverError}</Notice>}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={busy}>
+          Guardar vencimiento
+        </Button>
+      </div>
+    </form>
+  );
+}

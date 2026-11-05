@@ -1,0 +1,500 @@
+import { mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { _electron as electron, type ElectronApplication, expect, type Page, test } from '@playwright/test';
+
+let app: ElectronApplication;
+let page: Page;
+let userData: string;
+
+test.beforeAll(async () => {
+  userData = mkdtempSync(join(tmpdir(), 'lebloc-e2e-'));
+  app = await electron.launch({ args: ['.', '--ozone-platform=x11'], env: { ...process.env, LEBLOC_USER_DATA: userData } });
+  page = await app.firstWindow();
+});
+
+test.afterAll(async () => {
+  await app.close();
+  rmSync(userData, { recursive: true, force: true });
+});
+
+const label = (text: string) => page.getByLabel(text, { exact: true });
+const goToPasses = () => page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Pases', exact: true }).click();
+const goToPlans = () => page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Planes', exact: true }).click();
+const plansTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de planes' }).getByRole('link', { name, exact: true }).click();
+const passesTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de pases' }).getByRole('link', { name, exact: true }).click();
+
+test('sell with teacher, pay in parts, consume, void the last payment and pay the teacher', async () => {
+  await goToPlans();
+  await page.getByRole('button', { name: 'Nuevo plan' }).click();
+  await label('Nombre').fill('Pack 2+2');
+  await label('Pases libres').fill('2');
+  await label('Pases con profesor').fill('2');
+  await label('Precio del local').fill('20.000');
+  await page.getByRole('button', { name: 'Guardar plan' }).click();
+  await expect(page.getByText('Ingresá un monto válido, por ejemplo 15.000,50.')).toBeVisible();
+  await label('Para el profesor').fill('10.000');
+  await page.getByRole('button', { name: 'Guardar plan' }).click();
+  await expect(page.getByRole('link', { name: 'Pack 2+2', exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('button', { name: 'Nuevo profesor' }).click();
+  await label('Nombre').fill('Juan');
+  await label('Apellido').fill('Pared');
+  await page.getByRole('button', { name: 'Guardar profesor' }).click();
+  await expect(page.getByRole('heading', { name: 'Juan Pared' })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar' }).click();
+  await label('Dirección').fill('Av. Siempreviva 742');
+  await page.getByRole('button', { name: 'Guardar profesor' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByText('Av. Siempreviva 742')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Ana');
+  await label('Apellido').fill('Roca');
+  await label('Fecha de nacimiento').fill('1990-05-10');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Ana Roca' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Vender plan' }).click();
+  await label('Plan').selectOption({ label: 'Pack 2+2' });
+  await label('Profesor').selectOption({ label: 'Juan Pared' });
+  await page.getByLabel('Pago parcial').check();
+  await label('Monto del pago').fill('15.000');
+  await page.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText(/Deuda: \$\s15\.000,00/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Consumir con profesor' }).click();
+  await expect(page.getByText('Con profesor restantes: 1')).toBeVisible();
+  await expect(page.getByRole('table', { name: /^Consumos de / }).getByRole('cell', { name: 'Con profesor' })).toBeVisible();
+  await label('Mes').fill('2020-01');
+  await expect(page.getByText('Sin consumos en enero de 2020.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Registrar pago' }).click();
+  await label('Monto').fill('15.000');
+  await page.getByRole('button', { name: 'Confirmar pago' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Anular último pago' }).click();
+  await page.getByRole('button', { name: 'Anular pago' }).click();
+  await expect(page.getByText(/Deuda: \$\s15\.000,00/)).toBeVisible();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('link', { name: 'Juan Pared', exact: true }).click();
+  await expect(page.getByTestId('teacher-balance')).toHaveText(/5\.000,00/);
+  // Only what is owed: classes left to give are not valued.
+  await expect(page.getByText(/Valen/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Registrar pago' }).click();
+  await page.getByRole('button', { name: 'Confirmar pago' }).click();
+  await expect(page.getByTestId('teacher-balance')).toHaveText(/\$\s0,00/);
+  await expect(page.getByRole('table').filter({ hasText: 'Medio' }).getByRole('cell', { name: /5\.000,00/ })).toBeVisible();
+});
+
+test('sell fully paid by default, renew an exhausted plan, sign the waiver and go back', async () => {
+  await goToPlans();
+  await page.getByRole('button', { name: 'Nuevo plan' }).click();
+  await label('Nombre').fill('Pase suelto');
+  await label('Pases libres').fill('1');
+  await label('Pases con profesor').fill('0');
+  await label('Precio del local').fill('5.000');
+  await page.getByRole('button', { name: 'Guardar plan' }).click();
+  await expect(page.getByRole('link', { name: 'Pase suelto', exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Bruno');
+  await label('Apellido').fill('Sierra');
+  await label('Fecha de nacimiento').fill('1988-02-20');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Bruno Sierra' })).toBeVisible();
+  await expect(page.getByText('Sin ficha', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Vender plan' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pase suelto' });
+  await expect(dialog.getByLabel('Pago completo')).toBeChecked();
+  // A month by default; the admin can pick another day.
+  await expect(dialog.getByLabel('Vence el')).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate() + 40);
+  const [year, month, day] = [expiry.getFullYear(), String(expiry.getMonth() + 1).padStart(2, '0'), String(expiry.getDate()).padStart(2, '0')];
+  await dialog.getByLabel('Vence el').fill(`${year}-${month}-${day}`);
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+  await expect(page.getByText(`Vence el ${day}/${month}/${year}`).first()).toBeVisible();
+
+  // A strike closed the gym: the expiry moves on, from the client's file.
+  expiry.setDate(expiry.getDate() + 5);
+  const moved = [expiry.getFullYear(), String(expiry.getMonth() + 1).padStart(2, '0'), String(expiry.getDate()).padStart(2, '0')];
+  await page.getByRole('button', { name: 'Cambiar vencimiento' }).click();
+  await expect(dialog.getByLabel('Nuevo vencimiento')).toHaveValue(`${year}-${month}-${day}`);
+  await dialog.getByLabel('Nuevo vencimiento').fill(moved.join('-'));
+  await dialog.getByRole('button', { name: 'Guardar vencimiento' }).click();
+  await expect(page.getByText('Vencimiento actualizado.')).toBeVisible();
+  await expect(page.getByText(`Vence el ${moved.reverse().join('/')}`).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Consumir libre' }).click();
+  await page.getByRole('button', { name: 'Renovar' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Renovar plan' })).toBeVisible();
+  await expect(dialog.getByLabel('Plan', { exact: true })).toHaveValue(/\d+/);
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Plan renovado.')).toBeVisible();
+  await expect(page.getByText('Libres restantes: 1')).toBeVisible();
+
+  // One plan at a time, the renewal first; the arrow goes back to the used-up one.
+  const salesPages = page.getByRole('navigation', { name: 'Páginas de ventas' });
+  await expect(page.getByRole('article', { name: /^Venta / })).toHaveCount(1);
+  await expect(salesPages).toContainText('1 / 2');
+  await expect(page.getByText('Pases: 1 libres · 0 con profesor')).toBeVisible();
+  await salesPages.getByRole('button', { name: 'Página siguiente' }).click();
+  await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Registrar entrega' }).click();
+  await dialog.getByRole('button', { name: 'Registrar entrega' }).click();
+  await expect(page.getByText(/Ficha entregada el/)).toBeVisible();
+
+  await page.getByRole('button', { name: '← Volver' }).click();
+  await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toBeVisible();
+});
+
+test('switch to the dark theme and a larger font, and keep both after reloading', async () => {
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('radio', { name: 'Oscuro' }).check();
+  await page.getByRole('radio', { name: 'Grande', exact: true }).check();
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).toHaveCSS('font-size', '18px');
+
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).toHaveCSS('font-size', '18px');
+  await expect(page.getByRole('radio', { name: 'Oscuro' })).toBeChecked();
+});
+
+test('cards open from anywhere, not only from the name', async () => {
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  const card = page.getByRole('list', { name: 'Clientes' }).getByRole('listitem').filter({ hasText: 'Ana Roca' });
+  // The stretched title link covers the whole card, so a real click on the stats lands on it; `force`
+  // skips Playwright's "covered by another element" check and clicks at those coordinates.
+  await card.getByText('Pases libres').click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Ana Roca' })).toBeVisible();
+
+  await goToPlans();
+  await page.getByRole('list', { name: 'Planes' }).getByRole('listitem').filter({ hasText: 'Pack 2+2' }).getByText(/Precio del local/).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Pack 2+2', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar' }).click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Editar plan' })).toBeVisible();
+  await expect(page.getByRole('dialog').getByLabel('Para el profesor', { exact: true })).toHaveValue('10.000,00');
+  await page.getByRole('dialog').getByLabel('Pases con profesor').fill('0');
+  await expect(page.getByRole('dialog').getByLabel('Para el profesor', { exact: true })).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('button', { name: 'Editar Juan Pared' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Apellido', { exact: true })).toHaveValue('Pared');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+});
+
+test('debtors live in Clientes behind the Deudores row, linked from the counter summary', async () => {
+  await goToPasses();
+  await passesTab('Movimientos');
+  await expect(page.getByRole('region', { name: 'Movimientos de hoy' }).getByRole('row', { name: /Plan.*Ana Roca · Pack 2\+2.*debe \$\s15\.000,00.*\$\s15\.000,00/ })).toBeVisible();
+  await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: 'Deudores' }).click();
+  const summary = page.getByRole('complementary', { name: 'Resumen' });
+  const debtors = summary.getByRole('button', { name: 'Deudores' });
+  await expect(debtors).toHaveAttribute('aria-pressed', 'true');
+  const cards = page.getByRole('list', { name: 'Clientes' });
+  await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+  await expect(cards.getByText(/^Debe \$\s15\.000,00 · desde hoy$/)).toBeVisible();
+  await expect(page.getByText(/Total adeudado/)).toBeVisible();
+
+  // The filter lives in the URL; react-router applies it in a transition, so wait for the new state.
+  await page.getByRole('button', { name: 'Quitar filtro: Deudores' }).click();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'false');
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+
+  // The summary beside the list counts the same debtors, and its row turns the filter back on.
+  await expect(summary.getByRole('row', { name: /Deudores/ })).toContainText(/\$\s15\.000,00 · 1/);
+  await debtors.click();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'true');
+
+  // Another summary row replaces that filter instead of adding to it.
+  await summary.getByRole('button', { name: 'Nuevos del mes' }).click();
+  await expect(debtors).toHaveAttribute('aria-pressed', 'false');
+  await expect(summary.getByRole('button', { name: 'Nuevos del mes' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(cards.getByRole('link', { name: 'Bruno Sierra' })).toBeVisible();
+  await summary.getByRole('button', { name: 'Archivados' }).click();
+  await expect(page.getByText('No hay archivados')).toBeVisible();
+  await page.getByRole('button', { name: 'Quitar filtro: Archivados' }).click();
+  await expect(cards.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+});
+
+test("the counter tints clients by passes left, lists today's debtors, and Clientes follows the same colors", async () => {
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Clara');
+  await label('Apellido').fill('Nube');
+  await label('Fecha de nacimiento').fill('1995-01-01');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Clara Nube' })).toBeVisible();
+
+  await goToPasses();
+  const results = page.getByRole('list', { name: 'Resultados' });
+  await label('Buscar cliente').fill('Clara');
+  await expect(results.getByRole('listitem').filter({ hasText: 'Clara Nube' }).getByText('Sin pases')).toBeVisible();
+  await label('Buscar cliente').fill('Bruno');
+  await expect(results.getByRole('listitem').filter({ hasText: 'Bruno Sierra' }).getByText('Pocos pases')).toBeVisible();
+
+  await label('Buscar cliente').fill('');
+  // Ana owes part of her pack and used a pass today; Bruno paid in full.
+  const debtors = page.getByRole('list', { name: 'Deudores de hoy' });
+  await expect(debtors.getByRole('listitem').filter({ hasText: 'Ana Roca' })).toContainText(/Debe \$\s15\.000,00/);
+  await expect(debtors.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Clientes', exact: true }).click();
+  const clara = page.getByRole('list', { name: 'Clientes' }).getByRole('listitem').filter({ hasText: 'Clara Nube' });
+  await expect(clara.getByText('Sin pases')).toBeVisible();
+});
+
+test('a pass marked at the counter shows in today entries and can be voided there', async () => {
+  await goToPasses();
+  const search = label('Buscar cliente');
+  const results = page.getByRole('list', { name: 'Resultados' });
+  const entries = page.getByRole('table', { name: 'Ingresos de hoy' });
+
+  // The results drop down under the box; the entries table stays on the page.
+  await search.fill('Ana Roca');
+  await expect(results).toBeVisible();
+  await expect(entries).toBeVisible();
+  await search.press('Escape');
+  await expect(results).toBeHidden();
+  await search.fill('Ana Roc');
+  await expect(results).toBeVisible();
+  await expect(results.getByRole('listitem').filter({ hasText: 'Ana Roca' })).toContainText(/Inició el \d{2}\/\d{2}\/\d{4}/);
+
+  await results.getByRole('button', { name: 'Pase libre para Ana Roca' }).click();
+  await expect(page.getByText('Ana Roca: pase libre registrado.')).toBeVisible();
+  await expect(results).toBeHidden();
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+
+  const freePass = entries.getByRole('row', { name: /Ana Roca\s+Libre\s/ });
+  await expect(freePass).toHaveCount(1);
+  await expect(freePass).toContainText(/\d{2}:\d{2}/);
+  await freePass.getByRole('button', { name: /^Anular pase libre de Ana Roca/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Anular consumo' }).click();
+  await expect(freePass).toHaveCount(0);
+});
+
+test("a plan and a teacher list this month's enrollments", async () => {
+  await goToPlans();
+  await page.getByRole('link', { name: 'Pack 2+2', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /^Inscriptos en / })).toBeVisible();
+  await expect(page.getByRole('list', { name: /^Inscriptos en / }).getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Profesores' }).click();
+  await page.getByRole('link', { name: 'Juan Pared', exact: true }).click();
+  const enrolled = page.getByRole('list', { name: /^Inscriptos en / });
+  await expect(enrolled.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(enrolled.getByText(/Pack 2\+2 · vendido el/)).toBeVisible();
+});
+
+test('the plans page lists who bought which plan and when', async () => {
+  await goToPlans();
+  await plansTab('Ventas');
+  const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
+  await expect(sales.getByRole('row', { name: /Ana Roca\s+Pack 2\+2\s+con Juan Pared/ })).toBeVisible();
+  await expect(sales.getByRole('link', { name: 'Bruno Sierra' }).first()).toBeVisible();
+
+  await label('Plan').selectOption({ label: 'Pack 2+2' });
+  await expect(sales.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+  await expect(sales.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await label('Mes').fill('2020-01');
+  await expect(sales.getByText('No hay ventas de este plan en este mes')).toBeVisible();
+});
+
+test('the counter summary opens the detail behind each number', async () => {
+  await goToPasses();
+  const summary = page.getByRole('region', { name: 'Resumen' });
+  const clients = page.getByRole('list', { name: 'Clientes' });
+
+  const pressed = (name: string) => page.getByRole('complementary', { name: 'Resumen' }).getByRole('button', { name, pressed: true });
+  await summary.getByRole('link', { name: 'Deudores' }).click();
+  await expect(pressed('Deudores')).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+
+  await goToPasses();
+  await summary.getByRole('link', { name: 'Clientes con pases' }).click();
+  await expect(pressed('Con pases')).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Ana Roca' })).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Clara Nube' })).toHaveCount(0);
+
+  await goToPasses();
+  await summary.getByRole('link', { name: 'Sin ficha' }).click();
+  await expect(pressed('Sin ficha')).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Clara Nube' })).toBeVisible();
+  await expect(clients.getByRole('link', { name: 'Bruno Sierra' })).toHaveCount(0);
+});
+
+test('the counter finds a client without typing the accents, or by DNI', async () => {
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Lucía');
+  await label('Apellido').fill('González');
+  await label('DNI').fill('27999111');
+  await label('Fecha de nacimiento').fill('1992-03-04');
+  await label('Observaciones').fill('Trae su propio arnés.');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Lucía González' })).toBeVisible();
+  await expect(page.getByText('27999111')).toBeVisible();
+  await expect(page.getByText('Trae su propio arnés.')).toBeVisible();
+
+  await goToPasses();
+  await label('Buscar cliente').fill('gonzalez lucia');
+  await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
+  await label('Buscar cliente').fill('27999');
+  await expect(page.getByRole('list', { name: 'Resultados' }).getByText('Lucía González')).toBeVisible();
+});
+
+test('exporting a backup leaves a line in the audit log', async () => {
+  const file = join(userData, 'pendrive.db');
+  // The native save dialog cannot be driven from the page: answer it from the main process.
+  await app.evaluate(({ dialog }, filePath) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+  }, file);
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Exportar backup' }).click();
+  await expect(page.getByText(`Backup guardado en ${file}`)).toBeVisible();
+  const log = page.getByRole('table', { name: 'Registro de auditoría' });
+  await expect(log.getByRole('cell', { name: 'Backup exportado' })).toBeVisible();
+  await expect(log.getByRole('cell', { name: file })).toBeVisible();
+});
+
+test('backups get copied to an external folder, and a missing one warns on the counter', async () => {
+  const pick = (folder: string) =>
+    app.evaluate(({ dialog }, filePath) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] });
+    }, folder);
+  const warning = page.getByRole('complementary', { name: 'Alertas' }).getByText(/No se pudo copiar el backup fuera de esta PC/);
+
+  await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+  await pick(join(userData, 'pendrive-desenchufado'));
+  await page.getByRole('button', { name: 'Elegir carpeta' }).click();
+  await expect(page.getByText(/No se pudo copiar el backup a la carpeta externa/)).toBeVisible();
+  await goToPasses();
+  await expect(warning).toBeVisible();
+
+  const pendrive = join(userData, 'pendrive');
+  mkdirSync(pendrive);
+  await pick(pendrive);
+  await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+  await page.getByRole('button', { name: 'Elegir carpeta' }).click();
+  await expect(page.getByText(/Última copia externa:/)).toBeVisible();
+  expect(readdirSync(join(pendrive, 'lebloc-backups'))).toHaveLength(1);
+  await goToPasses();
+  await expect(page.getByRole('region', { name: 'Resumen' })).toBeVisible();
+  await expect(warning).toHaveCount(0);
+});
+
+test('extend a used trial into a pack, paying part now', async () => {
+  await goToPlans();
+  for (const [name, passes, price] of [
+    ['Prueba libre', '1', '1.000'],
+    ['Pack 4 libres', '4', '8.000'],
+  ] as const) {
+    await page.getByRole('button', { name: 'Nuevo plan' }).click();
+    await label('Nombre').fill(name);
+    await label('Pases libres').fill(passes);
+    await label('Pases con profesor').fill('0');
+    await label('Precio del local').fill(price);
+    await page.getByRole('button', { name: 'Guardar plan' }).click();
+    await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  }
+
+  await page.getByRole('link', { name: 'Clientes' }).click();
+  await page.getByRole('button', { name: 'Nuevo cliente' }).click();
+  await label('Nombre').fill('Carla');
+  await label('Apellido').fill('Méndez');
+  await label('Fecha de nacimiento').fill('1995-02-14');
+  await page.getByRole('button', { name: 'Guardar cliente' }).click();
+  await expect(page.getByRole('heading', { name: 'Carla Méndez' })).toBeVisible();
+
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Vender plan' }).click();
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Prueba libre' });
+  await dialog.getByRole('button', { name: 'Confirmar venta' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+  await page.getByRole('button', { name: 'Consumir libre' }).click();
+  await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'renovar' })).toHaveText('No le quedan pases: ofrecé renovar el plan.');
+
+  // After the class she stays: the trial becomes the pack, its payment and its class count.
+  await page.getByRole('button', { name: 'Extender' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Extender plan' })).toBeVisible();
+  await dialog.getByLabel('Plan', { exact: true }).selectOption({ label: 'Pack 4 libres' });
+  await dialog.getByLabel('Pago parcial').check();
+  await dialog.getByLabel('Monto del pago').fill('3.000');
+  await dialog.getByLabel('Medio de pago').selectOption('transfer');
+  await dialog.getByRole('button', { name: 'Confirmar extensión' }).click();
+  await expect(page.getByText('Plan extendido.')).toBeVisible();
+  await expect(page.getByText('Pases: 3 libres · 0 con profesor')).toBeVisible();
+  await expect(page.getByText(/Extendida el .* · antes: Prueba libre/)).toBeVisible();
+  await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
+});
+
+test('cancel what is owed without it being income, and void the cancellation', async () => {
+  // Carla still owes part of the pack she extended to.
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Cancelar deuda' }).click();
+  await expect(dialog).toContainText('Se cancelan los $ 4.000,00 que debe de “Pack 4 libres”. No entra como ingreso.');
+  await dialog.getByRole('button', { name: 'Cancelar deuda' }).click();
+  await expect(page.getByText('Deuda cancelada', { exact: true })).toBeVisible();
+  const cancelled = page.getByRole('list', { name: 'Deudas canceladas' });
+  await expect(cancelled).toContainText(/Deuda cancelada el \d{2}\/\d{2}\/\d{4}: \$\s4\.000,00/);
+  await expect(page.getByRole('button', { name: 'Registrar pago' })).toHaveCount(0);
+
+  await cancelled.getByRole('button', { name: 'Anular cancelación' }).click();
+  await dialog.getByRole('button', { name: 'Anular cancelación' }).click();
+  await expect(page.getByText(/^Deuda:/)).toContainText('4.000');
+  await expect(cancelled).toContainText('· Anulada');
+});
+
+test('the plans page shows how each sale was paid and ticks transfers as invoiced', async () => {
+  await goToPlans();
+  await plansTab('Ventas');
+  const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
+  // Carla paid the trial in cash and part of the pack by transfer: nothing to invoice until she pays it all.
+  const carla = sales.getByRole('row', { name: /Carla Méndez\s+Pack 4 libres/ });
+  await expect(carla).toContainText('Efectivo y transferencia');
+  const invoiced = carla.getByRole('checkbox', { name: /^Facturada: Carla Méndez/ });
+  await expect(invoiced).toHaveCount(0);
+  await carla.getByRole('link', { name: 'Carla Méndez' }).click();
+  await page.getByRole('button', { name: 'Registrar pago' }).click();
+  await label('Monto').fill('4.000');
+  await label('Medio de pago').selectOption('transfer');
+  await page.getByRole('button', { name: 'Confirmar pago' }).click();
+  await expect(page.getByText('Saldada')).toBeVisible();
+  await goToPlans();
+  await plansTab('Ventas');
+  await expect(invoiced).not.toBeChecked();
+  await carla.getByRole('cell', { name: 'Pack 4 libres', exact: true }).click();
+  await expect(invoiced).toBeChecked();
+
+  // It stays after leaving the screen, and Finanzas adds up her transfer as invoiced.
+  await page.getByRole('link', { name: 'Finanzas' }).click();
+  await expect(page.getByLabel('Totales del período')).toContainText(/Facturado\s*\$\s7\.000,00\s*de \$\s7\.000,00 en planes cobrados por transferencia/);
+  await goToPlans();
+  await plansTab('Ventas');
+  await expect(invoiced).toBeChecked();
+
+  await invoiced.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Desmarcar' }).click();
+  await expect(invoiced).not.toBeChecked();
+
+  // Paid in cash only: nothing to invoice.
+  await expect(sales.getByRole('row', { name: /Bruno Sierra/ }).first()).toContainText('Efectivo');
+  await expect(sales.getByRole('row', { name: /Bruno Sierra/ }).getByRole('checkbox')).toHaveCount(0);
+});

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- The sunset of the side menu: a cream sun with an ochre ring setting behind the mountains, on indigo. -->
+  <defs>
+    <clipPath id="tile">
+      <rect width="512" height="512" rx="112" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#363b63" />
+    <circle cx="300" cy="196" r="92" fill="#fbf4ea" stroke="#c8923a" stroke-width="22" />
+    <g transform="translate(0 236) scale(2.2857 2.3)">
+      <path d="M0 120 L0 70 L40 30 L70 60 L110 15 L150 55 L180 35 L224 75 L224 120 Z" fill="#c8923a" />
+      <path d="M0 120 L0 90 L30 65 L65 95 L100 55 L145 100 L190 60 L224 90 L224 120 Z" fill="#a4501f" />
+      <path d="M0 120 L0 108 L50 90 L110 112 L170 92 L224 106 L224 120 Z" fill="#efe2cf" />
+    </g>
+  </g>
+</svg>

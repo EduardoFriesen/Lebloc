@@ -1,0 +1,27 @@
+# Windows installer for the counter PC, built from Linux with `npm run dist:win` (Wine sets the icon on the .exe).
+appId: ar.lebloc.gestion
+productName: Lebloc
+# Only the packaged app: the data folder becomes %APPDATA%\Lebloc, while development keeps ~/.config/lebloc.
+extraMetadata:
+  productName: Lebloc
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - '**/*.node'
+# better-sqlite3 13 ships N-API prebuilds (prebuilds/win32-x64.node) that load in any Electron; rebuilding from Linux fails.
+npmRebuild: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.png
+nsis:
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: always
+  shortcutName: Lebloc
+  artifactName: Lebloc-Setup-${version}.${ext}

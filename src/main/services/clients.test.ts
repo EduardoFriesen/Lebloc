@@ -1,0 +1,288 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { ClientListInput } from '../../shared/schemas';
+import { expectDomainError } from '../../test/helpers';
+import { adultClient, createTestContext, FAR_EXPIRY, freePlan, minorClient, TEST_NOW, type TestContext } from '../test-context';
+import {
+  anonymizeClient,
+  archiveClient,
+  createClient,
+  getClient,
+  listClients,
+  unarchiveClient,
+  updateClient,
+} from './clients';
+import { getClientAccount } from './account';
+import { consume } from './consumptions';
+import { registerPayment } from './payments';
+import { createPlan } from './plans';
+import { sellPlan } from './sales';
+import { signWaiver } from './waivers';
+
+describe('clients service', () => {
+  let ctx: TestContext;
+
+  beforeEach(() => {
+    ctx = createTestContext();
+  });
+
+  it('creates an adult without guardians', () => {
+    const client = createClient(ctx, adultClient);
+    expect(client.id).toBeGreaterThan(0);
+    expect(client.firstName).toBe('Ana');
+    expect(client.guardians).toEqual([]);
+  });
+
+  it('creates a minor with guardians', () => {
+    const client = createClient(ctx, minorClient);
+    expect(client.guardians).toHaveLength(1);
+    expect(client.guardians[0]?.relation).toBe('Madre');
+  });
+
+  it('rejects a minor without guardians on create', () => {
+    expectDomainError(() => createClient(ctx, { ...minorClient, guardians: [] }), 'MINOR_REQUIRES_GUARDIAN');
+  });
+
+  it('rejects removing every guardian from a minor on update', () => {
+    const client = createClient(ctx, minorClient);
+    expectDomainError(() => updateClient(ctx, { ...minorClient, id: client.id, guardians: [] }), 'MINOR_REQUIRES_GUARDIAN');
+    expect(getClient(ctx, client.id).guardians).toHaveLength(1);
+  });
+
+  it('updates fields and replaces guardians', () => {
+    const client = createClient(ctx, minorClient);
+    const updated = updateClient(ctx, {
+      ...minorClient,
+      id: client.id,
+      phone: '1166660000',
+      guardians: [{ firstName: 'Pablo', lastName: 'Roca', dni: null, phone: null, relation: 'Padre' }],
+    });
+    expect(updated.phone).toBe('1166660000');
+    expect(updated.guardians.map((g) => g.firstName)).toEqual(['Pablo']);
+  });
+
+  it('keeps the DNI and the notes, and updates them', () => {
+    const client = createClient(ctx, { ...adultClient, dni: '30111222', notes: 'Escala los martes' });
+    expect(getClient(ctx, client.id)).toMatchObject({ dni: '30111222', notes: 'Escala los martes' });
+    const updated = updateClient(ctx, { ...adultClient, id: client.id, dni: '30111223', notes: null });
+    expect(updated).toMatchObject({ dni: '30111223', notes: null });
+  });
+
+  it('finds a client by DNI', () => {
+    const ana = createClient(ctx, { ...adultClient, dni: '30111222' });
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
+    const found = listClients(ctx, { search: '3011', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(found.map((c) => [c.id, c.dni])).toEqual([[ana.id, '30111222']]);
+  });
+
+  it('searches by name in either order and hides archived clients by default', () => {
+    const ana = createClient(ctx, adultClient);
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' });
+    expect(listClients(ctx, { search: 'roca', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).map((c) => c.id)).toEqual([ana.id]);
+    expect(listClients(ctx, { search: 'Roca Ana', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).map((c) => c.id)).toEqual([ana.id]);
+    archiveClient(ctx, ana.id);
+    expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).map((c) => c.lastName)).toEqual(['Sierra']);
+    expect(listClients(ctx, { search: '', includeArchived: true, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })).toHaveLength(2);
+  });
+
+  it('treats LIKE wildcards in the search as plain text', () => {
+    createClient(ctx, adultClient);
+    expect(listClients(ctx, { search: '%', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })).toEqual([]);
+  });
+
+  it('finds names ignoring accents and case', () => {
+    const lucia = createClient(ctx, { ...adultClient, firstName: 'Lucía', lastName: 'González' });
+    const martin = createClient(ctx, { ...adultClient, firstName: 'Martín', lastName: 'Álvarez' });
+    const search = (text: string) =>
+      listClients(ctx, { search: text, includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).map((c) => c.id);
+    expect(search('gonzalez')).toEqual([lucia.id]);
+    expect(search('LUCIA')).toEqual([lucia.id]);
+    expect(search('gonzalez lucia')).toEqual([lucia.id]);
+    expect(search('álvarez')).toEqual([martin.id]);
+    expect(search('ALVAREZ')).toEqual([martin.id]);
+  });
+
+  it('rejects a birth or enrollment date after today', () => {
+    expectDomainError(() => createClient(ctx, { ...adultClient, birthDate: '2026-10-06' }), 'DATE_IN_FUTURE');
+    expectDomainError(() => createClient(ctx, { ...adultClient, enrolledAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+    const ana = createClient(ctx, adultClient);
+    expectDomainError(() => updateClient(ctx, { ...adultClient, id: ana.id, enrolledAt: '2026-10-06' }), 'DATE_IN_FUTURE');
+  });
+
+  it('lists every client, with no cap on how many', () => {
+    for (let n = 1; n <= 201; n += 1) createClient(ctx, { ...adultClient, lastName: `Cliente ${String(n).padStart(3, '0')}` });
+    const all = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(all).toHaveLength(201);
+    expect(all.at(-1)?.lastName).toBe('Cliente 201');
+  });
+
+  it('summarizes a client without sales as zero passes and zero debt', () => {
+    createClient(ctx, adultClient);
+    expect(listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false })[0]).toMatchObject({
+      activeSales: 0,
+      remainingFree: 0,
+      remainingTeacher: 0,
+      debtCents: 0,
+      passStatus: 'none',
+    });
+  });
+
+  it('lists only debtors on request, oldest unpaid sale first, with days since that sale', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt: FAR_EXPIRY, initialPayment: null });
+    const payInFull = (sale: { id: number; totalCents: number }) =>
+      registerPayment(ctx, { saleId: sale.id, amountCents: sale.totalCents, method: 'cash', paidAt: '2026-09-01' });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
+    payInFull(sell(ana, '2026-09-01'));
+    sell(ana, '2026-10-01');
+    sell(bruno, '2026-09-20');
+    payInFull(sell(carla, '2026-08-15'));
+
+    const debtors = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: true, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(debtors.map((client) => [client.firstName, client.debtDays])).toEqual([
+      ['Bruno', 15],
+      ['Ana', 4],
+    ]);
+    const everyone = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(everyone.find((client) => client.id === carla)?.debtDays).toBeNull();
+  });
+
+  it('lists only clients with passes left on request', () => {
+    const planId = createPlan(ctx, { ...freePlan, name: 'Pase suelto', freePasses: 1 }).id;
+    const sell = (clientId: number) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' });
+    sell(ana);
+    sell(bruno);
+    consume(ctx, { clientId: bruno, kind: 'free', note: null });
+
+    const withPasses = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: true, onlyPendingWaiver: false });
+    expect(withPasses.map((client) => client.firstName)).toEqual(['Ana']);
+  });
+
+  it('counts expired passes as lost and warns when the passes left expire soon', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string, expiresAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt, initialPayment: null });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
+    sell(ana, '2026-09-01', '2026-10-04');
+    sell(bruno, '2026-09-10', '2026-10-12');
+    // Carla's first sale expires soon, but the passes of the second one last: she is fine.
+    sell(carla, '2026-09-10', '2026-10-08');
+    sell(carla, '2026-10-01', '2026-11-01');
+
+    const base = { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false };
+    const byName = new Map(listClients(ctx, base).map((client) => [client.firstName, client]));
+    expect(byName.get('Ana')).toMatchObject({ remainingFree: 0, passStatus: 'none', expiresAt: null });
+    expect(byName.get('Bruno')).toMatchObject({ remainingFree: 8, passStatus: 'expiring', expiresAt: '2026-10-12' });
+    expect(byName.get('Carla')).toMatchObject({ remainingFree: 16, passStatus: 'ok', expiresAt: '2026-11-01' });
+    expect(listClients(ctx, { ...base, onlyWithPasses: true }).map((client) => client.firstName)).toEqual(['Carla', 'Bruno']);
+    expect(getClientAccount(ctx, ana)).toMatchObject({ remainingFree: 0, lowOnPasses: true, expiresAt: null });
+    expect(getClientAccount(ctx, bruno)).toMatchObject({ remainingFree: 8, lowOnPasses: true, expiresAt: '2026-10-12' });
+    expect(getClientAccount(ctx, carla)).toMatchObject({ lowOnPasses: false, expiresAt: '2026-11-01' });
+  });
+
+  it('startedAt is the oldest sale with usable passes', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const sell = (clientId: number, soldAt: string, expiresAt: string) =>
+      sellPlan(ctx, { clientId, planId, teacherId: null, splitRule: 'proportional', soldAt, expiresAt, initialPayment: null });
+    const ana = createClient(ctx, adultClient).id;
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const startedAt = (firstName: string) =>
+      listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false }).find(
+        (client) => client.firstName === firstName,
+      )?.startedAt;
+
+    // An expired sale doesn't count: its passes are lost.
+    sell(ana, '2026-09-01', '2026-09-30');
+    sell(ana, '2026-09-20', FAR_EXPIRY);
+    expect(startedAt('Ana')).toBe('2026-09-20');
+    sell(ana, '2026-10-01', FAR_EXPIRY);
+    expect(startedAt('Ana')).toBe('2026-09-20');
+    for (let pass = 0; pass < freePlan.freePasses; pass += 1) consume(ctx, { clientId: ana, kind: 'free', note: null });
+    expect(startedAt('Ana')).toBe('2026-10-01');
+
+    sell(bruno, '2026-09-01', '2026-09-30');
+    expect(startedAt('Bruno')).toBeNull();
+  });
+
+  it('lists only clients without a waiver on request, however old the one handed in', () => {
+    createClient(ctx, adultClient);
+    const bruno = createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra' }).id;
+    const carla = createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id;
+    signWaiver(ctx, { clientId: bruno, signedAt: '2026-10-01' });
+    signWaiver(ctx, { clientId: carla, signedAt: '2025-09-01' });
+
+    const pending = listClients(ctx, { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: true });
+    expect(pending.map((client) => client.firstName)).toEqual(['Ana']);
+  });
+
+  it('lists only clients without passes, minors, this month enrollments or archived on request', () => {
+    const planId = createPlan(ctx, freePlan).id;
+    const ana = createClient(ctx, adultClient).id;
+    sellPlan(ctx, { clientId: ana, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: FAR_EXPIRY, initialPayment: null });
+    createClient(ctx, { ...minorClient, enrolledAt: '2026-09-15' });
+    createClient(ctx, { ...adultClient, firstName: 'Bruno', lastName: 'Sierra', enrolledAt: '2026-08-01' });
+    archiveClient(ctx, createClient(ctx, { ...adultClient, firstName: 'Carla', lastName: 'Albo' }).id);
+
+    const base = { search: '', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false };
+    const names = (filter: Partial<ClientListInput>) => listClients(ctx, { ...base, ...filter }).map((client) => client.firstName);
+    expect(names({ onlyWithoutPasses: true })).toEqual(['Tomi', 'Bruno']);
+    expect(names({ onlyMinors: true })).toEqual(['Tomi']);
+    expect(names({ onlyNewThisMonth: true })).toEqual(['Ana']);
+    expect(names({ onlyArchived: true })).toEqual(['Carla']);
+  });
+
+  it('blocks edits on archived clients and allows unarchiving', () => {
+    const client = createClient(ctx, adultClient);
+    archiveClient(ctx, client.id);
+    expectDomainError(() => updateClient(ctx, { ...adultClient, id: client.id }), 'CLIENT_ARCHIVED');
+    expect(unarchiveClient(ctx, client.id).archivedAt).toBeNull();
+  });
+
+  it('traces each anonymization by client id, without the name', () => {
+    const ana = createClient(ctx, adultClient);
+    archiveClient(ctx, ana.id);
+    anonymizeClient(ctx, ana.id);
+    expect(ctx.db.prepare('SELECT at, action, subject_id AS subjectId, detail FROM audit_log').all()).toEqual([
+      { at: TEST_NOW.toISOString(), action: 'client_anonymized', subjectId: ana.id, detail: null },
+    ]);
+  });
+
+  it('anonymizes only archived clients, wiping personal data and guardians', () => {
+    const client = createClient(ctx, { ...minorClient, dni: '45000111', notes: 'Alergia al látex' });
+    expectDomainError(() => anonymizeClient(ctx, client.id), 'CLIENT_NOT_ARCHIVED');
+    archiveClient(ctx, client.id);
+    const anonymized = anonymizeClient(ctx, client.id);
+    expect(anonymized).toMatchObject({
+      firstName: 'Cliente',
+      lastName: `anonimizado #${client.id}`,
+      birthDate: null,
+      dni: null,
+      notes: null,
+      phone: null,
+      emergencyName: null,
+      guardians: [],
+    });
+    expect(anonymized.anonymizedAt).toBe(TEST_NOW.toISOString());
+    expectDomainError(() => unarchiveClient(ctx, client.id), 'CLIENT_ANONYMIZED');
+  });
+
+  it('fails with NOT_FOUND for unknown clients', () => {
+    expectDomainError(() => getClient(ctx, 999), 'NOT_FOUND');
+  });
+
+  it('flags passes that expire soon in the counter search', () => {
+    const quim = createClient(ctx, { ...adultClient, firstName: 'Quim', lastName: 'Test' }).id;
+    const planId = createPlan(ctx, freePlan).id;
+    sellPlan(ctx, { clientId: quim, planId, teacherId: null, splitRule: 'proportional', soldAt: '2026-10-01', expiresAt: '2026-10-09', initialPayment: null });
+    const found = listClients(ctx, { search: 'Quim', includeArchived: false, onlyDebtors: false, onlyWithPasses: false, onlyPendingWaiver: false });
+    expect(found.map((client) => [client.passStatus, client.expiresAt])).toEqual([['expiring', '2026-10-09']]);
+  });
+});
