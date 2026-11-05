@@ -305,7 +305,7 @@ test('the plans page lists who bought which plan and when', async () => {
   await goToPlans();
   await plansTab('Ventas');
   const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
-  await expect(sales.getByRole('row', { name: /Ana Roca\s+Pack 2\+2\s+Juan Pared/ })).toBeVisible();
+  await expect(sales.getByRole('row', { name: /Ana Roca\s+Pack 2\+2\s+con Juan Pared/ })).toBeVisible();
   await expect(sales.getByRole('link', { name: 'Bruno Sierra' }).first()).toBeVisible();
 
   await label('Plan').selectOption({ label: 'Pack 2+2' });

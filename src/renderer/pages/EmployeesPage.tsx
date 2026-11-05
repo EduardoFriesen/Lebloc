@@ -288,7 +288,8 @@ function ShiftsTable({ shifts, empty, onVoid }: { shifts: WorkShift[]; empty: st
         <tbody>
           {visible.map((shift) => (
             <tr key={shift.id} className={shift.voidedAt ? 'text-ink-soft line-through' : ''}>
-              <td>{formatDate(shift.workedOn)}</td>
+              {/* The month is picked above: day and month are enough, and keep the table within the page. */}
+              <td className="tabular-nums">{formatDate(shift.workedOn).slice(0, 5)}</td>
               <td className="font-semibold">{shift.employeeName}</td>
               <td>{formatHours(shift.minutes)}</td>
               <td>{formatMoney(shift.hourlyRateCents)}</td>
@@ -304,6 +305,7 @@ function ShiftsTable({ shifts, empty, onVoid }: { shifts: WorkShift[]; empty: st
                 ) : (
                   <Button
                     variant="danger-outline"
+                    className="px-3!"
                     aria-label={`Anular turno de ${shift.employeeName} del ${formatDate(shift.workedOn)}`}
                     onClick={() => onVoid(shift)}
                   >

@@ -339,7 +339,6 @@ function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
             <th scope="col">Fecha</th>
             <th scope="col">Cliente</th>
             <th scope="col">Plan</th>
-            <th scope="col">Profesor</th>
             <th scope="col">Total</th>
             <th scope="col">Debe</th>
             <th scope="col">Pago</th>
@@ -362,8 +361,11 @@ function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
                     {sale.clientName}
                   </Link>
                 </td>
-                <td>{sale.planName}</td>
-                <td>{sale.teacherName ?? '—'}</td>
+                {/* The teacher goes under the plan: most sales have none, and a column of its own doesn't fit beside the summary. */}
+                <td>
+                  {sale.planName}
+                  {sale.teacherName && <span className="block text-xs text-ink-soft">con {sale.teacherName}</span>}
+                </td>
                 <td className="tabular-nums">{formatMoney(sale.totalCents)}</td>
                 <td className={`tabular-nums ${sale.debtCents > 0 ? 'font-semibold text-danger' : 'text-ink-soft'}`}>
                   {sale.debtCents > 0 ? formatMoney(sale.debtCents) : sale.cancelledCents > 0 ? 'Deuda cancelada' : 'Pagado'}
@@ -386,7 +388,7 @@ function PlanSalesTable({ sales, empty, onInvoiced }: PlanSalesTableProps) {
               </tr>
             );
           })}
-          <FillerRows filled={visible.length} columns={7} empty={empty} />
+          <FillerRows filled={visible.length} columns={6} empty={empty} />
         </tbody>
       </table>
       <PageBar keep label="Ventas" page={page} pages={pages} onChange={setPage} />
