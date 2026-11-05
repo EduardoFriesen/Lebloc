@@ -504,7 +504,7 @@ export interface SupplierPaymentRow {
   paidAt: string;
   method: PaymentMethod;
   amountCents: number;
-  /** The delivery it pays: when it came in and what it brought ("24 × Agua, 12 × Barrita"). */
+  /** The delivery it pays: when it came in and up to three of its products ("24 × Agua, 12 × Barrita, 6 × Chicle y 2 más"). */
   receivedAt: string;
   productsLabel: string;
 }

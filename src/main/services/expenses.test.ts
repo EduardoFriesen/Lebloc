@@ -87,6 +87,23 @@ describe('expenses', () => {
     expect(getExpenseMonth(ctx, '2026-09').supplierCents).toBe(500_000);
   });
 
+  it('names up to three products of the delivery and counts the rest, which its detail shows', () => {
+    const product = { description: null, unitCostCents: 1_000, markupPercent: 0, priceCents: 1_000, active: true };
+    const items = ['Agua', 'Barrita', 'Chicle', 'Gomitas', 'Maní'].map((name, index) => ({
+      productId: createProduct(ctx, { ...product, name }).id,
+      quantity: index + 1,
+      costCents: 1_000,
+    }));
+    const paidAt = '2026-10-02';
+    createPurchase(ctx, { receivedAt: paidAt, items, initialPayment: { amountCents: 5_000, method: 'cash', paidAt } });
+    createPurchase(ctx, { receivedAt: paidAt, items: items.slice(0, 3), initialPayment: { amountCents: 3_000, method: 'cash', paidAt } });
+
+    expect(getExpenseMonth(ctx, '2026-10').supplierPayments.map((payment) => payment.productsLabel)).toEqual([
+      '1 × Agua, 2 × Barrita, 3 × Chicle',
+      '1 × Agua, 2 × Barrita, 3 × Chicle y 2 más',
+    ]);
+  });
+
   it('includes the 31st and leaves out the 1st of the next month', () => {
     ctx.clock.set(new Date(2026, 11, 15, 12));
     createExpense(ctx, { ...rent, paidAt: '2026-10-31' });

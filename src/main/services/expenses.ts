@@ -4,6 +4,9 @@ import type { Expense, ExpenseCategory, ExpenseMonth } from '../../shared/types'
 import { assertNotFuture, type Context, nowIso } from '../context';
 import * as repo from '../repos/expenses';
 
+/** Products named in a supplier payment's row in Gastos. */
+const SHOWN_PRODUCTS = 3;
+
 function getExpense(ctx: Context, id: number): Expense {
   const expense = repo.findExpense(ctx.db, id);
   if (!expense) throw new DomainError('NOT_FOUND');
@@ -34,7 +37,11 @@ export function getExpenseMonth(ctx: Context, month: string): ExpenseMonth {
   for (const expense of expenses) {
     if (!expense.voidedAt) byCategory.set(expense.category, (byCategory.get(expense.category) ?? 0) + expense.amountCents);
   }
-  const supplierPayments = repo.listSupplierPaymentsInMonth(ctx.db, month);
+  // Up to three products by name; the delivery's detail, a click away, has them all.
+  const supplierPayments = repo.listSupplierPaymentsInMonth(ctx.db, month, SHOWN_PRODUCTS).map(({ firstProducts, productCount, ...payment }) => ({
+    ...payment,
+    productsLabel: productCount > SHOWN_PRODUCTS ? `${firstProducts} y ${productCount - SHOWN_PRODUCTS} más` : firstProducts,
+  }));
   const supplierCents = supplierPayments.reduce((total, payment) => total + payment.amountCents, 0);
   return {
     expenses,
