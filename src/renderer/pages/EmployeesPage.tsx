@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import { Outlet, useMatch, useNavigate, useOutletContext } from 'react-router-dom';
 import type { Employee, EmployeeSummary, WorkShift } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
@@ -63,6 +63,8 @@ export function EmployeesPage() {
   });
   const stats = useAsync(() => call('staff:stats', { month }), [month], { keepPreviousData: true });
   const activeEmployees = employees.status === 'success' ? employees.data.filter((employee) => employee.active) : [];
+  // In Equipo each card loads its own hours; Turnos has no cards, so the button goes on top.
+  const onShifts = useMatch('/empleados/turnos') !== null;
 
   function reload() {
     employees.reload();
@@ -102,9 +104,11 @@ export function EmployeesPage() {
           subtitle="Cada turno se paga por hora y su costo entra en el balance del mes."
           actions={
             <>
-              <Button variant="secondary" disabled={activeEmployees.length === 0} onClick={() => setShiftFor({ employeeId: null })}>
-                Cargar horas
-              </Button>
+              {onShifts && (
+                <Button variant="secondary" disabled={activeEmployees.length === 0} onClick={() => setShiftFor({ employeeId: null })}>
+                  Cargar horas
+                </Button>
+              )}
               <Button onClick={() => setEditing('new')}>Nuevo empleado</Button>
             </>
           }
