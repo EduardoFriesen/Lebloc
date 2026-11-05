@@ -36,11 +36,18 @@ export const SUMMARY_SIDE = 'relative self-start @summary/main:col-start-2 @summ
 // Accent bar on the left, drawn inside the row so it doesn't shift the cells.
 const SELECTED = 'bg-sunken shadow-[inset_4px_0_0_var(--color-accent)]';
 
+interface SummaryTableProps<T> {
+  state: AsyncResult<T>;
+  rows: (data: T) => SummaryRow[];
+  /** Its place in the page: the side column by default; empty when it goes inside a side column with more below it. */
+  className?: string;
+}
+
 /** Side panel with the headline numbers of a list screen. */
-export function SummaryTable<T>({ state, rows }: { state: AsyncResult<T>; rows: (data: T) => SummaryRow[] }) {
+export function SummaryTable<T>({ state, rows, className = SUMMARY_SIDE }: SummaryTableProps<T>) {
   const id = useId();
   return (
-    <aside aria-labelledby={id} className={`rounded-2xl bg-surface p-5 shadow-warm ${SUMMARY_SIDE}`}>
+    <aside aria-labelledby={id} className={`rounded-2xl bg-surface p-5 shadow-warm ${className}`}>
       <h2 id={id} className="mb-3 font-display text-xl font-semibold">
         Resumen
       </h2>

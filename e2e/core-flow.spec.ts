@@ -20,10 +20,12 @@ test.afterAll(async () => {
 
 const label = (text: string) => page.getByLabel(text, { exact: true });
 const goToPasses = () => page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Pases', exact: true }).click();
+const goToPlans = () => page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Planes', exact: true }).click();
+const plansTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de planes' }).getByRole('link', { name, exact: true }).click();
 const passesTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de pases' }).getByRole('link', { name, exact: true }).click();
 
 test('sell with teacher, pay in parts, consume, void the last payment and pay the teacher', async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
   await page.getByRole('button', { name: 'Nuevo plan' }).click();
   await label('Nombre').fill('Pack 2+2');
   await label('Pases libres').fill('2');
@@ -90,7 +92,7 @@ test('sell with teacher, pay in parts, consume, void the last payment and pay th
 });
 
 test('sell fully paid by default, renew an exhausted plan, sign the waiver and go back', async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
   await page.getByRole('button', { name: 'Nuevo plan' }).click();
   await label('Nombre').fill('Pase suelto');
   await label('Pases libres').fill('1');
@@ -178,7 +180,7 @@ test('cards open from anywhere, not only from the name', async () => {
   await card.getByText('Pases libres').click({ force: true });
   await expect(page.getByRole('heading', { name: 'Ana Roca' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
   await page.getByRole('list', { name: 'Planes' }).getByRole('listitem').filter({ hasText: 'Pack 2+2' }).getByText(/Precio del local/).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Pack 2+2', level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Editar' }).click();
@@ -287,7 +289,7 @@ test('a pass marked at the counter shows in today entries and can be voided ther
 });
 
 test("a plan and a teacher list this month's enrollments", async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
   await page.getByRole('link', { name: 'Pack 2+2', exact: true }).click();
   await expect(page.getByRole('heading', { name: /^Inscriptos en / })).toBeVisible();
   await expect(page.getByRole('list', { name: /^Inscriptos en / }).getByRole('link', { name: 'Ana Roca' })).toBeVisible();
@@ -300,7 +302,8 @@ test("a plan and a teacher list this month's enrollments", async () => {
 });
 
 test('the plans page lists who bought which plan and when', async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
+  await plansTab('Ventas');
   const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
   await expect(sales.getByRole('row', { name: /Ana Roca\s+Pack 2\+2\s+Juan Pared/ })).toBeVisible();
   await expect(sales.getByRole('link', { name: 'Bruno Sierra' }).first()).toBeVisible();
@@ -395,7 +398,7 @@ test('backups get copied to an external folder, and a missing one warns on the c
 });
 
 test('extend a used trial into a pack, paying part now', async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
   for (const [name, passes, price] of [
     ['Prueba libre', '1', '1.000'],
     ['Pack 4 libres', '4', '8.000'],
@@ -457,7 +460,8 @@ test('cancel what is owed without it being income, and void the cancellation', a
 });
 
 test('the plans page shows how each sale was paid and ticks transfers as invoiced', async () => {
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
+  await plansTab('Ventas');
   const sales = page.getByRole('table', { name: 'Ventas de planes del mes' });
   // Carla paid the trial in cash and part of the pack by transfer: nothing to invoice until she pays it all.
   const carla = sales.getByRole('row', { name: /Carla Méndez\s+Pack 4 libres/ });
@@ -470,7 +474,8 @@ test('the plans page shows how each sale was paid and ticks transfers as invoice
   await label('Medio de pago').selectOption('transfer');
   await page.getByRole('button', { name: 'Confirmar pago' }).click();
   await expect(page.getByText('Saldada')).toBeVisible();
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
+  await plansTab('Ventas');
   await expect(invoiced).not.toBeChecked();
   await carla.getByRole('cell', { name: 'Pack 4 libres', exact: true }).click();
   await expect(invoiced).toBeChecked();
@@ -478,7 +483,8 @@ test('the plans page shows how each sale was paid and ticks transfers as invoice
   // It stays after leaving the screen, and Finanzas adds up her transfer as invoiced.
   await page.getByRole('link', { name: 'Finanzas' }).click();
   await expect(page.getByLabel('Totales del período')).toContainText(/Facturado\s*\$\s7\.000,00\s*de \$\s7\.000,00 en planes cobrados por transferencia/);
-  await page.getByRole('link', { name: 'Planes' }).click();
+  await goToPlans();
+  await plansTab('Ventas');
   await expect(invoiced).toBeChecked();
 
   await invoiced.click();

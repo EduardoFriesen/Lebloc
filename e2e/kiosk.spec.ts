@@ -223,6 +223,12 @@ test('a walk-in day pass with shoes is priced in Planes and lands in today movem
   await expect(page.getByRole('button', { name: /Pase del día/ })).toBeDisabled();
 
   await nav.getByRole('link', { name: 'Planes', exact: true }).click();
+  // In the side column, right below the summary, on both tabs.
+  await page.getByRole('navigation', { name: 'Secciones de planes' }).getByRole('link', { name: 'Ventas', exact: true }).click();
+  const summaryBox = await page.getByRole('complementary', { name: 'Resumen' }).boundingBox();
+  const pricesBox = await page.getByRole('region', { name: 'Precios sueltos' }).boundingBox();
+  expect(pricesBox?.x).toBe(summaryBox?.x);
+  expect(pricesBox?.y).toBeGreaterThan((summaryBox?.y ?? 0) + (summaryBox?.height ?? 0));
   await label('Pase libre del día').fill('8.000');
   await label('Alquiler de pédulas').fill('3.000');
   await page.getByRole('button', { name: 'Guardar precios' }).click();

@@ -20,6 +20,7 @@ test.afterAll(async () => {
 
 const label = (text: string) => page.getByLabel(text, { exact: true });
 const summary = () => page.getByRole('complementary');
+const staffTab = (name: string) => page.getByRole('navigation', { name: 'Secciones de empleados' }).getByRole('link', { name, exact: true }).click();
 
 test('record an expense, repeat it and void the copy', async () => {
   await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
@@ -71,7 +72,13 @@ test('add an employee and record a shift', async () => {
   await label('Horas').fill('4,5');
   await expect(page.getByText(/Costo estimado \$\s22\.500,00/)).toBeVisible();
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  // The card picks her shifts out of the month's.
+  await page.getByRole('button', { name: 'Lucía Paz', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Secciones de empleados' }).getByRole('link', { name: 'Turnos', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('row', { name: /Lucía Paz.*4,5 h/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Quitar filtro: Lucía Paz' }).click();
+  await staffTab('Equipo');
   await expect(summary()).toContainText(/Costo del mes\s*\$\s22\.500,00/);
 
   await page.getByRole('navigation').getByRole('link', { name: 'Gastos' }).click();
@@ -107,8 +114,10 @@ test('settle the hours owed to an employee and void the settlement', async () =>
   await slip.getByRole('button', { name: 'Cerrar' }).click();
 
   await expect(summary()).toContainText(/A pagar\s*\$\s0,00/);
+  await staffTab('Turnos');
   await expect(page.getByRole('row', { name: /Lucía Paz.*4,5 h.*Pagado/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Anular turno de Lucía Paz/ })).toBeHidden();
+  await staffTab('Equipo');
 
   await page.getByRole('button', { name: 'Liquidar sueldo de Lucía Paz' }).click();
   await slip.getByRole('button', { name: /^Anular liquidación del/ }).click();

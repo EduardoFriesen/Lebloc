@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { EmptyState } from './components/ui/States';
 import { ClientDetailPage } from './pages/ClientDetailPage';
 import { ClientsPage } from './pages/ClientsPage';
-import { EmployeesPage } from './pages/EmployeesPage';
+import { EmployeesPage, ShiftsTab, TeamTab } from './pages/EmployeesPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { FinancePage } from './pages/FinancePage';
 import { ClientsTab } from './pages/finance/ClientsTab';
@@ -13,7 +13,7 @@ import { TeachersTab } from './pages/finance/TeachersTab';
 import { TrafficTab } from './pages/finance/TrafficTab';
 import { HomePage, MovementsTab, PassesTab } from './pages/HomePage';
 import { KioskPage, KioskProductsTab, KioskPurchasesTab, KioskSalesTab } from './pages/KioskPage';
-import { PlansPage } from './pages/PlansPage';
+import { PlanSalesTab, PlansPage, PlansTab } from './pages/PlansPage';
 import { PlanDetailPage } from './pages/PlanDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeacherAccountPage } from './pages/TeacherAccountPage';
@@ -42,7 +42,10 @@ export function AppRoutes() {
         </Route>
         <Route path="clientes" element={<ClientsPage />} />
         <Route path="clientes/:id" element={<ClientDetailPage />} />
-        <Route path="planes" element={<PlansPage />} />
+        <Route path="planes" element={<PlansPage />}>
+          <Route index element={<PlansTab />} />
+          <Route path="ventas" element={<PlanSalesTab />} />
+        </Route>
         <Route path="planes/:id" element={<PlanDetailPage />} />
         <Route path="kiosco" element={<KioskPage />}>
           <Route index element={<KioskSalesTab />} />
@@ -51,7 +54,10 @@ export function AppRoutes() {
         </Route>
         <Route path="profesores" element={<TeachersPage />} />
         <Route path="profesores/:id" element={<TeacherAccountPage />} />
-        <Route path="empleados" element={<EmployeesPage />} />
+        <Route path="empleados" element={<EmployeesPage />}>
+          <Route index element={<TeamTab />} />
+          <Route path="turnos" element={<ShiftsTab />} />
+        </Route>
         <Route path="gastos" element={<ExpensesPage />} />
         <Route path="finanzas" element={<FinancePage />}>
           <Route index element={<SummaryTab />} />

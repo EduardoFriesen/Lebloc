@@ -1,5 +1,5 @@
 import { type FormEvent, useId, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { parseMoneyInput } from '../../shared/money';
 import { planInput } from '../../shared/schemas';
 import type { CounterPrices, Plan, PlanSale } from '../../shared/types';
@@ -12,34 +12,52 @@ import { Notice, type NoticeState } from '../components/ui/Notice';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
-import { Stripe } from '../components/ui/Stripe';
 import {
   ClearFilter,
-  STICKY_HEADING,
   SUMMARY_LIST,
+  SUMMARY_SIDE,
   SUMMARY_TOP,
   SummaryTable,
   SummaryValue,
   WITH_SUMMARY,
 } from '../components/ui/SummaryTable';
+import { TabNav } from '../components/ui/TabNav';
 import { clickRowBox, FillerRows, MARKED_ROW, ROW_BOX, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { currentMonthIso, formatDate, formatMoney, formatMoneyInput, PAYMENT_METHOD_LABELS } from '../lib/format';
 import { errorMessage, type FieldErrors, MONEY_ERROR, toFieldErrors } from '../lib/formErrors';
-import { useAsync } from '../lib/useAsync';
+import { type AsyncResult, useAsync } from '../lib/useAsync';
 
 export function passesSummary(plan: Plan): string {
   const parts = [plan.freePasses > 0 && `${plan.freePasses} ${plan.freePasses === 1 ? 'libre' : 'libres'}`, plan.teacherPasses > 0 && `${plan.teacherPasses} con profesor`];
   return parts.filter(Boolean).join(' · ');
 }
 
+/** What the tabs get from the page: the plans (the sales filter by them too), the summary's filter and the edit form. */
+interface PlansContext {
+  plans: AsyncResult<Plan[]>;
+  onlyActive: boolean | null;
+  edit: (plan: Plan) => void;
+}
+
+const TABS = [
+  { to: '/planes', label: 'Planes', end: true },
+  { to: '/planes/ventas', label: 'Ventas' },
+] as const;
+
+/** Header, tabs and the side column (summary and walk-in prices); the open tab goes in between. */
 export function PlansPage() {
+  const navigate = useNavigate();
   // Picked from the summary: only active (true), only inactive (false) or all (null).
   const [onlyActive, setOnlyActive] = useState<boolean | null>(null);
   const plans = useAsync(() => call('plans:list', { includeInactive: true }), []);
-  const shown = (data: Plan[]) => data.filter((plan) => onlyActive === null || plan.active === onlyActive);
   const stats = useAsync(() => call('plans:stats', {}), []);
   const [editing, setEditing] = useState<Plan | 'new' | null>(null);
+
+  function pick(active: boolean) {
+    setOnlyActive(active);
+    void navigate('/planes');
+  }
 
   function saved() {
     setEditing(null);
@@ -55,69 +73,87 @@ export function PlansPage() {
           subtitle="Packs de pases. Si incluyen clases con profesor, su monto se suma al precio del local al vender."
           actions={<Button onClick={() => setEditing('new')}>Nuevo plan</Button>}
         />
+        <div className="mb-4 border-b border-ink/10">
+          <TabNav label="Secciones de planes" tabs={TABS} />
+        </div>
         {onlyActive !== null && <ClearFilter label={onlyActive ? 'Activos' : 'Inactivos'} onClear={() => setOnlyActive(null)} />}
       </div>
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6`}>
-        <CounterPricesSection />
-        <AsyncView
-          state={plans}
-          isEmpty={(data) => shown(data).length === 0}
-          empty={
-            onlyActive === null ? (
-              <EmptyState title="Todavía no hay planes">
-                <p className="text-sm">Creá el primero con “Nuevo plan”.</p>
-              </EmptyState>
-            ) : (
-              <EmptyState title={onlyActive ? 'No hay planes activos' : 'No hay planes inactivos'} />
-            )
-          }
-        >
-          {(data) => (
-            <CardGrid label="Planes">
-              {shown(data).map((plan) => (
-                <Card
-                  key={plan.id}
-                  to={`/planes/${plan.id}`}
-                  title={plan.name}
-                  subtitle={passesSummary(plan)}
-                  muted={!plan.active}
-                  badges={!plan.active && <Badge>Inactivo</Badge>}
-                  actions={
-                    <Button variant="edit" aria-label={`Editar ${plan.name}`} onClick={() => setEditing(plan)}>
-                      Editar
-                    </Button>
-                  }
-                >
-                  <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
-                  <p className="-mt-2 text-xs text-ink-soft">
-                    Precio del local
-                    {plan.teacherPasses > 0 &&
-                      (plan.teacherAmountCents > 0 ? ` + ${formatMoney(plan.teacherAmountCents)} para el profesor` : ' · falta el monto para el profesor')}
-                  </p>
-                </Card>
-              ))}
-            </CardGrid>
-          )}
-        </AsyncView>
-        <Stripe />
-        <PlanSalesSection plans={plans.status === 'success' ? plans.data : []} />
+      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-16`}>
+        <Outlet context={{ plans, onlyActive, edit: setEditing } satisfies PlansContext} />
       </div>
-      <SummaryTable
-        state={stats}
-        rows={(data) => [
-          { label: 'Activos', value: <SummaryValue count={data.active} />, onSelect: () => setOnlyActive(true), selected: onlyActive === true },
-          { label: 'Inactivos', value: <SummaryValue count={data.inactive} />, onSelect: () => setOnlyActive(false), selected: onlyActive === false },
-          {
-            label: 'Vendidos este mes',
-            value: <SummaryValue count={data.monthSales} amount={data.monthSales > 0 ? formatMoney(data.monthLocalCents) : undefined} />,
-          },
-        ]}
-      />
+      <div className={`${SUMMARY_SIDE} flex flex-col gap-6`}>
+        <SummaryTable
+          className=""
+          state={stats}
+          rows={(data) => [
+            { label: 'Activos', value: <SummaryValue count={data.active} />, onSelect: () => pick(true), selected: onlyActive === true },
+            { label: 'Inactivos', value: <SummaryValue count={data.inactive} />, onSelect: () => pick(false), selected: onlyActive === false },
+            {
+              label: 'Vendidos este mes',
+              value: <SummaryValue count={data.monthSales} amount={data.monthSales > 0 ? formatMoney(data.monthLocalCents) : undefined} />,
+            },
+          ]}
+        />
+        <CounterPricesSection />
+      </div>
       <Dialog open={editing !== null} title={editing === 'new' ? 'Nuevo plan' : 'Editar plan'} onClose={() => setEditing(null)}>
         {editing !== null && <PlanForm plan={editing === 'new' ? null : editing} onSaved={saved} onCancel={() => setEditing(null)} />}
       </Dialog>
     </section>
   );
+}
+
+/** The plans as cards, filtered from the summary. */
+export function PlansTab() {
+  const { plans, onlyActive, edit } = useOutletContext<PlansContext>();
+  const shown = (data: Plan[]) => data.filter((plan) => onlyActive === null || plan.active === onlyActive);
+  return (
+    <AsyncView
+      state={plans}
+      isEmpty={(data) => shown(data).length === 0}
+      empty={
+        onlyActive === null ? (
+          <EmptyState title="Todavía no hay planes">
+            <p className="text-sm">Creá el primero con “Nuevo plan”.</p>
+          </EmptyState>
+        ) : (
+          <EmptyState title={onlyActive ? 'No hay planes activos' : 'No hay planes inactivos'} />
+        )
+      }
+    >
+      {(data) => (
+        <CardGrid label="Planes">
+          {shown(data).map((plan) => (
+            <Card
+              key={plan.id}
+              to={`/planes/${plan.id}`}
+              title={plan.name}
+              subtitle={passesSummary(plan)}
+              muted={!plan.active}
+              badges={!plan.active && <Badge>Inactivo</Badge>}
+              actions={
+                <Button variant="edit" aria-label={`Editar ${plan.name}`} onClick={() => edit(plan)}>
+                  Editar
+                </Button>
+              }
+            >
+              <p className="font-display text-2xl leading-tight">{formatMoney(plan.priceCents)}</p>
+              <p className="-mt-2 text-xs text-ink-soft">
+                Precio del local
+                {plan.teacherPasses > 0 &&
+                  (plan.teacherAmountCents > 0 ? ` + ${formatMoney(plan.teacherAmountCents)} para el profesor` : ' · falta el monto para el profesor')}
+              </p>
+            </Card>
+          ))}
+        </CardGrid>
+      )}
+    </AsyncView>
+  );
+}
+
+export function PlanSalesTab() {
+  const { plans } = useOutletContext<PlansContext>();
+  return <PlanSalesSection plans={plans.status === 'success' ? plans.data : []} />;
 }
 
 export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: () => void; onCancel: () => void }) {
@@ -220,7 +256,6 @@ export function PlanForm({ plan, onSaved, onCancel }: { plan: Plan | null; onSav
 
 /** Who bought which plan and when, one month at a time. */
 function PlanSalesSection({ plans }: { plans: Plan[] }) {
-  const headingId = useId();
   const [month, setMonth] = useState(currentMonthIso());
   const [planId, setPlanId] = useState<number | null>(null);
   const sales = useAsync(() => call('plans:sales', { month, planId: planId ?? undefined }), [month, planId], { keepPreviousData: true });
@@ -245,10 +280,7 @@ function PlanSalesSection({ plans }: { plans: Plan[] }) {
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className={`font-display text-2xl font-semibold ${STICKY_HEADING}`}>
-        Ventas
-      </h2>
+    <section aria-label="Ventas" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-4">
         <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
         <SelectField label="Plan" value={planId ?? ''} onChange={(event) => setPlanId(event.target.value ? Number(event.target.value) : null)}>
@@ -410,19 +442,12 @@ function CounterPricesForm({ prices }: { prices: CounterPrices }) {
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-start gap-4">
-        <MoneyField label="Pase libre del día" value={dayPass} onChange={(event) => setDayPass(event.target.value)} error={errors.dayPassCents} />
-        <MoneyField
-          label="Alquiler de pédulas"
-          value={shoeRental}
-          onChange={(event) => setShoeRental(event.target.value)}
-          error={errors.shoeRentalCents}
-        />
-        <Button type="submit" disabled={busy} className="mt-6">
-          Guardar precios
-        </Button>
-      </div>
+      <MoneyField label="Pase libre del día" value={dayPass} onChange={(event) => setDayPass(event.target.value)} error={errors.dayPassCents} />
+      <MoneyField label="Alquiler de pédulas" value={shoeRental} onChange={(event) => setShoeRental(event.target.value)} error={errors.shoeRentalCents} />
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+      <Button type="submit" disabled={busy} className="self-start">
+        Guardar precios
+      </Button>
     </form>
   );
 }

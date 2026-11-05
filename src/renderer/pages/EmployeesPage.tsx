@@ -1,4 +1,5 @@
-import { useId, useState } from 'react';
+import { useState } from 'react';
+import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import type { Employee, EmployeeSummary, WorkShift } from '../../shared/types';
 import { Button } from '../components/ui/Button';
 import { Badge, Card, CardGrid, Stat, StatRow } from '../components/ui/Card';
@@ -8,32 +9,41 @@ import { CheckboxField, TextField } from '../components/ui/Field';
 import { PageBar, usePage } from '../components/ui/Pager';
 import { PageHeader } from '../components/ui/PageHeader';
 import { AsyncView, EmptyState } from '../components/ui/States';
-import { Stripe } from '../components/ui/Stripe';
-import {
-  ClearFilter,
-  STICKY_HEADING,
-  SUMMARY_LIST,
-  SUMMARY_TOP,
-  SummaryTable,
-  SummaryValue,
-  WITH_SUMMARY,
-} from '../components/ui/SummaryTable';
+import { ClearFilter, SUMMARY_LIST, SUMMARY_TOP, SummaryTable, SummaryValue, WITH_SUMMARY } from '../components/ui/SummaryTable';
+import { TabNav } from '../components/ui/TabNav';
 import { FillerRows, TABLE_PAGE_SIZE, tableClass } from '../components/ui/table';
 import { call } from '../lib/api';
 import { currentMonthIso, EMPLOYEE_KIND_LABELS, formatDate, formatHours, formatMoney, fullName } from '../lib/format';
-import { useAsync } from '../lib/useAsync';
+import { type AsyncResult, useAsync } from '../lib/useAsync';
 import { EmployeeForm } from './EmployeeForm';
 import { PayslipView } from './PayslipView';
 import { ShiftForm } from './ShiftForm';
 
-const HEADING = 'font-display text-2xl font-semibold';
+/** What the tabs get from the page: the month's data, the filters and the forms, which the page keeps open over both. */
+interface StaffContext {
+  month: string;
+  employees: AsyncResult<EmployeeSummary[]>;
+  shifts: AsyncResult<WorkShift[]>;
+  includeInactive: boolean;
+  setIncludeInactive: (value: boolean) => void;
+  /** Picked from a card: the shifts show only this employee. */
+  selected: Employee | null;
+  setSelected: (employee: Employee | null) => void;
+  edit: (employee: Employee) => void;
+  loadHours: (employeeId: number) => void;
+  payslip: (employee: EmployeeSummary) => void;
+  askVoid: (shift: WorkShift) => void;
+}
 
+const TABS = [
+  { to: '/empleados', label: 'Equipo', end: true },
+  { to: '/empleados/turnos', label: 'Turnos' },
+] as const;
+
+/** Header, tabs, the month and the summary; the open tab goes in between. */
 export function EmployeesPage() {
-  const teamId = useId();
-  const shiftsId = useId();
   const [month, setMonth] = useState(currentMonthIso());
   const [includeInactive, setIncludeInactive] = useState(false);
-  // Picked from a card: the shifts table shows only this employee.
   const [selected, setSelected] = useState<Employee | null>(null);
   const [editing, setEditing] = useState<Employee | 'new' | null>(null);
   // Open shift form, with the employee it starts on (null: the first active one).
@@ -65,6 +75,20 @@ export function EmployeesPage() {
     });
   }
 
+  const context: StaffContext = {
+    month,
+    employees,
+    shifts,
+    includeInactive,
+    setIncludeInactive,
+    selected,
+    setSelected,
+    edit: setEditing,
+    loadHours: (employeeId) => setShiftFor({ employeeId }),
+    payslip: setPayslipFor,
+    askVoid,
+  };
+
   return (
     <section className={WITH_SUMMARY}>
       <div className={SUMMARY_TOP}>
@@ -80,90 +104,15 @@ export function EmployeesPage() {
             </>
           }
         />
-        <div className="mb-4 flex flex-wrap items-end gap-6">
-          <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
-          <div className="pb-2">
-            <CheckboxField label="Mostrar inactivos" checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
-          </div>
+        <div className="mb-4 border-b border-ink/10">
+          <TabNav label="Secciones de empleados" tabs={TABS} />
         </div>
-        {selected && <ClearFilter label={fullName(selected)} onClear={() => setSelected(null)} />}
+        <div className="mb-4 flex">
+          <TextField label="Mes" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
+        </div>
       </div>
-      <div className={`${SUMMARY_LIST} flex flex-col gap-6 @summary/main:scroll-pt-16`}>
-        <section aria-labelledby={teamId} className="flex flex-col gap-3">
-          <h2 id={teamId} className={HEADING}>
-            Equipo
-          </h2>
-          <AsyncView
-            state={employees}
-            isEmpty={(data) => data.length === 0}
-            empty={
-              <EmptyState title={includeInactive ? 'Todavía no hay empleados' : 'No hay empleados activos'}>
-                <p className="text-sm">Cargá uno con “Nuevo empleado” y después sus horas con “Cargar horas”.</p>
-              </EmptyState>
-            }
-          >
-            {(data) => (
-              <CardGrid label="Empleados">
-                {data.map((employee) => (
-                  <Card
-                    key={employee.id}
-                    onSelect={() => setSelected(employee)}
-                    title={fullName(employee)}
-                    subtitle={`${formatMoney(employee.hourlyRateCents)} por hora`}
-                    muted={!employee.active}
-                    badges={
-                      <>
-                        <Badge>{EMPLOYEE_KIND_LABELS[employee.kind]}</Badge>
-                        {!employee.active && <Badge>Inactivo</Badge>}
-                      </>
-                    }
-                    actions={
-                      <>
-                        {employee.active && (
-                          <Button
-                            variant="secondary"
-                            aria-label={`Cargar horas de ${fullName(employee)}`}
-                            onClick={() => setShiftFor({ employeeId: employee.id })}
-                          >
-                            Cargar horas
-                          </Button>
-                        )}
-                        <Button variant="primary" aria-label={`Liquidar sueldo de ${fullName(employee)}`} onClick={() => setPayslipFor(employee)}>
-                          Liquidar
-                        </Button>
-                        <Button variant="edit" aria-label={`Editar ${fullName(employee)}`} onClick={() => setEditing(employee)}>
-                          Editar
-                        </Button>
-                      </>
-                    }
-                  >
-                    <StatRow>
-                      <Stat label="Horas del mes">{formatHours(employee.monthMinutes)}</Stat>
-                      <Stat label="Costo del mes">{formatMoney(employee.monthCostCents)}</Stat>
-                      <Stat label="A pagar">{formatMoney(employee.pendingCents)}</Stat>
-                    </StatRow>
-                  </Card>
-                ))}
-              </CardGrid>
-            )}
-          </AsyncView>
-        </section>
-        <Stripe />
-        <section aria-labelledby={shiftsId} className="flex flex-col gap-3">
-          <h2 id={shiftsId} className={`${HEADING} ${STICKY_HEADING}`}>
-            Turnos
-          </h2>
-          <AsyncView state={shifts}>
-            {(data) => (
-              <ShiftsTable
-                key={`${month}|${selected?.id ?? ''}`}
-                shifts={data}
-                empty={selected ? `${fullName(selected)} no tiene turnos este mes` : 'No hay turnos cargados este mes'}
-                onVoid={askVoid}
-              />
-            )}
-          </AsyncView>
-        </section>
+      <div className={`${SUMMARY_LIST} flex flex-col gap-4`}>
+        <Outlet context={context} />
       </div>
       <SummaryTable
         state={stats}
@@ -212,6 +161,90 @@ export function EmployeesPage() {
           reload();
         }}
       />
+    </section>
+  );
+}
+
+/** The employees as cards, with the month's hours and cost; a card opens its shifts. */
+export function TeamTab() {
+  const { employees, includeInactive, setIncludeInactive, setSelected, edit, loadHours, payslip } = useOutletContext<StaffContext>();
+  const navigate = useNavigate();
+  return (
+    <section aria-label="Equipo" className="flex flex-col gap-4">
+      <CheckboxField label="Mostrar inactivos" checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
+      <AsyncView
+        state={employees}
+        isEmpty={(data) => data.length === 0}
+        empty={
+          <EmptyState title={includeInactive ? 'Todavía no hay empleados' : 'No hay empleados activos'}>
+            <p className="text-sm">Cargá uno con “Nuevo empleado” y después sus horas con “Cargar horas”.</p>
+          </EmptyState>
+        }
+      >
+        {(data) => (
+          <CardGrid label="Empleados">
+            {data.map((employee) => (
+              <Card
+                key={employee.id}
+                onSelect={() => {
+                  setSelected(employee);
+                  void navigate('/empleados/turnos');
+                }}
+                title={fullName(employee)}
+                subtitle={`${formatMoney(employee.hourlyRateCents)} por hora`}
+                muted={!employee.active}
+                badges={
+                  <>
+                    <Badge>{EMPLOYEE_KIND_LABELS[employee.kind]}</Badge>
+                    {!employee.active && <Badge>Inactivo</Badge>}
+                  </>
+                }
+                actions={
+                  <>
+                    {employee.active && (
+                      <Button variant="secondary" aria-label={`Cargar horas de ${fullName(employee)}`} onClick={() => loadHours(employee.id)}>
+                        Cargar horas
+                      </Button>
+                    )}
+                    <Button variant="primary" aria-label={`Liquidar sueldo de ${fullName(employee)}`} onClick={() => payslip(employee)}>
+                      Liquidar
+                    </Button>
+                    <Button variant="edit" aria-label={`Editar ${fullName(employee)}`} onClick={() => edit(employee)}>
+                      Editar
+                    </Button>
+                  </>
+                }
+              >
+                <StatRow>
+                  <Stat label="Horas del mes">{formatHours(employee.monthMinutes)}</Stat>
+                  <Stat label="Costo del mes">{formatMoney(employee.monthCostCents)}</Stat>
+                  <Stat label="A pagar">{formatMoney(employee.pendingCents)}</Stat>
+                </StatRow>
+              </Card>
+            ))}
+          </CardGrid>
+        )}
+      </AsyncView>
+    </section>
+  );
+}
+
+/** The month's shifts, of everyone or of the employee picked from a card. */
+export function ShiftsTab() {
+  const { month, shifts, selected, setSelected, askVoid } = useOutletContext<StaffContext>();
+  return (
+    <section aria-label="Turnos" className="flex flex-col gap-3">
+      {selected && <ClearFilter label={fullName(selected)} onClear={() => setSelected(null)} />}
+      <AsyncView state={shifts}>
+        {(data) => (
+          <ShiftsTable
+            key={`${month}|${selected?.id ?? ''}`}
+            shifts={data}
+            empty={selected ? `${fullName(selected)} no tiene turnos este mes` : 'No hay turnos cargados este mes'}
+            onVoid={askVoid}
+          />
+        )}
+      </AsyncView>
     </section>
   );
 }
