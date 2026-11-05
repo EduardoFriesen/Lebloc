@@ -86,7 +86,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
           Desarchivar
         </Button>
         <Button
-          variant="danger"
+          variant="danger-outline"
           onClick={() =>
             setPending({
               title: 'Anonimizar cliente',
@@ -136,7 +136,7 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
       )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_2fr]">
         <div className="flex flex-col gap-6 self-start">
-          <PassesPanel account={account} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
+          <PassesPanel account={account} archived={archived} disabled={archived || busy} onConsume={consume} onSell={() => setSelling({})} />
           <ClientInfoPanel client={client}>
             <WaiverSection
               account={account}
@@ -308,19 +308,22 @@ function ClientAccountView({ account, reload }: { account: ClientAccount; reload
 
 interface PassesPanelProps {
   account: ClientAccount;
+  /** No longer a client: nothing to renew. */
+  archived: boolean;
   disabled: boolean;
   onConsume: (kind: PassKind) => void;
   onSell: () => void;
 }
 
-function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps) {
+function PassesPanel({ account, archived, disabled, onConsume, onSell }: PassesPanelProps) {
+  const left = account.remainingFree + account.remainingTeacher;
   return (
     <section aria-labelledby="pases-title" className="flex flex-col gap-3 rounded-2xl bg-dusk p-5 text-cream shadow-warm">
       <h2 id="pases-title" className="font-display text-2xl font-semibold">
         Pases
       </h2>
       <p className="font-display text-6xl leading-none">
-        {account.remainingFree + account.remainingTeacher}
+        {left}
         <span className="ml-2 font-sans text-sm text-cream/75">disponibles</span>
       </p>
       <div className="flex flex-col gap-1 text-sm">
@@ -328,9 +331,9 @@ function PassesPanel({ account, disabled, onConsume, onSell }: PassesPanelProps)
         <p>Con profesor restantes: {account.remainingTeacher}</p>
         {account.expiresAt && <p>Vencen el {formatDate(account.expiresAt)}</p>}
       </div>
-      {account.lowOnPasses && (
+      {account.lowOnPasses && !archived && (
         <p role="status" className="rounded-xl bg-ochre px-3 py-2 text-sm font-semibold text-night">
-          Quedan pocos pases o están por vencer: ofrecé renovar el plan.
+          {left === 0 ? 'No le quedan pases' : 'Quedan pocos pases o están por vencer'}: ofrecé renovar el plan.
         </p>
       )}
       {account.debtCents > 0 && <p className="font-semibold text-peach">Deuda total {formatMoney(account.debtCents)}</p>}

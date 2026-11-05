@@ -427,6 +427,7 @@ test('extend a used trial into a pack, paying part now', async () => {
   await expect(page.getByText('Saldada')).toBeVisible();
   await page.getByRole('button', { name: 'Consumir libre' }).click();
   await expect(page.getByText('Pases: 0 libres · 0 con profesor')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'renovar' })).toHaveText('No le quedan pases: ofrecé renovar el plan.');
 
   // After the class she stays: the trial becomes the pack, its payment and its class count.
   await page.getByRole('button', { name: 'Extender' }).click();

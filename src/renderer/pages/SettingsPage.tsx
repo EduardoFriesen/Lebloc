@@ -225,7 +225,7 @@ function BackupPanel({ onAudited }: { onAudited: () => void }) {
           Exportar backup
         </Button>
         <Button
-          variant="danger"
+          variant="danger-outline"
           onClick={() =>
             setRestoreRequest({
               title: 'Restaurar backup',

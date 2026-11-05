@@ -190,3 +190,10 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// The sample data has an archived client whose plan ran out: no point offering a renewal there.
+test('an archived client is not offered a renewal', async () => {
+  await page.evaluate("window.location.hash = '#/clientes/3'");
+  await expect(page.getByText('Archivado', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('Libres restantes: 0')).toBeVisible();
+  await expect(page.getByText(/ofrecé renovar el plan/)).toHaveCount(0);
+});
